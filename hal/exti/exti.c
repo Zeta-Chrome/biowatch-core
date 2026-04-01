@@ -16,7 +16,7 @@ void hal_exti_init(exti_conf_t *conf)
     BW_ASSERT(conf->irq_priority < 16, "Invalid IRQ Priority %d (Expected 0-15)", conf->irq_priority);
 
     // Configure as input pin
-    gpio_conf_t int_conf = gpio_conf_input(conf->gpio, GPIO_PULL_NONE);  // Has external interrupt
+    gpio_conf_t int_conf = gpio_conf_input(conf->gpio, GPIO_PULL_NONE);
     hal_gpio_init(&int_conf);
 
     // Enable interrupt
@@ -34,7 +34,8 @@ void hal_exti_init(exti_conf_t *conf)
     {
         reg_set_bit(&EXTI->RTSR1, pin);
     }
-    else if ((conf->edge & EXTI_EDGE_FALLING) != 0)
+    
+    if ((conf->edge & EXTI_EDGE_FALLING) != 0)
     {
         reg_set_bit(&EXTI->FTSR1, pin);
     }
@@ -48,7 +49,7 @@ void hal_exti_init(exti_conf_t *conf)
 void hal_exti_isr(uint8_t line)
 {
     // Clear pending bit
-    reg_set_bit(&EXTI->PR1, line);
+    EXTI->PR1 = (1U << line);  
 
     if (g_exti_callbacks[line] != NULL)
         g_exti_callbacks[line]();
