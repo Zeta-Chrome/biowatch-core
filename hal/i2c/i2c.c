@@ -35,6 +35,23 @@ static void i2c_gpio_init(i2c_conf_t *conf)
 void hal_i2c_init(i2c_conf_t *conf)
 {
     BW_ASSERT(conf->dnf < 16, "Invalid DNF: %d (Expected 0-15)", conf->dnf);
+    BW_ASSERT(conf->irq_priority < 16, "Invalid IRQ Priority %d (Expected 0-15)", conf->irq_priority);
+
+    // Enable irq
+    if (conf->i2c == I2C1)
+    {
+        NVIC_EnableIRQ(I2C1_EV_IRQn);
+        NVIC_EnableIRQ(I2C1_ER_IRQn);
+        NVIC_SetPriority(I2C1_EV_IRQn, conf->irq_priority);
+        NVIC_SetPriority(I2C1_ER_IRQn, conf->irq_priority);
+    }
+    else if (conf->i2c == I2C3)
+    {
+        NVIC_EnableIRQ(I2C3_EV_IRQn);
+        NVIC_EnableIRQ(I2C3_ER_IRQn);
+        NVIC_SetPriority(I2C3_EV_IRQn, conf->irq_priority);
+        NVIC_SetPriority(I2C3_ER_IRQn, conf->irq_priority);
+    }
 
     // Configure I2C clock
     i2c_clock_init(conf->i2c);
@@ -204,7 +221,7 @@ void hal_i2c_ev_isr(i2c_perip_t type)
 {
     i2c_handle_t *handle = g_i2c_handles[type];
     I2C_TypeDef *i2c = handle->i2c;
-    
+
     if (reg_get_bit(&i2c->ISR, I2C_ISR_STOPF_Pos) || reg_get_bit(&i2c->ISR, I2C_ISR_NACKF_Pos))
     {
         // Clear all interrupt bits
@@ -244,7 +261,7 @@ void hal_i2c_ev_isr(i2c_perip_t type)
     {
         // clear trasmission and receiver interrupts
         reg_clear_bit(&handle->i2c->CR1, I2C_CR1_TXIE_Pos);
-        reg_clear_bit(&handle->i2c->CR1, I2C_CR1_RXIE_Pos); 
+        reg_clear_bit(&handle->i2c->CR1, I2C_CR1_RXIE_Pos);
 
         // callback to continue the repeated start
         handle->on_complete(STATUS_I2C_REPEATED_START);

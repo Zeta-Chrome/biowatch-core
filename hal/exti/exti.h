@@ -2,6 +2,7 @@
 #define HAL_EXTI_H
 
 #include "hal/gpio/gpio_types.h"
+#include "stm32wb55xx.h"
 
 typedef enum 
 {
@@ -16,6 +17,8 @@ typedef struct
 {
     gpio_t gpio;
     exti_edge_t edge;
+    IRQn_Type irq; 
+    uint8_t irq_priority; // 0-15
     exti_callback_t on_interrupt; 
 } exti_conf_t;
 

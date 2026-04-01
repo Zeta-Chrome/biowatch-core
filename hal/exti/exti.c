@@ -1,8 +1,10 @@
+#include "hal/gpio/gpio.h"
 #include "stm32wb55xx.h"
 #include "hal/reg.h"
 #include "hal/exti/exti.h"
+#include "utils/assert.h"
 
-#define NULL ((void*)0)
+#define NULL ((void *)0)
 #define MAX_EXTI_LINES 16
 
 static exti_callback_t g_exti_callbacks[MAX_EXTI_LINES];
@@ -11,6 +13,16 @@ uint8_t gpio_port_index(GPIO_TypeDef *port);
 
 void hal_exti_init(exti_conf_t *conf)
 {
+    BW_ASSERT(conf->irq_priority < 16, "Invalid IRQ Priority %d (Expected 0-15)", conf->irq_priority);
+
+    // Configure as input pin
+    gpio_conf_t int_conf = gpio_conf_input(conf->gpio, GPIO_PULL_NONE);  // Has external interrupt
+    hal_gpio_init(&int_conf);
+
+    // Enable interrupt
+    NVIC_EnableIRQ(conf->irq);
+    NVIC_SetPriority(conf->irq, conf->irq_priority);
+
     uint8_t port = gpio_port_index(conf->gpio.port);
     uint8_t pin = conf->gpio.pin;
 

@@ -37,9 +37,22 @@ static void spi_gpio_init(spi_conf_t *conf)
 
 void hal_spi_init(spi_conf_t *conf)
 {
+    BW_ASSERT(conf->irq_priority < 16, "Invalid IRQ Priority %d (Expected 0-15)", conf->irq_priority);
+
     // Clock init
     spi_clock_init(conf->spi);
 
+    // Enable IRQ
+    if (conf->spi == SPI1)
+    {
+        NVIC_EnableIRQ(SPI1_IRQn);
+        NVIC_SetPriority(SPI1_IRQn, conf->irq_priority);
+    }
+    else if (conf->spi == SPI2)
+    {
+        NVIC_EnableIRQ(SPI2_IRQn);
+        NVIC_SetPriority(SPI2_IRQn, conf->irq_priority);
+    }
     // GPIO init
     spi_gpio_init(conf);
 
@@ -111,10 +124,10 @@ void hal_spi_isr(spi_perip_t type)
 
     if (reg_get_bit(&handle->spi->SR, SPI_SR_TXE_Pos))
     {
-        *(__IO uint8_t*)&handle->spi->DR = *(handle->tx_buf + handle->tx_count++);
+        *(__IO uint8_t *)&handle->spi->DR = *(handle->tx_buf + handle->tx_count++);
         if (handle->write_sz > 8)
         {
-            *(__IO uint8_t*)&handle->spi->DR = *(handle->tx_buf + handle->tx_count++);
+            *(__IO uint8_t *)&handle->spi->DR = *(handle->tx_buf + handle->tx_count++);
         }
         return;
     }

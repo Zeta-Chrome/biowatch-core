@@ -75,6 +75,7 @@ typedef struct
     spi_mode_t mode; 
     spi_bidioe_t bidioe; 
     spi_format_t frame_format;
+    uint8_t irq_priority; // 0 - 15
 } spi_conf_t;
 
 typedef struct 

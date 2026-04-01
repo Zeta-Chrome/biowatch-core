@@ -34,6 +34,7 @@ typedef struct
     I2C_TypeDef *i2c;
     i2c_speed_t speed;
     uint8_t dnf;  // 0->15
+    uint8_t irq_priority;
 } i2c_conf_t;
 
 typedef struct
