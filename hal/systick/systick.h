@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+void hal_systick_init();
+
 uint32_t hal_systick_millis();
 uint32_t hal_systick_micros();
 
