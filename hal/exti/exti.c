@@ -19,10 +19,6 @@ void hal_exti_init(exti_conf_t *conf)
     gpio_conf_t int_conf = gpio_conf_input(conf->gpio, GPIO_PULL_NONE);
     hal_gpio_init(&int_conf);
 
-    // Enable interrupt
-    NVIC_EnableIRQ(conf->irq);
-    NVIC_SetPriority(conf->irq, conf->irq_priority);
-
     uint8_t port = gpio_port_index(conf->gpio.port);
     uint8_t pin = conf->gpio.pin;
 
@@ -34,7 +30,7 @@ void hal_exti_init(exti_conf_t *conf)
     {
         reg_set_bit(&EXTI->RTSR1, pin);
     }
-    
+
     if ((conf->edge & EXTI_EDGE_FALLING) != 0)
     {
         reg_set_bit(&EXTI->FTSR1, pin);
@@ -44,12 +40,16 @@ void hal_exti_init(exti_conf_t *conf)
     reg_set_bit(&EXTI->IMR1, pin);
 
     g_exti_callbacks[pin] = conf->on_interrupt;
+
+    // Enable interrupt
+    NVIC_EnableIRQ(conf->irq);
+    NVIC_SetPriority(conf->irq, conf->irq_priority);
 }
 
 void hal_exti_isr(uint8_t line)
 {
     // Clear pending bit
-    EXTI->PR1 = (1U << line);  
+    EXTI->PR1 = (1U << line);
 
     if (g_exti_callbacks[line] != NULL)
         g_exti_callbacks[line]();
