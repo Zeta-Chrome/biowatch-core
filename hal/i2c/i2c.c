@@ -296,6 +296,16 @@ void hal_i2c_er_isr(i2c_perip_t type)
 
 void hal_i2c_deinit(I2C_TypeDef *i2c)
 {
+    if (i2c == I2C1)
+    {
+        NVIC_DisableIRQ(I2C1_EV_IRQn);
+        NVIC_DisableIRQ(I2C1_ER_IRQn);
+    }
+    else if (i2c == I2C3)
+    {
+        NVIC_DisableIRQ(I2C3_EV_IRQn);
+        NVIC_DisableIRQ(I2C3_ER_IRQn);
+    }
     reg_clear_mask(&i2c->CR1, I2C_CR1_RXIE_Msk | I2C_CR1_TXIE_Msk | I2C_CR1_TCIE_Msk |
                               I2C_CR1_NACKIE_Msk | I2C_CR1_STOPIE_Msk | I2C_CR1_ERRIE_Msk);
 }

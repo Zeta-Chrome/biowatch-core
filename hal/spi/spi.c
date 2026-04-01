@@ -169,6 +169,15 @@ void hal_spi_isr(spi_perip_t type)
 
 void hal_spi_deinit(SPI_TypeDef *spi)
 {
+    if (spi == SPI1)
+    {
+        NVIC_DisableIRQ(SPI1_IRQn);
+    }
+    else if (spi == SPI2)
+    {
+        NVIC_DisableIRQ(SPI2_IRQn);
+    }
+
     if (reg_get_bit(&spi->CR1, SPI_CR1_BIDIMODE_Pos) && !reg_get_bit(&spi->CR1, SPI_CR1_BIDIOE_Pos))
     {
         reg_clear_bit(&spi->CR1, SPI_CR1_SPE_Pos);

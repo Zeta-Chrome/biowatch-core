@@ -7,6 +7,7 @@
 #define NULL ((void *)0)
 #define MAX_EXTI_LINES 16
 
+static IRQn_Type g_exti_irq[MAX_EXTI_LINES];
 static exti_callback_t g_exti_callbacks[MAX_EXTI_LINES];
 
 uint8_t gpio_port_index(GPIO_TypeDef *port);
@@ -40,6 +41,7 @@ void hal_exti_init(exti_conf_t *conf)
     reg_set_bit(&EXTI->IMR1, pin);
 
     g_exti_callbacks[pin] = conf->on_interrupt;
+    g_exti_irq[pin] = conf->irq;
 
     // Enable interrupt
     NVIC_EnableIRQ(conf->irq);
@@ -74,4 +76,7 @@ void hal_exti_deinit(gpio_t gpio)
 
     // Clear callback
     g_exti_callbacks[pin] = NULL;
+
+    // Disable interrupt
+    NVIC_DisableIRQ(g_exti_irq[pin]);
 }
