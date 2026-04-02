@@ -11,6 +11,9 @@ static alrm_callback_t alrm_callback = NULL;
 
 static void rtc_clock_init()
 {
+    // Disable the write protection for RTC
+    reg_set_mask(&PWR->CR1, PWR_CR1_DBP_Msk);
+
     // Enable LSE clock
     reg_set_mask(&RCC->BDCR, RCC_BDCR_LSEON_Msk);
     while (reg_get_bit(&RCC->BDCR, RCC_BDCR_LSERDY_Pos) != 1);

@@ -68,7 +68,7 @@ $(STARTUP_OBJ_ASM): $(STARTUP_ASM) Makefile
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	@echo "  CC    $<"
-	@$(CC) -c $(CFLAGS) $(C_INCLUDES) $< -o $@
+	@$(CC) -c $(CFLAGS) $(C_INCLUDES) -Wa,-a,-ad,-alms=$(@:.o=.lst) $< -o $@
 
 $(BUILD_DIR):
 	@mkdir -p $@
