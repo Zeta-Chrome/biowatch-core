@@ -151,7 +151,7 @@ void hal_rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd)
     rtc_disable_cfg();
 }
 
-void hal_rtc_enable_wut(uint8_t delay_s)
+void hal_rtc_enable_wut(uint8_t delay_s, uint8_t irq_priority)
 {
     rtc_enable_cfg();
 
@@ -166,6 +166,9 @@ void hal_rtc_enable_wut(uint8_t delay_s)
     // Enable wake-up timer interrupt
     reg_set_mask(&RTC->CR, RTC_CR_WUTIE_Msk);
 
+    NVIC_EnableIRQ(RTC_WKUP_IRQn);
+    NVIC_SetPriority(RTC_WKUP_IRQn, irq_priority);
+
     // Enable wake-up timer
     reg_set_mask(&RTC->CR, RTC_CR_WUTE_Msk);
 
@@ -177,6 +180,7 @@ void hal_rtc_disable_wut()
     rtc_enable_cfg();
 
     // disable wake-up timer interrupt
+    NVIC_DisableIRQ(RTC_WKUP_IRQn);
     reg_clear_mask(&RTC->CR, RTC_CR_WUTIE_Msk);
 
     // disable wake-up timer
@@ -186,7 +190,7 @@ void hal_rtc_disable_wut()
     rtc_disable_cfg();
 }
 
-void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
+void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, uint8_t irq_priority)
 {
     rtc_enable_cfg();
 
@@ -209,8 +213,11 @@ void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
     reg_set_field(&RTC->TR, RTC_ALRMAR_SU_Pos, 4, sec % 10);
 
     reg_set_mask(&RTC->CR, RTC_CR_ALRAIE_Msk);
+    NVIC_EnableIRQ(RTC_Alarm_IRQn);
+    NVIC_SetPriority(RTC_Alarm_IRQn, irq_priority);
+
     reg_set_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
-    
+
     rtc_disable_cfg();
 }
 
@@ -218,6 +225,7 @@ void hal_rtc_disable_alarm()
 {
     rtc_enable_cfg();
 
+    NVIC_DisableIRQ(RTC_Alarm_IRQn);
     reg_clear_mask(&RTC->CR, RTC_CR_ALRAIE_Msk);
     reg_clear_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
 

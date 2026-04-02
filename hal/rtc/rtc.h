@@ -1,6 +1,7 @@
 #ifndef HAL_RTC_H
 #define HAL_RTC_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef enum 
@@ -11,5 +12,13 @@ typedef enum
 
 void hal_rtc_init();
 void hal_rtc_set_hr_format(rtc_hr_fmt_t hr_fmt);
+void hal_rtc_get_time(uint8_t *hr, uint8_t *min, uint8_t *sec, bool *pm);
+void hal_rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm);
+void hal_rtc_get_date(uint8_t *yr, uint8_t *mth, uint8_t *dte, uint8_t *wd);
+void hal_rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd);
+void hal_rtc_enable_wut(uint8_t delay_s, uint8_t irq_priority);
+void hal_rtc_disable_wut();
+void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, uint8_t irq_priority);
+void hal_rtc_disable_alarm();
 
 #endif
