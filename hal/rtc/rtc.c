@@ -4,6 +4,11 @@
 #include "stm32wb55xx.h"
 #include <stdbool.h>
 
+#define NULL ((void *)0)
+
+static wkup_callback_t wkup_callback = NULL;
+static alrm_callback_t alrm_callback = NULL;
+
 static void rtc_clock_init()
 {
     reg_set_field(&RCC->BDCR, RCC_BDCR_RTCSEL_Pos, 2, 0x01);  // Use LSE clock
@@ -151,7 +156,15 @@ void hal_rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd)
     rtc_disable_cfg();
 }
 
-void hal_rtc_enable_wut(uint8_t delay_s, uint8_t irq_priority)
+void hal_rtc_wkup_isr()
+{
+    if (wkup_callback != NULL)
+    {
+        wkup_callback();
+    }
+}
+
+void hal_rtc_enable_wut(uint8_t delay_s, wkup_callback_t callback, uint8_t irq_priority)
 {
     rtc_enable_cfg();
 
@@ -171,6 +184,7 @@ void hal_rtc_enable_wut(uint8_t delay_s, uint8_t irq_priority)
 
     // Enable wake-up timer
     reg_set_mask(&RTC->CR, RTC_CR_WUTE_Msk);
+    wkup_callback = callback;
 
     rtc_disable_cfg();
 }
@@ -190,7 +204,16 @@ void hal_rtc_disable_wut()
     rtc_disable_cfg();
 }
 
-void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, uint8_t irq_priority)
+void hal_rtc_alrm_isr()
+{
+    if (alrm_callback != NULL)
+    {
+        alrm_callback();
+    }
+}
+
+void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_callback_t callback,
+                          uint8_t irq_priority)
 {
     rtc_enable_cfg();
 
@@ -217,6 +240,7 @@ void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, uint8_t
     NVIC_SetPriority(RTC_Alarm_IRQn, irq_priority);
 
     reg_set_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
+    alrm_callback = callback;
 
     rtc_disable_cfg();
 }

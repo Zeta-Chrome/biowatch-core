@@ -1,7 +1,9 @@
 #include "hal/i2c/i2c.h"
 #include "hal/spi/spi.h"
 #include "hal/exti/exti.h"
+#include "hal/rtc/rtc.h"
 #include "hal/reg.h"
+#include "stm32wb55xx.h"
 
 void hal_systick_tick();
 void scheduler_tick(); // Present in the firmware
@@ -82,4 +84,14 @@ void EXTI15_10_IRQHandler(void)
     for (uint8_t i = 10; i <= 15; i++)
         if (reg_get_bit(&EXTI->PR1, i))
             hal_exti_isr(i);
+}
+
+void RTC_WKUP_IRQHandler(void)
+{
+    hal_rtc_wkup_isr();
+}
+
+void RTC_Alarm_IRQHandler(void)
+{
+    hal_rtc_alrm_isr();
 }
