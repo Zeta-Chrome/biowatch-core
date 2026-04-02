@@ -6,7 +6,7 @@
 #include "stm32wb55xx.h"
 
 void hal_systick_tick();
-void scheduler_tick(); // Present in the firmware
+void scheduler_tick();  // Present in the firmware
 
 void SysTick_Handler(void)
 {
@@ -88,10 +88,10 @@ void EXTI15_10_IRQHandler(void)
 
 void RTC_WKUP_IRQHandler(void)
 {
-    hal_rtc_wkup_isr();
+    hal_exti_isr(WKUP_IM);
 }
 
 void RTC_Alarm_IRQHandler(void)
 {
-    hal_rtc_alrm_isr();
+    hal_exti_isr(ALRM_IM);
 }

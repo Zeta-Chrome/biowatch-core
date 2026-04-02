@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define WKUP_IM 19
+#define ALRM_IM 17
+
 typedef void (*wkup_callback_t)(void);
 typedef void (*alrm_callback_t)(void);
 

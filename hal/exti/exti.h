@@ -16,6 +16,7 @@ typedef void (*exti_callback_t)(void);
 typedef struct 
 {
     gpio_t gpio;
+    uint8_t im;
     exti_edge_t edge;
     IRQn_Type irq; 
     uint8_t irq_priority; // 0-15
@@ -23,7 +24,9 @@ typedef struct
 } exti_conf_t;
 
 void hal_exti_init(exti_conf_t *conf);
-void hal_exti_isr(uint8_t line);
-void hal_exti_deinit(gpio_t gpio);
+void hal_exti_gpio_init(exti_conf_t *conf);
+void hal_exti_isr(uint8_t im);
+void hal_exti_deinit(uint8_t im);
+void hal_exti_gpio_deinit(gpio_t gpio);
 
 #endif
