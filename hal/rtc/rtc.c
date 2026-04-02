@@ -15,7 +15,7 @@ static void rtc_clock_init()
     reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_RTCAPBEN_Msk);
 }
 
-static void rtc_disable_cfg()
+static void rtc_enable_cfg()
 {
     // Disable the write protection for RTC
     reg_set_mask(&PWR->CR1, PWR_CR1_DBP_Msk);
@@ -29,7 +29,7 @@ static void rtc_disable_cfg()
     while (reg_get_bit(&RTC->ISR, RTC_ISR_INITF_Pos) != 1);
 }
 
-static void rtc_enable_cfg()
+static void rtc_disable_cfg()
 {
     // Exit initalization
     reg_clear_mask(&RTC->ISR, RTC_ISR_INIT_Msk);
