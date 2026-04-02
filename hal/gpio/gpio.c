@@ -26,23 +26,23 @@ static void gpio_clock_init(GPIO_TypeDef *port)
 {
     if (port == GPIOA)
     {
-        reg_set_bit(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN_Pos);
+        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN_Msk);
     }
     else if (port == GPIOB)
     {
-        reg_set_bit(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN_Pos);
+        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN_Msk);
     }
     else if (port == GPIOC)
     {
-        reg_set_bit(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN_Pos);
+        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN_Msk);
     }
     else if (port == GPIOD)
     {
-        reg_set_bit(&RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN_Pos);
+        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN_Msk);
     }
     else if (port == GPIOE)
     {
-        reg_set_bit(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN_Pos);
+        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN_Msk);
     }
 }
 

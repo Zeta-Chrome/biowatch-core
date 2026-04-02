@@ -14,12 +14,12 @@ static void i2c_clock_init(I2C_TypeDef *i2c)
     if (i2c == I2C1)
     {
         reg_set_field(&RCC->CCIPR, RCC_CCIPR_I2C1SEL_Pos, 2, 0x1);  // System Clock
-        reg_set_bit(&RCC->APB1ENR1, RCC_APB1ENR1_I2C1EN_Pos);
+        reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_I2C1EN_Msk);
     }
     else if (i2c == I2C3)
     {
         reg_set_field(&RCC->CCIPR, RCC_CCIPR_I2C3SEL_Pos, 2, 0x1);  // System Clock
-        reg_set_bit(&RCC->APB1ENR1, RCC_APB1ENR1_I2C3EN_Pos);
+        reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_I2C3EN_Msk);
     }
 }
 
@@ -60,7 +60,7 @@ void hal_i2c_init(i2c_conf_t *conf)
     i2c_gpio_init(conf);
 
     // Clear the PE bit
-    reg_clear_bit(&conf->i2c->CR1, I2C_CR1_PE_Pos);
+    reg_clear_mask(&conf->i2c->CR1, I2C_CR1_PE_Msk);
 
     // Configure Analog and digital filter
     reg_set_field(&conf->i2c->CR1, I2C_CR1_DNF_Pos, 4, conf->dnf);
@@ -98,19 +98,19 @@ void hal_i2c_init(i2c_conf_t *conf)
     }
 
     // Configure NOSTRETCH
-    reg_clear_bit(&conf->i2c->CR1, I2C_CR1_NOSTRETCH_Pos);
+    reg_clear_mask(&conf->i2c->CR1, I2C_CR1_NOSTRETCH_Msk);
 
     // Set PE bit
-    reg_set_bit(&conf->i2c->CR1, I2C_CR1_PE_Pos);
+    reg_set_mask(&conf->i2c->CR1, I2C_CR1_PE_Msk);
 }
 
 void hal_i2c_reset(I2C_TypeDef *i2c)
 {
     // 3 step process to reset
-    reg_clear_bit(&i2c->CR1, I2C_CR1_PE_Pos);
+    reg_clear_mask(&i2c->CR1, I2C_CR1_PE_Msk);
     if (!reg_get_bit(&i2c->CR1, I2C_CR1_PE_Pos))
     {
-        reg_set_bit(&i2c->CR1, I2C_CR1_PE_Pos);
+        reg_set_mask(&i2c->CR1, I2C_CR1_PE_Msk);
     }
 }
 
@@ -119,20 +119,20 @@ static void i2c_configure_reload(i2c_handle_t *handle)
     if (handle->len > 255)
     {
         reg_set_field(&handle->i2c->CR2, I2C_CR2_NBYTES_Pos, 8, 255);
-        reg_set_bit(&handle->i2c->CR2, I2C_CR2_RELOAD_Pos);
-        reg_clear_bit(&handle->i2c->CR2, I2C_CR2_AUTOEND_Pos);
+        reg_set_mask(&handle->i2c->CR2, I2C_CR2_RELOAD_Msk);
+        reg_clear_mask(&handle->i2c->CR2, I2C_CR2_AUTOEND_Msk);
     }
     else
     {
         reg_set_field(&handle->i2c->CR2, I2C_CR2_NBYTES_Pos, 8, handle->len);
-        reg_clear_bit(&handle->i2c->CR2, I2C_CR2_RELOAD_Pos);
+        reg_clear_mask(&handle->i2c->CR2, I2C_CR2_RELOAD_Msk);
         if (handle->repeat)
         {
-            reg_clear_bit(&handle->i2c->CR2, I2C_CR2_AUTOEND_Pos);
+            reg_clear_mask(&handle->i2c->CR2, I2C_CR2_AUTOEND_Msk);
         }
         else
         {
-            reg_set_bit(&handle->i2c->CR2, I2C_CR2_AUTOEND_Pos);
+            reg_set_mask(&handle->i2c->CR2, I2C_CR2_AUTOEND_Msk);
         }
     }
 }
@@ -160,7 +160,7 @@ void hal_i2c_receive(i2c_handle_t *handle)
     handle->i2c->CR2 = 0;
 
     // Set 7 bit address
-    reg_clear_bit(&handle->i2c->CR2, I2C_CR2_ADD10_Pos);                      // 0 = 7 bit address
+    reg_clear_mask(&handle->i2c->CR2, I2C_CR2_ADD10_Msk);                      // 0 = 7 bit address
     reg_set_field(&handle->i2c->CR2, I2C_CR2_SADD_Pos + 1, 7, handle->addr);  // left shift by one
 
     // Set RXIE for interrupt
@@ -168,13 +168,13 @@ void hal_i2c_receive(i2c_handle_t *handle)
                                     I2C_CR1_STOPIE_Msk | I2C_CR1_ERRIE_Msk);
 
     // Set transfer direction (1 = read)
-    reg_set_bit(&handle->i2c->CR2, I2C_CR2_RD_WRN_Pos);
+    reg_set_mask(&handle->i2c->CR2, I2C_CR2_RD_WRN_Msk);
 
     // Configure NBYTES, RELOAD and AUTOEND
     i2c_configure_reload(handle);
 
     // Set start bit
-    reg_set_bit(&handle->i2c->CR2, I2C_CR2_START_Pos);
+    reg_set_mask(&handle->i2c->CR2, I2C_CR2_START_Msk);
 }
 
 void hal_i2c_transmit(i2c_handle_t *handle)
@@ -200,7 +200,7 @@ void hal_i2c_transmit(i2c_handle_t *handle)
     handle->i2c->CR2 = 0;
 
     // Set 7 bit address
-    reg_clear_bit(&handle->i2c->CR2, I2C_CR2_ADD10_Pos);                      // 0 = 7 bit address
+    reg_clear_mask(&handle->i2c->CR2, I2C_CR2_ADD10_Msk);                      // 0 = 7 bit address
     reg_set_field(&handle->i2c->CR2, I2C_CR2_SADD_Pos + 1, 7, handle->addr);  // left shift by one
 
     // Set TXIE for interrupt
@@ -208,13 +208,13 @@ void hal_i2c_transmit(i2c_handle_t *handle)
                                     I2C_CR1_STOPIE_Msk | I2C_CR1_ERRIE_Msk);
 
     // Set transfer direction (0 = write)
-    reg_clear_bit(&handle->i2c->CR2, I2C_CR2_RD_WRN_Pos);
+    reg_clear_mask(&handle->i2c->CR2, I2C_CR2_RD_WRN_Msk);
 
     // Configure NBYTES, RELOAD and AUTOEND
     i2c_configure_reload(handle);
 
     // Set start bit
-    reg_set_bit(&handle->i2c->CR2, I2C_CR2_START_Pos);
+    reg_set_mask(&handle->i2c->CR2, I2C_CR2_START_Msk);
 }
 
 void hal_i2c_ev_isr(i2c_perip_t type)
@@ -260,8 +260,8 @@ void hal_i2c_ev_isr(i2c_perip_t type)
     if (reg_get_bit(&i2c->ISR, I2C_ISR_TC_Pos))  // only happens during repeated start
     {
         // clear trasmission and receiver interrupts
-        reg_clear_bit(&handle->i2c->CR1, I2C_CR1_TXIE_Pos);
-        reg_clear_bit(&handle->i2c->CR1, I2C_CR1_RXIE_Pos);
+        reg_clear_mask(&handle->i2c->CR1, I2C_CR1_TXIE_Msk);
+        reg_clear_mask(&handle->i2c->CR1, I2C_CR1_RXIE_Msk);
 
         // callback to continue the repeated start
         handle->on_complete(STATUS_I2C_REPEATED_START);
@@ -273,7 +273,7 @@ void hal_i2c_ev_isr(i2c_perip_t type)
         i2c_configure_reload(handle);
 
         // Set start bit
-        reg_set_bit(&handle->i2c->CR2, I2C_CR2_START_Pos);
+        reg_set_mask(&handle->i2c->CR2, I2C_CR2_START_Msk);
         return;
     }
 

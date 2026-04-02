@@ -15,25 +15,25 @@ void hal_uart_init(uart_conf_t *conf)
     hal_gpio_init(&gpio_conf);
 
     // enable clock
-    reg_set_bit(&RCC->APB2ENR, RCC_APB2ENR_USART1EN_Pos); 
+    reg_set_mask(&RCC->APB2ENR, RCC_APB2ENR_USART1EN_Msk); 
     reg_set_field(&RCC->CCIPR, RCC_CCIPR_USART1SEL_Pos, 2, 0);
 
     // Set the M bit (8 bits)
-    reg_clear_bit(&conf->uart->CR1, USART_CR1_M0_Pos);
-    reg_clear_bit(&conf->uart->CR1, USART_CR1_M1_Pos);
+    reg_clear_mask(&conf->uart->CR1, USART_CR1_M0_Msk);
+    reg_clear_mask(&conf->uart->CR1, USART_CR1_M1_Msk);
 
     // Set the baud rate 
-    reg_clear_bit(&conf->uart->CR1, USART_CR1_OVER8_Pos);
+    reg_clear_mask(&conf->uart->CR1, USART_CR1_OVER8_Msk);
     reg_set_field(&conf->uart->BRR, 0, 16, USART_KER_CK / (USART_PRESC + 1) / conf->baud_rate);
 
     // Configure stop bits (1 bit)
     reg_set_field(&conf->uart->CR2, USART_CR2_STOP_Pos, 2, 0);
 
     // Enable USART 
-    reg_set_bit(&conf->uart->CR1, USART_CR1_UE_Pos);
+    reg_set_mask(&conf->uart->CR1, USART_CR1_UE_Msk);
 
     // Send Idle frame
-    reg_set_bit(&conf->uart->CR1, USART_CR1_TE_Pos);
+    reg_set_mask(&conf->uart->CR1, USART_CR1_TE_Msk);
 }
 
 void hal_uart_write(USART_TypeDef *uart, uint8_t* data, uint16_t len)

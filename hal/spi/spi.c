@@ -12,11 +12,11 @@ static void spi_clock_init(SPI_TypeDef *spi)
 {
     if (spi == SPI1)
     {
-        reg_set_bit(&RCC->APB2ENR, RCC_APB2ENR_SPI1EN_Pos);
+        reg_set_mask(&RCC->APB2ENR, RCC_APB2ENR_SPI1EN_Msk);
     }
     else if (spi == SPI2)
     {
-        reg_set_bit(&RCC->APB1ENR1, RCC_APB1ENR1_SPI2EN_Pos);
+        reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_SPI2EN_Msk);
     }
 }
 
@@ -67,11 +67,11 @@ void hal_spi_init(spi_conf_t *conf)
     switch (conf->mode)
     {
     case SPI_MODE_HALF_DUPLEX:
-        reg_set_bit(&conf->spi->CR1, SPI_CR1_BIDIMODE_Pos);
+        reg_set_mask(&conf->spi->CR1, SPI_CR1_BIDIMODE_Msk);
         reg_set_field(&conf->spi->CR1, SPI_CR1_BIDIOE_Pos, 1, conf->bidioe);
         break;
     case SPI_MODE_SIMPLEX:
-        reg_set_bit(&conf->spi->CR1, SPI_CR1_RXONLY_Pos);
+        reg_set_mask(&conf->spi->CR1, SPI_CR1_RXONLY_Msk);
         break;
     case SPI_MODE_FULL_DUPLEX:
         break;
@@ -84,7 +84,7 @@ void hal_spi_init(spi_conf_t *conf)
     reg_set_mask(&conf->spi->CR1, SPI_CR1_SSM_Msk | SPI_CR1_SSI_Msk);
 
     // Configure master pin
-    reg_set_bit(&conf->spi->CR1, SPI_CR1_MSTR_Pos);
+    reg_set_mask(&conf->spi->CR1, SPI_CR1_MSTR_Msk);
 }
 
 void hal_spi_transact(spi_handle_t *handle)
@@ -106,7 +106,7 @@ void hal_spi_transact(spi_handle_t *handle)
     reg_set_field(&handle->spi->CR2, SPI_CR2_DS_Pos, 4, handle->write_sz);
 
     // Set SPI MOTOROLA mode
-    reg_clear_bit(&handle->spi->CR2, SPI_CR2_FRF_Pos);
+    reg_clear_mask(&handle->spi->CR2, SPI_CR2_FRF_Msk);
 
     // Set FRXTH
     reg_set_field(&handle->spi->CR2, SPI_CR2_FRXTH_Pos, 1, handle->frxth);
@@ -115,7 +115,7 @@ void hal_spi_transact(spi_handle_t *handle)
     reg_set_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Pos);
 
     // Enable peripheral
-    reg_set_bit(&handle->spi->CR1, SPI_CR1_SPE_Pos);
+    reg_set_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);
 }
 
 void hal_spi_isr(spi_perip_t type)
@@ -180,14 +180,14 @@ void hal_spi_deinit(SPI_TypeDef *spi)
 
     if (reg_get_bit(&spi->CR1, SPI_CR1_BIDIMODE_Pos) && !reg_get_bit(&spi->CR1, SPI_CR1_BIDIOE_Pos))
     {
-        reg_clear_bit(&spi->CR1, SPI_CR1_SPE_Pos);
+        reg_clear_mask(&spi->CR1, SPI_CR1_SPE_Msk);
         while (reg_get_bit(&spi->SR, SPI_SR_BSY_Pos));
     }
     else
     {
         while (reg_get_field(&spi->SR, SPI_SR_FTLVL_Pos, 2));
         while (reg_get_bit(&spi->SR, SPI_SR_BSY_Pos));
-        reg_clear_bit(&spi->CR1, SPI_CR1_SPE_Pos);
+        reg_clear_mask(&spi->CR1, SPI_CR1_SPE_Msk);
     }
 
     // clean up the rx buffer

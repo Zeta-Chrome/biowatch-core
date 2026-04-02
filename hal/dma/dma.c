@@ -56,9 +56,9 @@ void hal_dma_init(dma_conf_t *conf)
     reg_set_field(&dma_ch->CCR, DMA_CCR_CIRC_Pos, 1, conf->circ_mode);
 
     // Configure interrupts
-    reg_set_bit(&dma_ch->CCR, DMA_CCR_TEIE_Pos);
-    reg_set_bit(&dma_ch->CCR, DMA_CCR_HTIE_Pos);
-    reg_set_bit(&dma_ch->CCR, DMA_CCR_TCIE_Pos);
+    reg_set_mask(&dma_ch->CCR, DMA_CCR_TEIE_Msk);
+    reg_set_mask(&dma_ch->CCR, DMA_CCR_HTIE_Msk);
+    reg_set_mask(&dma_ch->CCR, DMA_CCR_TCIE_Msk);
 
     // Configure DMAMUX
     uint8_t dmamux_no = (conf->dma_ch_no - 1) + (conf->dma == DMA1 ? 0 : 7);
@@ -71,16 +71,16 @@ void hal_dma_init(dma_conf_t *conf)
         reg_set_field(&dmamux->CCR, DMAMUX_CxCR_SYNC_ID_Pos, 5, conf->dmamux.sync_id);
         reg_set_field(&dmamux->CCR, DMAMUX_CxCR_SPOL_Pos, 2, conf->dmamux.sync_pol);
         reg_set_field(&dmamux->CCR, DMAMUX_CxCR_NBREQ_Pos, 5, conf->dmamux.nbytes + 1);
-        reg_set_bit(&dmamux->CCR, DMAMUX_CxCR_SE_Pos);
+        reg_set_mask(&dmamux->CCR, DMAMUX_CxCR_SE_Msk);
     }
     else
     {
-        reg_clear_bit(&dmamux->CCR, DMAMUX_CxCR_SE_Pos);
+        reg_clear_mask(&dmamux->CCR, DMAMUX_CxCR_SE_Msk);
     }
 
     // Store handle then enable
     dma_create_handle(conf);
-    reg_set_bit(&dma_ch->CCR, DMA_CCR_EN_Pos);
+    reg_set_mask(&dma_ch->CCR, DMA_CCR_EN_Msk);
 }
 
 void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no)
@@ -124,8 +124,8 @@ void hal_dma_denit(DMA_TypeDef *dma, uint8_t dma_ch_no)
 
     uint8_t dmamux_no = (dma_ch_no - 1) + (dma == DMA1 ? 0 : 7);
     DMAMUX_Channel_TypeDef *dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + 0x4UL * dmamux_no);
-    reg_clear_bit(&dmamux->CCR, DMAMUX_CxCR_SE_Pos);
+    reg_clear_mask(&dmamux->CCR, DMAMUX_CxCR_SE_Msk);
 
     DMA_Channel_TypeDef *dma_ch = (DMA_Channel_TypeDef *)((uint32_t)dma + DMA_CHANNEL_OFFSET(dma_ch_no));
-    reg_clear_bit(&dma_ch->CCR, DMA_CCR_EN_Pos);
+    reg_clear_mask(&dma_ch->CCR, DMA_CCR_EN_Msk);
 }
