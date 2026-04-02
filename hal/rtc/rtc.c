@@ -78,16 +78,27 @@ void hal_rtc_get_time(uint8_t *hr, uint8_t *min, uint8_t *sec, bool *pm)
     {
         *pm = reg_get_bit(&RTC->TR, RTC_TR_PM_Pos);
     }
-    uint8_t ht = reg_get_field(&RTC->TR, RTC_TR_HT_Pos, 2);
-    uint8_t hu = reg_get_field(&RTC->TR, RTC_TR_HU_Pos, 4);
-    uint8_t mt = reg_get_field(&RTC->TR, RTC_TR_MNT_Pos, 3);
-    uint8_t mu = reg_get_field(&RTC->TR, RTC_TR_MNU_Pos, 4);
-    uint8_t st = reg_get_field(&RTC->TR, RTC_TR_ST_Pos, 3);
-    uint8_t su = reg_get_field(&RTC->TR, RTC_TR_SU_Pos, 4);
 
-    *hr = ht * 10 + hu;
-    *min = mt * 10 + mu;
-    *sec = st * 10 + su;
+    if (hr)
+    {
+        uint8_t ht = reg_get_field(&RTC->TR, RTC_TR_HT_Pos, 2);
+        uint8_t hu = reg_get_field(&RTC->TR, RTC_TR_HU_Pos, 4);
+        *hr = ht * 10 + hu;
+    }
+
+    if (min)
+    {
+        uint8_t mt = reg_get_field(&RTC->TR, RTC_TR_MNT_Pos, 3);
+        uint8_t mu = reg_get_field(&RTC->TR, RTC_TR_MNU_Pos, 4);
+        *min = mt * 10 + mu;
+    }
+
+    if (sec)
+    {
+        uint8_t st = reg_get_field(&RTC->TR, RTC_TR_ST_Pos, 3);
+        uint8_t su = reg_get_field(&RTC->TR, RTC_TR_SU_Pos, 4);
+        *sec = st * 10 + su;
+    }
 
     rtc_disable_cfg();
 }
@@ -121,18 +132,31 @@ void hal_rtc_get_date(uint8_t *yr, uint8_t *mth, uint8_t *dte, uint8_t *wd)
 {
     rtc_enable_cfg();
 
-    uint8_t yt = reg_get_field(&RTC->DR, RTC_DR_YT_Pos, 4);
-    uint8_t yu = reg_get_field(&RTC->DR, RTC_DR_YU_Pos, 4);
-    uint8_t wdu = reg_get_field(&RTC->DR, RTC_DR_WDU_Pos, 4);
-    uint8_t mt = reg_get_field(&RTC->DR, RTC_DR_MT_Pos, 1);
-    uint8_t mu = reg_get_field(&RTC->DR, RTC_DR_MU_Pos, 4);
-    uint8_t dt = reg_get_field(&RTC->DR, RTC_DR_DT_Pos, 2);
-    uint8_t du = reg_get_field(&RTC->DR, RTC_DR_DU_Pos, 4);
+    if (yr)
+    {
+        uint8_t yt = reg_get_field(&RTC->DR, RTC_DR_YT_Pos, 4);
+        uint8_t yu = reg_get_field(&RTC->DR, RTC_DR_YU_Pos, 4);
+        *yr = yt * 10 + yu;
+    }
 
-    *yr = yt * 10 + yu;
-    *mth = mt * 10 + mu;
-    *dte = dt * 10 + du;
-    *wd = wdu;
+    if (wd)
+    {
+        *wd = reg_get_field(&RTC->DR, RTC_DR_WDU_Pos, 4);
+    }
+
+    if (mth)
+    {
+        uint8_t mt = reg_get_field(&RTC->DR, RTC_DR_MT_Pos, 1);
+        uint8_t mu = reg_get_field(&RTC->DR, RTC_DR_MU_Pos, 4);
+        *mth = mt * 10 + mu;
+    }
+
+    if (dte)
+    {
+        uint8_t dt = reg_get_field(&RTC->DR, RTC_DR_DT_Pos, 2);
+        uint8_t du = reg_get_field(&RTC->DR, RTC_DR_DU_Pos, 4);
+        *dte = dt * 10 + du;
+    }
 
     rtc_disable_cfg();
 }
