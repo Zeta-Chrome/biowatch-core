@@ -11,7 +11,12 @@ static alrm_callback_t alrm_callback = NULL;
 
 static void rtc_clock_init()
 {
+    // Enable LSE clock
+    reg_set_mask(&RCC->BDCR, RCC_BDCR_LSEON_Msk);
+    while (reg_get_bit(&RCC->BDCR, RCC_BDCR_LSERDY_Pos) != 1);
+    
     reg_set_field(&RCC->BDCR, RCC_BDCR_RTCSEL_Pos, 2, 0x01);  // Use LSE clock
+    reg_set_mask(&RCC->BDCR, RCC_BDCR_RTCEN_Msk);
     reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_RTCAPBEN_Msk);
 }
 
@@ -21,8 +26,8 @@ static void rtc_enable_cfg()
     reg_set_mask(&PWR->CR1, PWR_CR1_DBP_Msk);
 
     // Unlock the write protections by writing keys
-    reg_set_field(&RTC->WPR, RTC_WPR_KEY_Pos, 8, 0xCA);  // Key 1
-    reg_set_field(&RTC->WPR, RTC_WPR_KEY_Pos, 8, 0x53);  // Key 2
+    RTC->WPR = 0xCA;
+    RTC->WPR = 0x53;
 
     // Calendar intialization
     reg_set_mask(&RTC->ISR, RTC_ISR_INIT_Msk);
@@ -72,7 +77,10 @@ void hal_rtc_set_hr_format(rtc_hr_fmt_t hr_fmt)
 
 void hal_rtc_get_time(uint8_t *hr, uint8_t *min, uint8_t *sec, bool *pm)
 {
-    rtc_enable_cfg();
+    // clear RSF then wait for shadow registers to sync
+    reg_clear_mask(&RTC->ISR, RTC_ISR_RSF_Msk);
+    while (reg_get_bit(&RTC->ISR, RTC_ISR_RSF_Pos) != 1);
+
     *pm = 0;
     if (reg_get_bit(&RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12)
     {
@@ -99,8 +107,6 @@ void hal_rtc_get_time(uint8_t *hr, uint8_t *min, uint8_t *sec, bool *pm)
         uint8_t su = reg_get_field(&RTC->TR, RTC_TR_SU_Pos, 4);
         *sec = st * 10 + su;
     }
-
-    rtc_disable_cfg();
 }
 
 void hal_rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
@@ -130,7 +136,9 @@ void hal_rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
 
 void hal_rtc_get_date(uint8_t *yr, uint8_t *mth, uint8_t *dte, uint8_t *wd)
 {
-    rtc_enable_cfg();
+    // clear RSF then wait for shadow registers to sync
+    reg_clear_mask(&RTC->ISR, RTC_ISR_RSF_Msk);
+    while (reg_get_bit(&RTC->ISR, RTC_ISR_RSF_Pos) != 1);
 
     if (yr)
     {
@@ -157,8 +165,6 @@ void hal_rtc_get_date(uint8_t *yr, uint8_t *mth, uint8_t *dte, uint8_t *wd)
         uint8_t du = reg_get_field(&RTC->DR, RTC_DR_DU_Pos, 4);
         *dte = dt * 10 + du;
     }
-
-    rtc_disable_cfg();
 }
 
 void hal_rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd)
@@ -194,7 +200,7 @@ void hal_rtc_enable_wut(uint8_t delay_s, wkup_callback_t callback, uint8_t irq_p
 
     // Disable wake-up timer
     reg_clear_mask(&RTC->CR, RTC_CR_WUTE_Msk);
-    while (reg_get_bit(&RTC->ISR, RTC_ISR_WUTF_Pos) != 1);
+    while (reg_get_bit(&RTC->ISR, RTC_ISR_WUTWF_Pos) != 1);
 
     // Configure the value
     reg_set_field(&RTC->WUTR, RTC_WUTR_WUT_Pos, 16, delay_s - 1);
@@ -255,9 +261,9 @@ void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_ca
     reg_set_field(&RTC->ALRMAR, RTC_ALRMAR_HT_Pos, 2, (hr / 10) % 10);
     reg_set_field(&RTC->ALRMAR, RTC_ALRMAR_HU_Pos, 2, hr % 10);
     reg_set_field(&RTC->ALRMAR, RTC_ALRMAR_MNT_Pos, 3, (min / 10) % 10);
-    reg_set_field(&RTC->TR, RTC_ALRMAR_MNU_Pos, 4, min % 10);
-    reg_set_field(&RTC->TR, RTC_ALRMAR_ST_Pos, 3, (sec / 10) % 10);
-    reg_set_field(&RTC->TR, RTC_ALRMAR_SU_Pos, 4, sec % 10);
+    reg_set_field(&RTC->ALRMAR, RTC_ALRMAR_MNU_Pos, 4, min % 10);
+    reg_set_field(&RTC->ALRMAR, RTC_ALRMAR_ST_Pos, 3, (sec / 10) % 10);
+    reg_set_field(&RTC->ALRMAR, RTC_ALRMAR_SU_Pos, 4, sec % 10);
 
     reg_set_mask(&RTC->CR, RTC_CR_ALRAIE_Msk);
     NVIC_EnableIRQ(RTC_Alarm_IRQn);
@@ -277,5 +283,5 @@ void hal_rtc_disable_alarm()
     reg_clear_mask(&RTC->CR, RTC_CR_ALRAIE_Msk);
     reg_clear_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
 
-    rtc_enable_cfg();
+    rtc_disable_cfg();
 }
