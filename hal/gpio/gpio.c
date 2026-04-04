@@ -86,3 +86,15 @@ void hal_gpio_set_level(gpio_t gpio, uint8_t level)
     uint8_t pos = (level == 0 ? 16 : 0) + gpio.pin;
     reg_set_bit(&gpio.port->BSRR, pos);
 }
+
+void hal_gpio_deinit(gpio_t gpio)
+{
+    // set to analog mode — reset state, minimum power draw
+    reg_set_field(&gpio.port->MODER,  gpio.pin << 1, 2, GPIO_MODE_ANALOG);
+    reg_set_field(&gpio.port->PUPDR,  gpio.pin << 1, 2, GPIO_PULL_NONE);
+    reg_set_field(&gpio.port->OSPEEDR, gpio.pin << 1, 2, 0x0);
+    reg_set_field(&gpio.port->OTYPER,  gpio.pin, 1, 0x0);
+
+    // clear alternate function
+    reg_set_field(&gpio.port->AFR[gpio.pin >> 3], (gpio.pin & 0x7) << 2, 4, 0x0);
+}
