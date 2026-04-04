@@ -2,6 +2,8 @@
 #include "hal/spi/spi.h"
 #include "hal/exti/exti.h"
 #include "hal/rtc/rtc.h"
+#include "hal/dma/dma.h"
+#include "hal/adc/adc.h"
 #include "hal/reg.h"
 #include "stm32wb55xx.h"
 
@@ -86,6 +88,76 @@ void EXTI15_10_IRQHandler(void)
             hal_exti_isr(i);
 }
 
+void DMA1_Channel1_IRQHandler(void) 
+{
+    hal_dma_isr(DMA1, 1);
+}
+
+void DMA1_Channel2_IRQHandler(void) 
+{
+    hal_dma_isr(DMA1, 2);
+}
+
+void DMA1_Channel3_IRQHandler(void) 
+{
+    hal_dma_isr(DMA1, 3);
+}
+
+void DMA1_Channel4_IRQHandler(void) 
+{
+    hal_dma_isr(DMA1, 4);
+}
+
+void DMA1_Channel5_IRQHandler(void) 
+{
+    hal_dma_isr(DMA1, 5);
+}
+
+void DMA1_Channel6_IRQHandler(void) 
+{
+    hal_dma_isr(DMA1, 6);
+}
+
+void DMA1_Channel7_IRQHandler(void) 
+{
+    hal_dma_isr(DMA1, 7);
+}
+
+void DMA2_Channel1_IRQHandler(void) 
+{
+    hal_dma_isr(DMA2, 1);
+}
+
+void DMA2_Channel2_IRQHandler(void) 
+{
+    hal_dma_isr(DMA2, 2);
+}
+
+void DMA2_Channel3_IRQHandler(void) 
+{
+    hal_dma_isr(DMA2, 3);
+}
+
+void DMA2_Channel4_IRQHandler(void) 
+{
+    hal_dma_isr(DMA2, 4);
+}
+
+void DMA2_Channel5_IRQHandler(void) 
+{
+    hal_dma_isr(DMA2, 5);
+}
+
+void DMA2_Channel6_IRQHandler(void) 
+{
+    hal_dma_isr(DMA2, 6);
+}
+
+void DMA2_Channel7_IRQHandler(void) 
+{
+    hal_dma_isr(DMA2, 7);
+}
+
 void RTC_WKUP_IRQHandler(void)
 {
     hal_exti_isr(WKUP_IM);
@@ -94,4 +166,15 @@ void RTC_WKUP_IRQHandler(void)
 void RTC_Alarm_IRQHandler(void)
 {
     hal_exti_isr(ALRM_IM);
+}
+
+void ADC1_IRQHandler()
+{
+    hal_adc_isr();
+}
+
+void HardFault_Handler(void)
+{
+    __asm volatile("bkpt #0");
+    while(1);
 }
