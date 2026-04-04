@@ -47,7 +47,7 @@ typedef struct
 typedef struct
 {
     DMA_TypeDef *dma;
-    uint8_t dma_ch_no;
+    uint8_t ch_no;
     dma_pl_t priority;
     dmamux_conf_t dmamux;
 } dma_conf_t;
@@ -58,10 +58,10 @@ typedef struct
     dma_mode_t mode;
     uint32_t per_addr;
     dma_sz_t per_sz;
-    bool per_incr_mode;
+    bool per_incr;
     uint32_t mem_addr;
     dma_sz_t mem_sz;
-    bool mem_incr_mode;
+    bool mem_incr;
     bool circular;
     bool htc_trig;
     uint8_t irq_priority;
@@ -70,13 +70,13 @@ typedef struct
 typedef struct
 {
     DMA_TypeDef *dma;
-    uint8_t dma_ch_no; 
+    uint8_t ch_no; 
     void (*callback)(bw_status_t);
 } dma_handle_t;
 
 void hal_dma_init(dma_conf_t *conf, dma_handle_t *handle);
-void hal_dma_start(dma_transfer_t *trnf, dma_handle_t *handle);
+void hal_dma_start(dma_handle_t *handle, dma_transfer_t *trnf);
 void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no);
-void hal_dma_denit(DMA_TypeDef *dma, uint8_t dma_ch_no);
+void hal_dma_denit(dma_handle_t *handle);
 
 #endif
