@@ -13,7 +13,8 @@ typedef enum
     STATUS_SPI_MODF,
     STATUS_DMA_TERR,
     STATUS_DMA_TC,
-    STATUS_DMA_HTC
+    STATUS_DMA_HTC,
+    STATUS_ADC_OVR,
 } bw_status_t;
 
 #endif
