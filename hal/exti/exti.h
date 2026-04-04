@@ -4,7 +4,7 @@
 #include "hal/gpio/gpio_types.h"
 #include "stm32wb55xx.h"
 
-typedef enum 
+typedef enum
 {
     EXTI_EDGE_RISING = 0x1,
     EXTI_EDGE_FALLING = 0x2,
@@ -13,14 +13,18 @@ typedef enum
 
 typedef void (*exti_callback_t)(void);
 
-typedef struct 
+typedef struct
 {
-    gpio_t gpio;
-    uint8_t im;
+    union
+    {
+        // Both pin and im occupy the same space
+        gpio_t gpio; // 1 byte of pin + 8 bytes of GPIO_Typedef *
+        uint8_t im; // 1 byte of im
+    };
     exti_edge_t edge;
-    IRQn_Type irq; 
-    uint8_t irq_priority; // 0-15
-    exti_callback_t on_interrupt; 
+    IRQn_Type irq;
+    uint8_t irq_priority;  // 0-15
+    exti_callback_t on_interrupt;
 } exti_conf_t;
 
 void hal_exti_init(exti_conf_t *conf);

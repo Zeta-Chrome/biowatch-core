@@ -52,7 +52,6 @@ void hal_exti_gpio_init(exti_conf_t *conf)
     // Set the port in the EXTICR
     reg_set_field(&SYSCFG->EXTICR[pin / 4], (pin % 4) * 4, 3, port);
 
-    conf->im = pin;
     hal_exti_init(conf);
 }
 
@@ -92,4 +91,5 @@ void hal_exti_gpio_deinit(gpio_t gpio)
     reg_set_field(&SYSCFG->EXTICR[pin / 4], (pin % 4) * 4, 3, 0);
 
     hal_exti_deinit(pin);
+    hal_gpio_deinit(gpio);
 }
