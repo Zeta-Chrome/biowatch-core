@@ -214,8 +214,7 @@ void hal_adc_convert_dma(adc_handle_t *handle)
 void hal_adc_deinit(ADC_TypeDef *adc)
 {
     // Force stop all conversions
-    reg_clear_mask(&adc->CR, ADC_CR_ADSTART_Msk);
-    reg_clear_mask(&adc->CR, ADC_CR_JADSTART_Msk);
+    reg_clear_mask(&adc->CR, ADC_CR_ADSTART_Msk | ADC_CR_JADSTART_Msk);
 
     // Wait till no more conversions
     while (reg_get_bit(&adc->CR, ADC_CR_ADSTART_Pos) != 0 &&

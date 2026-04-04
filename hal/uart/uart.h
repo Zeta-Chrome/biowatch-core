@@ -25,7 +25,9 @@ typedef struct
     uart_baud_t baud_rate;
 } uart_conf_t;
 
+
 void hal_uart_init(uart_conf_t *conf);
 void hal_uart_write(USART_TypeDef *uart, uint8_t* data, uint16_t len);
+void hal_uart_deinit(USART_TypeDef *uart);
 
 #endif
