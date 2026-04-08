@@ -6,19 +6,21 @@
 #include "stm32wb55xx.h"
 #include <stdbool.h>
 
-typedef enum 
+typedef void (*spi_callback_t)(bw_status_t, void *);
+
+typedef enum
 {
     SPI_CLOCK_POLARITY_LOW,
     SPI_CLOCK_POLARITY_HIGH
 } spi_cpol_t;
 
-typedef enum 
+typedef enum
 {
     SPI_CLOCK_PHASE_LEADING,
     SPI_CLOCK_PHASE_TRAILING
 } spi_cpha_t;
 
-typedef enum 
+typedef enum
 {
     SPI_BAUD_RATE_DIV_2,
     SPI_BAUD_RATE_DIV_4,
@@ -30,30 +32,24 @@ typedef enum
     SPI_BAUD_RATE_DIV_256
 } spi_br_t;
 
-typedef enum 
+typedef enum
 {
     SPI_MODE_FULL_DUPLEX,
     SPI_MODE_HALF_DUPLEX,
     SPI_MODE_SIMPLEX
 } spi_mode_t;
 
-typedef enum 
+typedef enum
 {
     SPI_BIDIOE_RECEIVE_ONLY,
     SPI_BIDIOE_TRANSMIT_ONLY
 } spi_bidioe_t;
 
-typedef enum 
+typedef enum
 {
     SPI_FRAME_FORMAT_MSBFIRST,
     SPI_FRAME_FORMAT_LSBFIRST
 } spi_format_t;
-
-typedef enum 
-{
-    SPI_FRXTH_GE_HALF,
-    SPI_FRXTH_GE_QUARTER
-} spi_frxth_t;
 
 typedef enum
 {
@@ -62,7 +58,7 @@ typedef enum
     MAX_SPI_PERIPHERALS
 } spi_perip_t;
 
-typedef struct 
+typedef struct
 {
     SPI_TypeDef *spi;
     gpio_t mosi;
@@ -72,29 +68,30 @@ typedef struct
     spi_br_t baud_rate;
     spi_cpol_t cpol;
     spi_cpha_t cpha;
-    spi_mode_t mode; 
-    spi_bidioe_t bidioe; 
+    spi_mode_t mode;
+    spi_bidioe_t bidioe;
     spi_format_t frame_format;
-    uint8_t irq_priority; // 0 - 15
+    uint8_t irq_priority;  // 0 - 15
 } spi_conf_t;
 
-typedef struct 
+typedef struct
 {
     SPI_TypeDef *spi;
-    uint8_t write_sz; // 4-16
-    spi_frxth_t frxth;
-    uint8_t* rx_buf;
-    uint16_t rx_count;
-    uint8_t* tx_buf;
+    uint8_t data_sz;  // 4-16
+    uint8_t *rx_buf;
+    uint8_t rx_count;
+    uint8_t *tx_buf;
     uint16_t tx_count;
-    uint16_t data_total; // total bytes to be transacted
-
-    void (*on_callback)(bw_status_t);
+    uint16_t len;  // total bytes to be transacted
+    void *user_data;
+    spi_callback_t callback;
 } spi_handle_t;
 
-void hal_spi_init(spi_conf_t* conf);
-void hal_spi_transact(spi_handle_t* handle);
-void hal_spi_isr(spi_perip_t type);
-void hal_spi_deinit(SPI_TypeDef *spi);
+void hal_spi_init(spi_conf_t *conf, spi_handle_t *handle);
+void hal_spi_init_dma(spi_conf_t *conf, spi_handle_t *handle);
+void hal_spi_transact(spi_handle_t *handle);
+void hal_spi_transact_dma(spi_handle_t *handle);
+void hal_spi_deinit(spi_handle_t *handle);
+void hal_spi_deinit_dma(spi_handle_t *handle);
 
 #endif

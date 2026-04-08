@@ -8,10 +8,13 @@
 #include "stm32wb55xx.h"
 #include "hal/systick/systick.h"
 
+#define NULL ((void *)0)
+#define ADC_DMA DMA2
+#define ADC_DMA_CH_NO 3
 #define ADC_DMAREQ_ID 5
 
-static adc_handle_t *adc_h;
-static dma_handle_t dma_h;
+static adc_handle_t *g_adc_h;
+static dma_handle_t g_dma_h;
 
 static void adc_clock_init()
 {
@@ -20,7 +23,7 @@ static void adc_clock_init()
     reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_ADCEN_Msk);
 }
 
-void hal_adc_init(adc_conf_t *conf)
+static void adc_hw_conf(adc_conf_t *conf)
 {
     adc_clock_init();
 
@@ -81,15 +84,23 @@ void hal_adc_init(adc_conf_t *conf)
     }
 }
 
+void hal_adc_init(adc_conf_t *conf)
+{
+    adc_hw_conf(conf);
+
+    NVIC_SetPriority(ADC1_IRQn, conf->irq_priority);
+    NVIC_EnableIRQ(ADC1_IRQn);
+}
+
 void hal_adc_init_dma(adc_conf_t *conf)
 {
-    hal_adc_init(conf);
+    adc_hw_conf(conf);
 
-    dma_conf_t dma_conf = {.dma = DMA1,
-                           .dma_ch_no = 1,
-                           .priority = DMA_PL_MEDIUM,
+    dma_conf_t dma_conf = {.dma = ADC_DMA,
+                           .ch_no = ADC_DMA_CH_NO,
+                           .priority = DMA_PL_VERY_HIGH,
                            .dmamux = {.dmareq_id = ADC_DMAREQ_ID, .sync_en = false}};
-    hal_dma_init(&dma_conf, &dma_h);
+    hal_dma_init(&dma_conf, &g_dma_h);
 }
 
 void hal_adc_isr()
@@ -99,23 +110,21 @@ void hal_adc_isr()
         reg_clear_mask(&ADC1->ISR, ADC_ISR_EOS_Msk);
         reg_clear_mask(&ADC1->IER, ADC_IER_EOCIE_Msk);
         reg_clear_mask(&ADC1->IER, ADC_IER_EOSIE_Msk);
-        adc_h->callback(STATUS_OK);
+        g_adc_h->callback(STATUS_OK, g_adc_h->user_data);
         return;
     }
 
     if (reg_get_bit(&ADC1->ISR, ADC_ISR_EOC_Pos) == 1)
     {
-        *(adc_h->buf + adc_h->buf_count++) = ADC1->DR;
+        *(g_adc_h->buf + g_adc_h->buf_count++) = ADC1->DR;
         return;
     }
 }
 
-void hal_adc_convert(adc_handle_t *handle)
+static void adc_prep_conversion(adc_handle_t *handle)
 {
-    reg_clear_mask(&ADC1->CFGR, ADC_CFGR_DMAEN_Msk);
-
     handle->buf_count = 0;
-    adc_h = handle;
+    g_adc_h = handle;
 
     if (handle->inseqlen == 0)
     {
@@ -138,58 +147,47 @@ void hal_adc_convert(adc_handle_t *handle)
 
     // configure OVRMOD
     reg_set_mask(&ADC1->CFGR, ADC_CFGR_OVRMOD_Msk);
+}
+
+void hal_adc_convert(adc_handle_t *handle)
+{
+    // Clear old configurations
+    reg_clear_mask(&ADC1->CFGR, ADC_CFGR_DMAEN_Msk);
+
+    // Prepare conversion
+    adc_prep_conversion(handle);
 
     // Enable interrupts
-    NVIC_SetPriority(ADC1_IRQn, handle->irq_priority);
-    NVIC_EnableIRQ(ADC1_IRQn);
     reg_set_mask(&ADC1->IER, ADC_IER_EOCIE_Msk | ADC_IER_EOSIE_Msk);
 
     // Start conversion
     reg_set_mask(&ADC1->CR, ADC_CR_ADSTART_Msk);
 }
 
-void hal_adc_isr_dma(bw_status_t status)
+void hal_adc_isr_dma(bw_status_t status, void *user_data)
 {
     reg_clear_mask(&ADC1->ISR, ADC_ISR_EOS_Msk);
+    reg_clear_mask(&ADC1->CFGR, ADC_CFGR_DMAEN_Msk);
+
     if (status == STATUS_DMA_TC)
     {
-        adc_h->callback(STATUS_OK);
+        g_adc_h->callback(STATUS_OK, g_adc_h->user_data);
         return;
     }
-    else 
+    else
     {
-        adc_h->callback(status);
+        g_adc_h->callback(status, g_adc_h->user_data);
     }
 }
 
 void hal_adc_convert_dma(adc_handle_t *handle)
 {
-    handle->buf_count = 0;
-    adc_h = handle;
-
-    if (handle->inseqlen == 0)
-    {
-        return;
-    }
-
-    BW_ASSERT(handle->inseqlen <= 4, "Invalid ADC Sequence Length %d (Expected 0-4)");
-
-    // Wait till no more conversions
-    while (reg_get_bit(&ADC1->CR, ADC_CR_ADSTART_Pos) != 0 &&
-           reg_get_bit(&ADC1->CR, ADC_CR_JADSTART_Pos) != 0);
-
-    // Configure channel sequence
-    reg_set_field(&ADC1->SQR1, ADC_SQR1_L_Pos, 3, (uint32_t)(handle->inseqlen - 1));
-    for (uint8_t i = 0; i < handle->inseqlen; i++)
-    {
-        uint8_t in = handle->inseq[i];
-        reg_set_field(&ADC1->SQR1, ADC_SQR1_SQ1_Pos + 6 * i, 5, in);
-    }
-
-    // configure OVRMOD
-    reg_set_mask(&ADC1->CFGR, ADC_CFGR_OVRMOD_Msk | ADC_CFGR_DMAEN_Msk);
-
-    dma_h.callback = hal_adc_isr_dma; 
+    // Prepare conversion
+    adc_prep_conversion(handle);
+    
+    // Configure DMA transfer
+    g_dma_h.user_data = NULL;
+    g_dma_h.callback = hal_adc_isr_dma;
 
     dma_transfer_t dma_trnf = {
     .data_count = handle->inseqlen,
@@ -198,37 +196,42 @@ void hal_adc_convert_dma(adc_handle_t *handle)
     .mem_addr = (uint32_t)handle->buf,
     .mem_sz = DMA_SZ_32,
     .per_sz = DMA_SZ_16,
-    .per_incr_mode = false,
-    .mem_incr_mode = true,
+    .per_incr = false,
+    .mem_incr = true,
     .circular = false,
     .htc_trig = false,
-    .irq_priority = handle->irq_priority,
     };
 
-    hal_dma_start(&dma_trnf, &dma_h);
+    hal_dma_start(&g_dma_h, &dma_trnf);
 
     // Start conversion
     reg_set_mask(&ADC1->CR, ADC_CR_ADSTART_Msk);
 }
 
-void hal_adc_deinit(ADC_TypeDef *adc)
+void hal_adc_deinit()
 {
     // Force stop all conversions
-    reg_clear_mask(&adc->CR, ADC_CR_ADSTART_Msk | ADC_CR_JADSTART_Msk);
+    reg_clear_mask(&ADC1->CR, ADC_CR_ADSTART_Msk | ADC_CR_JADSTART_Msk);
 
     // Wait till no more conversions
-    while (reg_get_bit(&adc->CR, ADC_CR_ADSTART_Pos) != 0 &&
-           reg_get_bit(&adc->CR, ADC_CR_JADSTART_Pos) != 0);
+    while (reg_get_bit(&ADC1->CR, ADC_CR_ADSTART_Pos) != 0 &&
+           reg_get_bit(&ADC1->CR, ADC_CR_JADSTART_Pos) != 0);
 
     // set addis
-    reg_set_mask(&adc->CR, ADC_CR_ADDIS_Msk);
+    reg_set_mask(&ADC1->CR, ADC_CR_ADDIS_Msk);
 
     // wait till complete disable
-    while (reg_get_bit(&adc->CR, ADC_CR_ADEN_Pos) != 0);
+    while (reg_get_bit(&ADC1->CR, ADC_CR_ADEN_Pos) != 0);
 
     // Save more power
     reg_clear_mask(&ADC1->CR, ADC_CR_ADVREGEN_Msk);
 
     // Disable irq
     NVIC_DisableIRQ(ADC1_IRQn);
+}
+
+void hal_adc_deinit_dma()
+{
+    hal_dma_denit(&g_dma_h);
+    hal_adc_deinit();
 }

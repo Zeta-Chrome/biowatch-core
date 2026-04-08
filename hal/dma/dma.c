@@ -23,8 +23,7 @@ static void dma_clock_init(DMA_TypeDef *dma)
 
 void hal_dma_init(dma_conf_t *conf, dma_handle_t *handle)
 {
-    BW_ASSERT(conf->ch_no >= 1 && conf->ch_no <= 7, "Invalid DMA CH: %d (Expected 1-7)",
-              conf->ch_no);
+    BW_ASSERT(conf->ch_no >= 1 && conf->ch_no <= 7, "Invalid DMA CH: %d (Expected 1-7)", conf->ch_no);
 
     BW_ASSERT(conf->dmamux.num_req < 255, "Invalid DMAMUX requests: %d (Expected 1-254)",
               conf->dmamux.num_req);
@@ -58,7 +57,6 @@ void hal_dma_init(dma_conf_t *conf, dma_handle_t *handle)
     handle->dma = conf->dma;
     handle->ch_no = conf->ch_no;
 
-    // Enable interrupts
     IRQn_Type irq;
     if (handle->dma == DMA1)
     {
@@ -70,6 +68,7 @@ void hal_dma_init(dma_conf_t *conf, dma_handle_t *handle)
     }
 
     NVIC_EnableIRQ(irq);
+    NVIC_SetPriority(irq, conf->irq_priority);
 }
 
 void hal_dma_start(dma_handle_t *handle, dma_transfer_t *trnf)
@@ -96,20 +95,7 @@ void hal_dma_start(dma_handle_t *handle, dma_transfer_t *trnf)
     {
         reg_set_mask(&dma_ch->CCR, DMA_CCR_HTIE_Msk);
     }
-    reg_set_mask(&dma_ch->CCR, DMA_CCR_TEIE_Msk);
-    reg_set_mask(&dma_ch->CCR, DMA_CCR_TCIE_Msk);
-
-    IRQn_Type irq;
-    if (handle->dma == DMA1)
-    {
-        irq = DMA1_Channel1_IRQn + handle->ch_no - 1;
-    }
-    else  // DMA2
-    {
-        irq = DMA2_Channel1_IRQn + handle->ch_no - 1;
-    }
-
-    NVIC_SetPriority(irq, trnf->irq_priority);
+    reg_set_mask(&dma_ch->CCR, DMA_CCR_TEIE_Msk | DMA_CCR_TCIE_Msk);
 
     // Store handle then enable
     uint8_t idx = handle->ch_no - 1;
@@ -147,7 +133,10 @@ void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no)
     {
         reg_clear_bit(&dma->IFCR, (ch_no - 1) * 4 + 3);
         reg_clear_mask(&dma_ch->CCR, DMA_CCR_HTIE_Msk | DMA_CCR_TCIE_Msk | DMA_CCR_TEIE_Msk);
-        handle->callback(STATUS_DMA_TERR);
+        if (handle->callback)
+        {
+            handle->callback(STATUS_DMA_TERR, handle->user_data);
+        }
         return;
     }
 
@@ -155,7 +144,10 @@ void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no)
     {
         reg_clear_bit(&dma->IFCR, (ch_no - 1) * 4 + 1);
         reg_clear_mask(&dma_ch->CCR, DMA_CCR_HTIE_Msk | DMA_CCR_TCIE_Msk | DMA_CCR_TEIE_Msk);
-        handle->callback(STATUS_DMA_TC);
+        if (handle->callback)
+        {
+            handle->callback(STATUS_DMA_TC, handle->user_data);
+        }
         return;
     }
 
@@ -163,20 +155,25 @@ void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no)
     {
         reg_clear_bit(&dma->IFCR, (ch_no - 1) * 4 + 2);
         reg_clear_mask(&dma_ch->CCR, DMA_CCR_HTIE_Msk);
-        handle->callback(STATUS_DMA_HTC);
+        if (handle->callback)
+        {
+            handle->callback(STATUS_DMA_HTC, handle->user_data);
+        }
         return;
     }
 }
 
 void hal_dma_denit(dma_handle_t *handle)
 {
-    BW_ASSERT(handle->ch_no >= 1 && handle->ch_no <= 7, "Invalid DMA CH: %d (Expected 1-7)", handle->ch_no);
+    BW_ASSERT(handle->ch_no >= 1 && handle->ch_no <= 7, "Invalid DMA CH: %d (Expected 1-7)",
+              handle->ch_no);
 
     uint8_t dmamux_no = (handle->ch_no - 1) + (handle->dma == DMA1 ? 0 : 7);
     DMAMUX_Channel_TypeDef *dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + 0x4UL * dmamux_no);
     reg_clear_mask(&dmamux->CCR, DMAMUX_CxCR_SE_Msk);
 
-    DMA_Channel_TypeDef *dma_ch = (DMA_Channel_TypeDef *)((uint32_t)handle->dma + DMA_CHANNEL_OFFSET(handle->ch_no));
+    DMA_Channel_TypeDef *dma_ch = (DMA_Channel_TypeDef *)((uint32_t)handle->dma +
+                                                          DMA_CHANNEL_OFFSET(handle->ch_no));
     reg_clear_mask(&dma_ch->CCR, DMA_CCR_EN_Msk);
 
     IRQn_Type irq;

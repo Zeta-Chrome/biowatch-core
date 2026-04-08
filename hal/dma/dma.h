@@ -6,6 +6,8 @@
 #include "utils/status.h"
 #include "stm32wb55xx.h"
 
+typedef void (*dma_callback_t)(bw_status_t, void *);
+
 typedef enum
 {
     DMA_PL_LOW,
@@ -35,7 +37,7 @@ typedef enum
     DMAMUX_SPOL_BOTH
 } dmamux_spol_t;
 
-typedef struct 
+typedef struct
 {
     uint8_t dmareq_id;
     bool sync_en;
@@ -50,6 +52,7 @@ typedef struct
     uint8_t ch_no;
     dma_pl_t priority;
     dmamux_conf_t dmamux;
+    uint8_t irq_priority;
 } dma_conf_t;
 
 typedef struct
@@ -64,19 +67,18 @@ typedef struct
     bool mem_incr;
     bool circular;
     bool htc_trig;
-    uint8_t irq_priority;
 } dma_transfer_t;
 
 typedef struct
 {
     DMA_TypeDef *dma;
-    uint8_t ch_no; 
-    void (*callback)(bw_status_t);
+    uint8_t ch_no;
+    void *user_data;
+    dma_callback_t callback;
 } dma_handle_t;
 
 void hal_dma_init(dma_conf_t *conf, dma_handle_t *handle);
 void hal_dma_start(dma_handle_t *handle, dma_transfer_t *trnf);
-void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no);
 void hal_dma_denit(dma_handle_t *handle);
 
 #endif

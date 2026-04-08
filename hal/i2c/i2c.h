@@ -6,6 +6,8 @@
 #include "stm32wb55xx.h"
 #include <stdbool.h>
 
+typedef void (*i2c_callback_t)(bw_status_t, void *);
+
 typedef enum
 {
     I2C_TYPE_TX,
@@ -42,23 +44,24 @@ typedef struct
     i2c_t type;
     I2C_TypeDef *i2c;
     uint8_t addr;
-
     uint8_t *buf;
     uint16_t len;
-    uint16_t total;
-
+    uint16_t remaining;
     bool repeat;
-
-    void (*on_complete)(bw_status_t);
+    i2c_callback_t callback;
+    void *user_data;
 } i2c_handle_t;
 
-void hal_i2c_init(i2c_conf_t *conf);
-void hal_i2c_reset(I2C_TypeDef *i2c);
-void hal_i2c_ev_isr(i2c_perip_t type);
-void hal_i2c_er_isr(i2c_perip_t type);
-void hal_i2c_receive(i2c_handle_t *i2c_h);
-void hal_i2c_transmit(i2c_handle_t *i2c_h);
-void hal_i2c_transmit_receive(i2c_handle_t *i2c_h);
-void hal_i2c_deinit(I2C_TypeDef *i2c);
+void hal_i2c_init(i2c_conf_t *conf, i2c_handle_t *handle);
+void hal_i2c_init_dma(i2c_conf_t *conf, i2c_handle_t *handle);
+void hal_i2c_reset(i2c_handle_t *handle);
+void hal_i2c_reset_dma(i2c_handle_t *handle);
+void hal_i2c_receive(i2c_handle_t *handle);
+void hal_i2c_receive_dma(i2c_handle_t *handle);
+void hal_i2c_transmit(i2c_handle_t *handle);
+void hal_i2c_transmit_dma(i2c_handle_t *handle);
+void hal_i2c_deinit(i2c_handle_t *handle);
+void hal_i2c_deinit_dma(i2c_handle_t *handle);
+
 
 #endif
