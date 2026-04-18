@@ -1,6 +1,6 @@
-#include "hal/systick/systick.h"
-#include "device/stm32wb55xx.h"
-#include "cmsis/core_cm4.h"
+#include "systick.h"
+#include "utils/assert.h"
+#include "stm32wb55xx.h"
 
 #define SYSTICK_CLKSOURCE 1UL
 #define CYCLES_PER_MS (SystemCoreClock / 1000)
@@ -9,14 +9,18 @@
 
 static volatile uint32_t g_tick_ms = 0;
 
-void hal_systick_init()
+void hal_systick_init(uint8_t priority)
 {
+    BW_ASSERT(priority < 16, "Invalid priority %d (Expected Range 0-15)", priority);
     g_tick_ms = 0;
     SysTick->CTRL = 0;
     SysTick->LOAD = SYSTICK_LOAD;
     SysTick->VAL = 0;
     SysTick->CTRL = (SYSTICK_CLKSOURCE << SysTick_CTRL_CLKSOURCE_Pos) | SysTick_CTRL_TICKINT_Msk |
                     SysTick_CTRL_ENABLE_Msk;
+
+    NVIC_SetPriority(SysTick_IRQn, priority);
+    NVIC_EnableIRQ(SysTick_IRQn);
 }
 
 void hal_systick_tick()

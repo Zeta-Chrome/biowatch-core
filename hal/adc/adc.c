@@ -1,12 +1,12 @@
-#include "hal/adc/adc.h"
+#include "adc.h"
 #include "assert.h"
 #include "dma/dma.h"
-#include "hal/gpio/gpio.h"
-#include "hal/gpio/gpio_types.h"
-#include "hal/reg.h"
-#include "status.h"
+#include "gpio/gpio.h"
+#include "gpio/gpio_types.h"
+#include "systick/systick.h"
+#include "utils/status.h"
 #include "stm32wb55xx.h"
-#include "hal/systick/systick.h"
+#include "reg.h"
 
 #define NULL ((void *)0)
 #define ADC_DMA DMA2

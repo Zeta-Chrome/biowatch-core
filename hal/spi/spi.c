@@ -1,11 +1,11 @@
-#include "hal/spi/spi.h"
+#include "spi.h"
 #include "dma/dma.h"
 #include "utils/status.h"
 #include "utils/assert.h"
-#include "hal/gpio/gpio.h"
-#include "hal/gpio/gpio_types.h"
-#include "hal/reg.h"
+#include "gpio/gpio.h"
+#include "gpio/gpio_types.h"
 #include "stm32wb55xx.h"
+#include "reg.h"
 
 #define NULL ((void *)0)
 

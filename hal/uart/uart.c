@@ -1,6 +1,6 @@
-#include "hal/uart/uart.h"
-#include "hal/gpio/gpio.h"
-#include "hal/reg.h"
+#include "uart.h"
+#include "gpio/gpio.h"
+#include "reg.h"
 #include "stm32wb55xx.h"
 
 /*00: PCLK selected as USART1 clock
@@ -11,6 +11,9 @@
 
 void hal_uart_init(uart_conf_t *conf)
 {
+    conf->uart->CR1 = 0; 
+    conf->uart->CR2 = 0;
+
     gpio_conf_t gpio_conf = gpio_conf_af(conf->tx, conf->af, GPIO_TYPE_PUSH_PULL, GPIO_PULL_NONE);
     hal_gpio_init(&gpio_conf);
 

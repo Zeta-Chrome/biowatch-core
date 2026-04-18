@@ -1,6 +1,6 @@
-#include "hal/gpio/gpio.h"
-#include "hal/reg.h"
+#include "gpio.h"
 #include "utils/assert.h"
+#include "reg.h"
 
 #ifdef DEBUG
 // one bit per pin, one entry per port

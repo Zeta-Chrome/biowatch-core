@@ -1,11 +1,11 @@
-#include "hal/i2c/i2c.h"
+#include "i2c.h"
 #include "dma/dma.h"
-#include "hal/gpio/gpio.h"
-#include "hal/gpio/gpio_types.h"
-#include "hal/reg.h"
+#include "gpio/gpio.h"
+#include "gpio/gpio_types.h"
 #include "utils/status.h"
 #include "utils/assert.h"
 #include "stm32wb55xx.h"
+#include "reg.h"
 #include <stdint.h>
 
 #define NULL ((void *)0)

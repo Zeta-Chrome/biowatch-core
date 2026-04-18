@@ -5,8 +5,8 @@
 
 typedef struct
 {
-    uint8_t pin;
     GPIO_TypeDef *port;
+    uint8_t pin;
 } gpio_t;
 
 typedef enum

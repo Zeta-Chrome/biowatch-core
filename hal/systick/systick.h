@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-void hal_systick_init();
+void hal_systick_init(uint8_t priority);
 
 uint32_t hal_systick_millis();
 uint32_t hal_systick_micros();

@@ -1,8 +1,8 @@
-#include "hal/rtc/rtc.h"
+#include "rtc.h"
 #include "assert.h"
 #include "exti/exti.h"
-#include "hal/reg.h"
 #include "stm32wb55xx.h"
+#include "reg.h"
 #include <stdbool.h>
 
 #define NULL ((void *)0)

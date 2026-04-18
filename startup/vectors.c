@@ -2,14 +2,17 @@
 #include "hal/spi/spi.h"
 #include "hal/exti/exti.h"
 #include "hal/rtc/rtc.h"
-#include "hal/dma/dma.h"
-#include "hal/adc/adc.h"
 #include "hal/reg.h"
 #include "stm32wb55xx.h"
 
 void hal_systick_tick();
 void scheduler_tick();  // Present in the firmware
-
+void hal_i2c_ev_isr(i2c_perip_t);
+void hal_i2c_er_isr(i2c_perip_t);
+void hal_spi_isr(spi_perip_t);
+void hal_dma_isr(DMA_TypeDef *, uint8_t);
+void hal_adc_isr();
+  
 void SysTick_Handler(void)
 {
     hal_systick_tick();

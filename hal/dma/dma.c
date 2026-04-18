@@ -1,7 +1,7 @@
-#include "hal/dma/dma.h"
+#include "dma.h"
 #include "utils/assert.h"
-#include "hal/reg.h"
 #include "stm32wb55xx.h"
+#include "reg.h"
 
 #define DMA_CHANNEL_OFFSET(ch_no) (0x08 + 0x14 * (ch_no - 1))
 

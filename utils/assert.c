@@ -1,7 +1,7 @@
 
 #ifdef DEBUG
 
-#include "utils/assert.h"
+#include "assert.h"
 #include "stm32wb55xx.h"
 
 void bw_assert_handler()

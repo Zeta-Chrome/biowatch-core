@@ -1,8 +1,8 @@
-#include "hal/gpio/gpio.h"
-#include "stm32wb55xx.h"
-#include "hal/reg.h"
-#include "hal/exti/exti.h"
+#include "exti.h"
+#include "gpio/gpio.h"
 #include "utils/assert.h"
+#include "stm32wb55xx.h"
+#include "reg.h"
 
 #define NULL ((void *)0)
 #define MAX_EXTI_LINES 50
