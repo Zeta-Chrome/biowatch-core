@@ -166,6 +166,7 @@ void hal_adc_convert(adc_handle_t *handle)
 
 void hal_adc_isr_dma(bw_status_t status, void *user_data)
 {
+    (void)user_data;
     reg_clear_mask(&ADC1->ISR, ADC_ISR_EOS_Msk);
     reg_clear_mask(&ADC1->CFGR, ADC_CFGR_DMAEN_Msk);
 
