@@ -15,6 +15,8 @@ typedef enum
     STATUS_DMA_TC,
     STATUS_DMA_HTC,
     STATUS_ADC_OVR,
+    STATUS_MEM_EXHAUSTED,
+    STATUS_STACK_OVR,
 } bw_status_t;
 
 #endif
