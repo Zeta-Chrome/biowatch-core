@@ -1,6 +1,7 @@
 #ifndef HAL_GPIO_H
 #define HAL_GPIO_H
 
+#include <stdint.h>
 #include "hal/gpio/gpio_types.h"
 
 void hal_gpio_init(gpio_conf_t *conf);
