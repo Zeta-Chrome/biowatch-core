@@ -2,6 +2,7 @@
 #include "assert.h"
 #include "reg.h"
 #include "stm32wb55xx.h"
+#include "systick/systick.h"
 
 typedef enum
 {
@@ -21,6 +22,7 @@ static struct
             uint16_t rem_mticks;
         } period;
     };
+    uint16_t last_tick_goal;
     lptim_callback_t callback;
     void *user_data;
 } g_handle;
@@ -58,14 +60,13 @@ void hal_lptim_init(lptim_conf_t *conf)
 
     reg_set_mask(&LPTIM1->IER, LPTIM_IER_CMPMIE_Msk);
     reg_set_mask(&LPTIM1->CR, LPTIM_CR_ENABLE_Msk);
-    reg_clear_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
 }
 
 static inline void lptim_write_cmp(uint16_t ticks)
 {
     LPTIM1->ICR = LPTIM_ICR_CMPOKCF_Msk;
-    LPTIM1->CMP = LPTIM1->CNT + ticks;
-    while (reg_get_bit(&LPTIM1->ISR, LPTIM_ISR_CMPOK_Pos) != 1);  // Wait for sync
+    LPTIM1->CMP = ticks;
+    while (!(LPTIM1->ISR & LPTIM_ISR_CMPOK_Msk));
 }
 
 static inline void lptim_set_period()
@@ -98,6 +99,7 @@ void hal_lptim_isr()
             lptim_set_once();
             return;
         }
+        reg_clear_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
         g_handle.callback(g_handle.user_data);
     }
 }
@@ -105,9 +107,13 @@ void hal_lptim_isr()
 void hal_lptim_trigger_period(uint16_t ms)
 {
     BW_ASSERT(ms < 2000, "Out of range ms: %d (Expected 0-1999)", ms);
-    g_handle.type = LPTIM_TYPE_PERIOD;
 
+    reg_clear_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
+
+    g_handle.type = LPTIM_TYPE_PERIOD;
+    g_handle.last_tick_goal = 0;
     g_handle.period.ms = ms;
+
     lptim_set_period();
 
     LPTIM1->ICR = LPTIM_ICR_CMPMCF_Msk;
@@ -118,9 +124,12 @@ void hal_lptim_trigger_period(uint16_t ms)
 
 void hal_lptim_trigger_once(uint16_t ms)
 {
-    g_handle.type = LPTIM_TYPE_ONCE;
+    reg_clear_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
 
+    g_handle.type = LPTIM_TYPE_ONCE;
+    g_handle.last_tick_goal = 0;
     g_handle.rem_ticks = (ms << 15) / 1000;
+
     lptim_set_once();
 
     LPTIM1->ICR = LPTIM_ICR_CMPMCF_Msk;
