@@ -5,11 +5,12 @@
 
 .section .text
 
-.thumb_func
-.global task_stack_init
 .extern g_current_task
 .extern task_scheduler  
 .extern task_exit
+
+.thumb_func
+.global task_stack_init
 task_stack_init:
     /* r0 = &sp, r1 = pc, r2 = user_data */
     ldr r3, [r0] 
@@ -28,25 +29,32 @@ task_stack_init:
 .thumb_func
 .global PendSV_Handler 
 PendSV_Handler:
-    mrs r0, psp // Get the current task stack pointer
-    cbz r0, switch_context // Skip if psp is 0 
-
-    stmdb r0!, {r4-r11}
-    ldr r1, =g_current_task     
-    ldr r1, [r1]
-    str r0, [r1]
-
-switch_context:
     push {lr}
     bl task_scheduler
     pop {lr}
-
-    ldr r0, =g_current_task      
-    ldr r0, [r0] // r0 has the pointer to the tcb
-    ldr r1, [r0] // r1 has the stack pointer
     
-    ldmia r1!, {r4-r11}
-    msr psp, r1
+    ldr r0, =g_next_task      
+    ldr r0, [r0]
+    cbz r0, exit_handler
 
+    ldr r1, =g_current_task
+    ldr r2, [r1]
+    cbz r2, next_task
+
+    mrs r3, psp // Get g_current_task sp
+    stmdb r3!, {r4-r11}
+    str r3, [r2] // Save g_current_task sp after push
+
+next_task:
+    ldr r3, [r0] // Get g_next_task sp
+    ldmia r3!, {r4-r11}
+    msr psp, r3 // Load g_next_task sp after push
+
+    str r0, [r1] // g_current_task = g_next_task
+    # ldr r1, =g_next_task      
+    # mov r0, #0
+    # str r0, [r1] // g_next_task = NULL
+    
+exit_handler:
     ldr lr, =0xFFFFFFFD
     bx lr

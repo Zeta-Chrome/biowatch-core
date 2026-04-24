@@ -1,10 +1,9 @@
 #include "mem.h"
-#include "stm32wbxx.h"
+#include "cmsis_gcc.h"
 #include "status.h"
 
 #define NULL ((void *)0)
 #define STACK_GUARD 0xA5A5A5A5
-#define TASK_POOL_SIZE 0x4000  // 16kB
 
 static uint64_t g_stack_pool[(TASK_POOL_SIZE >> 1) + 1] __attribute__((aligned(8)));
 static stack_ptr_t g_free_block_heads[MEM_BLOCK_COUNT] = {NULL};
@@ -40,7 +39,7 @@ bw_status_t rtos_mem_init(const rtos_pool_conf_t *confs)
 
 static inline uint8_t mem_block_sz(uint32_t word_sz)
 {
-    return POSITION_VAL(word_sz * 8 / 128);
+    return __CLZ(__RBIT(word_sz * 4 / 128)) % 32;
 }
 
 bw_status_t rtos_mem_alloc(task_stack_t *stack)
@@ -55,7 +54,7 @@ bw_status_t rtos_mem_alloc(task_stack_t *stack)
     stack->stack_ptr = stack->top_ptr;
     
     g_free_block_heads[block] = (stack_ptr_t)*(stack->top_ptr);
-    *((uint32_t *)(stack->top_ptr + stack->size) - 1) = STACK_GUARD;
+    *((uint32_t *)(stack->top_ptr - stack->size) + 1) = STACK_GUARD;
 
     return STATUS_OK;
 }
@@ -63,7 +62,7 @@ bw_status_t rtos_mem_alloc(task_stack_t *stack)
 bw_status_t rtos_check_mem_sanity(task_stack_t *stack)
 {
     if ((uint32_t)(stack->top_ptr - stack->stack_ptr) > stack->size ||
-        *((uint32_t *)(stack->top_ptr + stack->size) - 1) != STACK_GUARD)
+        *((uint32_t *)(stack->top_ptr - stack->size) + 1) != STACK_GUARD)
     {
         return STATUS_STACK_OVR;
     }

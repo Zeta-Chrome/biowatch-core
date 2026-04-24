@@ -6,17 +6,17 @@
 #include "stm32wb55xx.h"
 
 void hal_systick_tick();
-void scheduler_tick();  // Present in the firmware
+void rtos_scheduler_tick();
 void hal_i2c_ev_isr(i2c_perip_t);
 void hal_i2c_er_isr(i2c_perip_t);
 void hal_spi_isr(spi_perip_t);
 void hal_dma_isr(DMA_TypeDef *, uint8_t);
 void hal_adc_isr();
+void hal_lptim_isr();
   
 void SysTick_Handler(void)
 {
     hal_systick_tick();
-    scheduler_tick();
 }
 
 void I2C1_EV_IRQHandler(void)
@@ -176,7 +176,30 @@ void ADC1_IRQHandler()
     hal_adc_isr();
 }
 
+void LPTIM1_IRQHandler()
+{
+    hal_lptim_isr();
+}
+
 void HardFault_Handler(void)
+{
+    __asm volatile("bkpt #0");
+    while(1);
+}
+
+void MemManage_Handler(void)
+{
+    __asm volatile("bkpt #0");
+    while(1);
+}
+
+void BusFault_Handler(void)
+{
+    __asm volatile("bkpt #0");
+    while(1);
+}
+
+void UsageFault_Handler(void)
 {
     __asm volatile("bkpt #0");
     while(1);

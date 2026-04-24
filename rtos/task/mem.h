@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "utils/status.h"
 
+#define TASK_POOL_SIZE 0x4000  // 16kB
+
 typedef uint32_t *stack_ptr_t;
 
 typedef enum

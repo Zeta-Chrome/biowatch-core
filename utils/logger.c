@@ -25,25 +25,13 @@ void bw_logger_init()
 #endif
 }
 
-void bw_log(const char *file, int line, const char *fmt, ...)
+static void print(const char* msg, int msg_len)
 {
-    static char msg[128];
-    static char buf[256];
-
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(msg, sizeof(msg), fmt, args);
-    va_end(args);
-
-    const char *filename = strrchr(file, '/');
-    filename = (filename) ? filename + 1 : file;
-    int buf_len = snprintf(buf, sizeof(buf), "[%s:%d] %s", filename, line, msg);
-
-    if (buf_len <= 0)
+    if (msg_len <= 0)
         return; 
 
 #if defined(UART_LOGGER)
-    static char out[256];
+    char out[256];
     uint16_t out_len = 0;
 
     for (int i = 0; i < buf_len; i++)
@@ -58,8 +46,37 @@ void bw_log(const char *file, int line, const char *fmt, ...)
 
     hal_uart_write(PL_UART, (uint8_t *)out, out_len);
 #elif defined(RTT_LOGGER)
-    SEGGER_RTT_Write(0, buf, buf_len);
-#endif
+    SEGGER_RTT_Write(0, msg, msg_len);
+#endif 
+}
+
+void bw_log(const char *file, int line, const char *fmt, ...)
+{
+    char msg[128];
+    char buf[256];
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(msg, sizeof(msg), fmt, args);
+    va_end(args);
+
+    const char *filename = strrchr(file, '/');
+    filename = (filename) ? filename + 1 : file;
+    int buf_len = snprintf(buf, sizeof(buf), "[%s:%d] %s", filename, line, msg);
+
+    print(buf, buf_len); 
+}
+
+void bw_print(const char *fmt, ...)
+{
+    char buf[128];
+
+    va_list args;
+    va_start(args, fmt);
+    int buf_len = vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args); 
+
+    print(buf, buf_len); 
 }
 
 #endif

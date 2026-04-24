@@ -17,6 +17,7 @@ typedef enum
     STATUS_ADC_OVR,
     STATUS_MEM_EXHAUSTED,
     STATUS_STACK_OVR,
+    STATUS_MAX_TASKS,
 } bw_status_t;
 
 #endif
