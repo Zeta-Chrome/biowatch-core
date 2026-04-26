@@ -12,7 +12,7 @@ void bw_log(const char *file, int line, const char *fmt, ...);
 #else
 #define bw_logger_init() ((void)0)
 #define BW_LOG(fmt, ...) ((void)0)
-#define BW_PRINT(fmt, ...) ((void)0) 
+#define BW_PRINT(fmt, ...) ((void)0)
 #endif
 
 #endif
