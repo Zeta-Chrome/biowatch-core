@@ -5,6 +5,11 @@ void queue_init(queue_t *queue, void *data, uint16_t element_size, uint16_t capa
     ring_init(queue, data, element_size, capacity); 
 }
 
+bool queue_peek(queue_t* queue, void *data)
+{
+    return ring_peek(queue, data);
+}
+
 bool queue_push(queue_t *queue, void *data)
 {
     if (queue->count >= queue->capacity)

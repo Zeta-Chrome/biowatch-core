@@ -15,6 +15,7 @@ typedef struct
 } ring_t;
 
 void ring_init(ring_t *ring, void *data, uint16_t element_size, uint16_t capacity);
+bool ring_peek(ring_t *ring, void *data);
 void ring_push(ring_t *ring, void *data);
 bool ring_pop(ring_t *ring, void *out);
 

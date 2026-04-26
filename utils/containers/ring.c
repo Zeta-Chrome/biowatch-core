@@ -11,6 +11,19 @@ void ring_init(ring_t *ring, void *data, uint16_t element_size, uint16_t capacit
     ring->count = 0;
 }
 
+bool ring_peek(ring_t *ring, void *data)
+{
+    if (ring->head == ring->tail)
+    {
+        return false;
+    }
+
+    void *src = ring->data + ring->head * ring->element_size;
+    memcpy(data, src, ring->element_size);
+
+    return true;
+}
+
 void ring_push(ring_t *ring, void *data)
 {
     void *dest = ring->data + ring->tail * ring->element_size;
