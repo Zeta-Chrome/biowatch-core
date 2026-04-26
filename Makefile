@@ -48,18 +48,12 @@ C_INCLUDES := -I. -Icmsis -Idevice -Ihal -Ilib -Irtos -Iutils
 
 # Sources (startup compiled separately, never archived)
 C_SOURCES := $(shell find . -type f -name "*.c" \
-                 -not -path "./$(BUILD_DIR)/*" \
-                 -not -path "./startup/*")
-
+                 -not -path "./$(BUILD_DIR)/*")
 ASM_SOURCES := $(shell find . -type f -name "*.s" \
-                   -not -path "./$(BUILD_DIR)/*" \
-                   -not -path "./startup/*")
+                   -not -path "./$(BUILD_DIR)/*")
 
 LIB_C_OBJECTS   := $(patsubst %.c, $(BUILD_DIR)/%.o, $(C_SOURCES))
 LIB_ASM_OBJECTS := $(patsubst %.s, $(BUILD_DIR)/%.o, $(ASM_SOURCES))
-
-STARTUP_OBJS := $(BUILD_DIR)/startup/startup_stm32wb55xx_cm4.o \
-                $(BUILD_DIR)/startup/vectors.o
 
 # Stamp file — forces recompile when CFLAGS changes
 CFLAGS_STAMP := $(BUILD_DIR)/.cflags
@@ -80,11 +74,6 @@ $(BUILD_DIR)/lib$(TARGET).a: $(LIB_C_OBJECTS) $(LIB_ASM_OBJECTS)
 	@mkdir -p $(dir $@)
 	@echo "  AR    $@"
 	@$(AR) rcs $@ $^
-
-$(BUILD_DIR)/startup/vectors.o: startup/vectors.c $(CFLAGS_STAMP) Makefile | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	@echo "  CC    startup/vectors.c"
-	@$(CC) -c $(CFLAGS) $(C_INCLUDES) -MF"$(@:.o=.d)" $< -o $@
 
 $(BUILD_DIR)/%.o: %.s $(CFLAGS_STAMP) Makefile | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
