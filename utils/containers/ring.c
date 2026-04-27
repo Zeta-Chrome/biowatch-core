@@ -42,7 +42,7 @@ void ring_push(ring_t *ring, void *data)
 
 bool ring_pop(ring_t *ring, void *out)
 {
-    if (ring->head == ring->tail)
+    if (is_ring_empty(ring))
     {
         return false;
     }
@@ -54,4 +54,13 @@ bool ring_pop(ring_t *ring, void *out)
     ring->count--;
 
     return true;
+}
+
+bool is_ring_empty(ring_t *ring)
+{
+    if (ring->head == ring->tail)
+    {
+        return true;
+    }
+    return false;
 }
