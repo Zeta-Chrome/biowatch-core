@@ -25,7 +25,7 @@ void list_pop_front(list_t *list, list_node_t **front);
 void list_pop_back(list_t *list, list_node_t **back);
 void list_insert_after(list_t *list, list_node_t *node, list_node_t *new_node);
 void list_insert_before(list_t *list, list_node_t *node, list_node_t *new_node);
-void list_delete(list_t *list, list_node_t *node);
+void list_delete_node(list_t *list, list_node_t *node);
 void list_clear(list_t *list);
 
 #endif

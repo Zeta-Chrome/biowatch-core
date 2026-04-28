@@ -58,9 +58,9 @@ void clist_insert_before(clist_t *clist, clist_node_t *node, clist_node_t *new_n
     list_insert_before(clist, node, new_node);
 }
 
-void clist_delete(clist_t *clist, clist_node_t *node)
+void clist_delete_node(clist_t *clist, clist_node_t *node)
 {
-    list_delete(clist, node);
+    list_delete_node(clist, node);
     if (clist->count == 0)
     {
         return;

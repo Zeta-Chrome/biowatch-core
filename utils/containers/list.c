@@ -56,7 +56,7 @@ void list_pop_front(list_t *list, list_node_t **front)
         return;
     }
 
-    list_delete(list, list->head);
+    list_delete_node(list, list->head);
 }
 
 void list_pop_back(list_t *list, list_node_t **back)
@@ -70,16 +70,7 @@ void list_pop_back(list_t *list, list_node_t **back)
         return;
     }
 
-    list->tail = list->tail->prev;
-    if (list->tail == NULL)
-    {
-        list->head = NULL;
-    }
-    else
-    {
-        list->tail->next = NULL;
-    }
-    list->count--;
+    list_delete_node(list, list->tail);
 }
 
 void list_insert_after(list_t *list, list_node_t *node, list_node_t *new_node)
@@ -144,7 +135,7 @@ void list_insert_before(list_t *list, list_node_t *node, list_node_t *new_node)
     list->count++;
 }
 
-void list_delete(list_t *list, list_node_t *node)
+void list_delete_node(list_t *list, list_node_t *node)
 {
 #ifdef DEBUG
     bool found = false;
