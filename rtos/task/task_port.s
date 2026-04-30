@@ -20,8 +20,9 @@ task_stack_init:
     str r1, [r3, #-4]!
     ldr r4, =task_exit // Task returns to task_exit  
     str r4, [r3, #-4]! 
-    sub r3, r3, #48
+    sub r3, r3, #16
     str r2, [r3, #-4]! 
+    sub r3, r3, #32
     str r3, [r0] // Save the top pointer for the stack 
     pop {r4}
     bx lr
