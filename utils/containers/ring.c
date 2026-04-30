@@ -23,16 +23,9 @@ bool ring_peek(ring_t *ring, void **data)
     return true;
 }
 
-bool ring_back(ring_t *ring, void **data)
+void ring_back(ring_t *ring, void **data)
 {
-    if (is_ring_empty(ring))
-    {
-        return false;
-    }
-
     *data = ring->data + ring->tail * ring->element_size;
-
-    return true;
 }
 
 void ring_push(ring_t *ring, void *data)

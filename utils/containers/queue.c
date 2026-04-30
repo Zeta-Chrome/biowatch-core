@@ -6,9 +6,9 @@ void queue_init(queue_t *queue, void *data, uint16_t element_size, uint16_t capa
     ring_init(queue, data, element_size, capacity); 
 }
 
-bool queue_back(queue_t* queue, void **data)
+void queue_back(queue_t* queue, void **data)
 {
-    return ring_back(queue, data);
+    ring_back(queue, data);
 }
 
 bool queue_peek(queue_t* queue, void **data)
