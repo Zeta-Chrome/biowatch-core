@@ -13,10 +13,10 @@ void ring_init(ring_t *ring, void *data, uint16_t element_size, uint16_t capacit
 
 bool ring_peek(ring_t *ring, void *data)
 {
-    if (ring->head == ring->tail)
+    if (is_ring_empty(ring))
     {
         return false;
-    }
+    } 
 
     void *src = ring->data + ring->head * ring->element_size;
     memcpy(data, src, ring->element_size);
