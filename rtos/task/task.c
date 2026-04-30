@@ -307,6 +307,11 @@ void rtos_task_notify(task_handle_t handle, uint32_t value, notify_action_t acti
     rtos_task_yield_if_higher();
 }
 
+void rtos_task_notify_from_isr(task_handle_t handle, uint32_t value, notify_action_t action)
+{
+    rtos_task_notify(handle, value, action);
+}
+
 bool rtos_task_notify_clear(task_handle_t handle)
 {
     tcb_t *tcb = handle != NULL ? &g_task_table[*handle] : g_current_task;
@@ -319,6 +324,11 @@ bool rtos_task_notify_clear(task_handle_t handle)
     RTOS_EXIT_CRITICAL();
 
     return was_notified;
+}
+
+bool rtos_task_notify_clear_from_isr(task_handle_t handle)
+{
+    return rtos_task_notify_clear(handle);
 }
 
 void rtos_task_delay(uint32_t ms)

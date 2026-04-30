@@ -15,5 +15,6 @@ void rtos_semaphore_binary_init(semaphore_t* semaphore); // binary semaphore
 void rtos_semaphore_counting_init(semaphore_t* semaphore, uint32_t max_count); // counting semaphore
 bw_status_t rtos_semaphore_take(semaphore_t* semaphore, uint32_t timeout_ms);
 void rtos_semaphore_give(semaphore_t* semaphore);
+void rtos_semaphore_give_from_isr(semaphore_t *semaphore);
 
 #endif

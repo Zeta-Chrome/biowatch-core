@@ -2,7 +2,6 @@
 #include "assert.h"
 #include "reg.h"
 #include "stm32wb55xx.h"
-#include "systick/systick.h"
 
 typedef enum
 {

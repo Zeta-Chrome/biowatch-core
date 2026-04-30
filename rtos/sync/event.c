@@ -26,7 +26,6 @@ static bool event_check_flags(event_t *event, tcb_t *tcb)
 bw_status_t rtos_event_wait(event_t *event, uint32_t event_flags, uint32_t *events_received,
                             bool clear_on_exit, bool wait_for_all, uint32_t timeout_ms)
 {
-    BW_PRINT("%s called Event wait\n", get_task_tcb()->name);
     RTOS_ENTER_CRITICAL();
     tcb_t *tcb = get_task_tcb();
     tcb->event_flags = event_flags;
@@ -77,7 +76,6 @@ bw_status_t rtos_event_wait(event_t *event, uint32_t event_flags, uint32_t *even
 
 void rtos_event_set(event_t *event, uint32_t event_flags)
 {
-    BW_PRINT("%s called Event set\n", get_task_tcb()->name);
     RTOS_ENTER_CRITICAL();
     event->event_flags |= event_flags;
 
@@ -113,9 +111,19 @@ void rtos_event_set(event_t *event, uint32_t event_flags)
     rtos_task_yield_if_higher();
 }
 
+void rtos_event_set_from_isr(event_t *event, uint32_t event_flags)
+{
+    rtos_event_set(event, event_flags);
+}
+
 void rtos_event_clear(event_t *event, uint32_t event_flags)
 {
     RTOS_ENTER_CRITICAL();
     event->event_flags &= ~event_flags;
     RTOS_EXIT_CRITICAL();
+}
+
+void rtos_event_clear_from_isr(event_t *event, uint32_t event_flags)
+{
+    rtos_event_clear(event, event_flags);
 }

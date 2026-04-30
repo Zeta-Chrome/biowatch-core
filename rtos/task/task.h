@@ -59,7 +59,9 @@ void rtos_task_create(task_func_t task_ptr, const char *name, uint8_t priority, 
 bw_status_t rtos_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear_exit_mask,
                                   uint32_t *p_notification, uint32_t timeout_ms);
 void rtos_task_notify(task_handle_t handle, uint32_t value, notify_action_t action);
+void rtos_task_notify_from_isr(task_handle_t handle, uint32_t value, notify_action_t action);
 bool rtos_task_notify_clear(task_handle_t handle);
+bool rtos_task_notify_clear_from_isr(task_handle_t handle);
 void rtos_task_delay(uint32_t ms);
 void rtos_task_yield();
 

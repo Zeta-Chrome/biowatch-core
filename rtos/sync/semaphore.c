@@ -73,3 +73,8 @@ void rtos_semaphore_give(semaphore_t *semaphore)
 
     RTOS_EXIT_CRITICAL();
 }
+
+void rtos_semaphore_give_from_isr(semaphore_t *semaphore)
+{
+    rtos_semaphore_give(semaphore);
+}

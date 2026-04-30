@@ -28,7 +28,7 @@ void rtos_init(rtos_conf_t *conf)
     rtos_task_init();
     rtos_task_create(sleep_task, "_SLEEP_TASK", MAX_TASK_PRIORITY, 32, NULL, NULL);
 
-    lptim_conf_t lptim_conf = {.priority = HIGHEST_IRQ_PRIO + 1, .callback = rtos_scheduler_tick, NULL};
+    lptim_conf_t lptim_conf = {.priority = HIGHEST_IRQ_PRIO, .callback = rtos_scheduler_tick, NULL};
     hal_lptim_init(&lptim_conf);
     hal_lptim_trigger_period(1);
 }
