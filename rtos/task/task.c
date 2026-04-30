@@ -333,7 +333,6 @@ bool rtos_task_notify_clear_from_isr(task_handle_t handle)
 
 void rtos_task_delay(uint32_t ms)
 {
-    BW_PRINT("%s called delay %dms\n", g_current_task->name, ms);
     RTOS_ENTER_CRITICAL();
     rtos_task_remove_from_ready(&g_current_task->state_node);
     rtos_task_set_delay(ms);

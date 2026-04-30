@@ -13,7 +13,6 @@ void rtos_mutex_init(mutex_t *mutex)
 
 bw_status_t rtos_mutex_lock(mutex_t *mutex, uint32_t timeout_ms)
 {
-    BW_PRINT("%s called Mutex Lock\n", get_task_tcb()->name);
     RTOS_ENTER_CRITICAL();
     tcb_t *tcb = get_task_tcb();
     if (mutex->count > 0)
@@ -60,7 +59,6 @@ bw_status_t rtos_mutex_lock(mutex_t *mutex, uint32_t timeout_ms)
 
 bw_status_t rtos_mutex_unlock(mutex_t *mutex)
 {
-    BW_PRINT("%s called Mutex Unlock\n", get_task_tcb()->name);
     if (get_task_tcb() != mutex->owner_task)
     {
         return STATUS_MUTEX_NOT_OWNER;
