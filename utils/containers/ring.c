@@ -11,28 +11,42 @@ void ring_init(ring_t *ring, void *data, uint16_t element_size, uint16_t capacit
     ring->count = 0;
 }
 
-bool ring_peek(ring_t *ring, void *data)
+bool ring_peek(ring_t *ring, void **data)
 {
     if (is_ring_empty(ring))
     {
         return false;
-    } 
+    }
 
-    void *src = ring->data + ring->head * ring->element_size;
-    memcpy(data, src, ring->element_size);
+    *data = ring->data + ring->head * ring->element_size;
+
+    return true;
+}
+
+bool ring_back(ring_t *ring, void **data)
+{
+    if (is_ring_empty(ring))
+    {
+        return false;
+    }
+
+    *data = ring->data + ring->tail * ring->element_size;
 
     return true;
 }
 
 void ring_push(ring_t *ring, void *data)
 {
-    void *dest = ring->data + ring->tail * ring->element_size;
-    memcpy(dest, data, ring->element_size);
+    if (data != NULL)
+    {
+        void *dest = ring->data + ring->tail * ring->element_size;
+        memcpy(dest, data, ring->element_size);
+    }
 
     ring->tail = (ring->tail + 1) % ring->capacity;
     if (ring->count >= ring->capacity)
     {
-        ring->head = (ring->head + 1) % ring->capacity; // overwrite old data
+        ring->head = (ring->head + 1) % ring->capacity;  // overwrite old data
     }
     else
     {
@@ -47,8 +61,11 @@ bool ring_pop(ring_t *ring, void *out)
         return false;
     }
 
-    void *src = ring->data + ring->head * ring->element_size;
-    memcpy(out, src, ring->element_size);
+    if (out != NULL)
+    {
+        void *src = ring->data + ring->head * ring->element_size;
+        memcpy(out, src, ring->element_size);
+    }
 
     ring->head = (ring->head + 1) % ring->capacity;
     ring->count--;

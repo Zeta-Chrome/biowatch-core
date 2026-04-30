@@ -7,6 +7,8 @@
 #include "assert.h"
 
 #define NULL ((void *)0)
+#define BIT(n) (1UL << (n))
+
 static inline void bw_error_handler()
 {
     __disable_irq();

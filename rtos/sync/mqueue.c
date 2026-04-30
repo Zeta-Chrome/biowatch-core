@@ -13,7 +13,7 @@ void rtos_mqueue_init(mqueue_t *mqueue, void *buf, uint16_t length, uint16_t ele
     list_init(&mqueue->rwait_queue);
 }
 
-void rtos_mqueue_peek(mqueue_t *mqueue, void *data)
+void rtos_mqueue_peek(mqueue_t *mqueue, void **data)
 {
     RTOS_ENTER_CRITICAL();
     queue_peek(&mqueue->container, data);

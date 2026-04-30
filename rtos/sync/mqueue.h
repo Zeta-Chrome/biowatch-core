@@ -14,7 +14,7 @@ typedef struct
 } mqueue_t;
 
 void rtos_mqueue_init(mqueue_t *mqueue, void *buf, uint16_t length, uint16_t element_size);
-void rtos_mqueue_peek(mqueue_t *mqueue, void *data);
+void rtos_mqueue_peek(mqueue_t *mqueue, void **data);
 bw_status_t rtos_mqueue_send(mqueue_t *mqueue, void *data, uint32_t timeout_ms);
 bw_status_t rtos_mqueue_receive(mqueue_t *mqueue, void *data, uint32_t timeout_ms);
 void rtos_mqueue_overwrite(mqueue_t *mqueue, void *data);
