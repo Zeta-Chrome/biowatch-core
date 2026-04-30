@@ -14,7 +14,7 @@ void rtos_event_init(event_t *event)
 static bool event_check_flags(event_t *event, tcb_t *tcb)
 {
     if ((tcb->event_wait_all && ((event->event_flags & tcb->event_flags) == tcb->event_flags)) ||
-        (!tcb->event_wait_all && (event->event_flags | tcb->event_flags)))
+        (!tcb->event_wait_all && (event->event_flags & tcb->event_flags)))
     {
         tcb->events_received = event->event_flags & tcb->event_flags;
         return true;
@@ -38,7 +38,6 @@ bw_status_t rtos_event_wait(event_t *event, uint32_t event_flags, uint32_t *even
         {
             event->event_flags &= ~tcb->events_received;
         }
-        tcb->event_flags = 0;
         tcb->event_clear_exit = false;
         tcb->event_wait_all = false;
         if (events_received != NULL)
