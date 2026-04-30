@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "cmsis_gcc.h"
+#include "stm32wb55xx.h"
 
 #define HIGHEST_IRQ_PRIO 3 
 #define RTOS_ENTER_CRITICAL() rtos_enter_critical()
@@ -12,7 +13,7 @@ static uint32_t g_critical_nesting = 0;
 
 static inline void rtos_enter_critical()
 {
-    __set_BASEPRI(HIGHEST_IRQ_PRIO << 4);
+    __set_BASEPRI(HIGHEST_IRQ_PRIO << (8 - __NVIC_PRIO_BITS));
     g_critical_nesting++;
 }
 

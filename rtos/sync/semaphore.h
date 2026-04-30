@@ -1,7 +1,7 @@
 #ifndef RTOS_SEMAPHORE_H
 #define RTOS_SEMAPHORE_H
 
-#include "status.h"
+#include "utils/status.h"
 #include "utils/containers/list.h"
 
 typedef struct 
