@@ -66,10 +66,7 @@ typedef struct
 } adc_handle_t;
 
 void hal_adc_init(adc_conf_t *conf);
-void hal_adc_init_dma(adc_conf_t *conf);
 void hal_adc_convert(adc_handle_t *handle);
-void hal_adc_convert_dma(adc_handle_t *handle);
 void hal_adc_deinit();
-void hal_adc_deinit_dma();
 
 #endif
