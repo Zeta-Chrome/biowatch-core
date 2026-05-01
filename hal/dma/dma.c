@@ -75,12 +75,15 @@ void hal_dma_start(dma_handle_t *handle, dma_transfer_t *trnf)
 {
     DMA_Channel_TypeDef *dma_ch = (DMA_Channel_TypeDef *)((uint32_t)handle->dma +
                                                           DMA_CHANNEL_OFFSET(handle->ch_no));
-    // Configure the count of data
-    dma_ch->CNDTR = trnf->data_count;
+
+    reg_clear_mask(&dma_ch->CCR, DMA_CCR_EN_Msk); 
 
     // Configure priority
     dma_ch->CPAR = trnf->per_addr;
     dma_ch->CMAR = trnf->mem_addr;
+    
+    // Configure the count of data
+    dma_ch->CNDTR = trnf->data_count;
 
     // Configure CCR
     reg_set_field(&dma_ch->CCR, DMA_CCR_DIR_Pos, 1, trnf->mode == DMA_MODE_MEM_TO_PERI);
@@ -129,9 +132,9 @@ void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no)
     DMA_Channel_TypeDef *dma_ch = (DMA_Channel_TypeDef *)((uint32_t)handle->dma +
                                                           DMA_CHANNEL_OFFSET(handle->ch_no));
 
-    if (reg_get_bit(&dma->ISR, (ch_no - 1) * 4 + 3))
+    if (reg_get_bit(&dma->ISR, (ch_no - 1) * 4 + 3)) // TERR
     {
-        reg_clear_bit(&dma->IFCR, (ch_no - 1) * 4 + 3);
+        reg_set_mask(&dma->IFCR, 0xF << ((ch_no - 1) * 4));
         reg_clear_mask(&dma_ch->CCR, DMA_CCR_HTIE_Msk | DMA_CCR_TCIE_Msk | DMA_CCR_TEIE_Msk);
         if (handle->callback)
         {
@@ -140,9 +143,9 @@ void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no)
         return;
     }
 
-    if (reg_get_bit(&dma->ISR, (ch_no - 1) * 4 + 1))
+    if (reg_get_bit(&dma->ISR, (ch_no - 1) * 4 + 1)) // TC
     {
-        reg_clear_bit(&dma->IFCR, (ch_no - 1) * 4 + 1);
+        reg_set_mask(&dma->IFCR, 0xF << ((ch_no - 1) * 4));
         reg_clear_mask(&dma_ch->CCR, DMA_CCR_HTIE_Msk | DMA_CCR_TCIE_Msk | DMA_CCR_TEIE_Msk);
         if (handle->callback)
         {
@@ -151,9 +154,9 @@ void hal_dma_isr(DMA_TypeDef *dma, uint8_t ch_no)
         return;
     }
 
-    if (reg_get_bit(&dma->ISR, (ch_no - 1) * 4 + 2))
+    if (reg_get_bit(&dma->ISR, (ch_no - 1) * 4 + 2)) // HTC
     {
-        reg_clear_bit(&dma->IFCR, (ch_no - 1) * 4 + 2);
+        reg_set_bit(&dma->IFCR, (ch_no - 1) * 4 + 2);
         reg_clear_mask(&dma_ch->CCR, DMA_CCR_HTIE_Msk);
         if (handle->callback)
         {
