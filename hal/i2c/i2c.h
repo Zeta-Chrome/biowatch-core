@@ -43,6 +43,8 @@ typedef struct
 {
     i2c_t type;
     I2C_TypeDef *i2c;
+    i2c_perip_t perip;
+    bool dma_mode;
     uint8_t addr;
     uint8_t *buf;
     uint16_t len;
