@@ -16,7 +16,7 @@ static void gpio_reserve_pins(gpio_t gpio)
     uint8_t idx = gpio_port_index(gpio.port);
     uint16_t mask = (1U << gpio.pin);
 
-    BW_ASSERT(!(g_reserved_pins[idx] & mask), "GPIO CONFLICT: Pin %d.%d already reserved", gpio.pin, idx);
+    BW_ASSERT(!(g_reserved_pins[idx] & mask), "GPIO CONFLICT: Pin %d.%d already reserved", idx, gpio.pin);
 
     g_reserved_pins[idx] |= mask;
 }

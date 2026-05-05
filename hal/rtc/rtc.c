@@ -7,8 +7,10 @@
 
 #define NULL ((void *)0)
 
-static wkup_callback_t wkup_callback = NULL;
-static alrm_callback_t alrm_callback = NULL;
+static exti_handle_t g_wkup_exti_h;
+static exti_handle_t g_alrm_exti_h;
+static wkup_callback_t g_wkup_callback = NULL;
+static alrm_callback_t g_alrm_callback = NULL;
 
 static void rtc_unlock()
 {
@@ -71,8 +73,8 @@ void hal_rtc_init()
     // prescalers are default values
     // Set to 00:00 1st Jan 2026
     reg_set_field(&RTC->CR, RTC_CR_FMT_Pos, 1, RTC_HR_FMT_24);
-    RTC->TR = 0x0; // from 00:00 midnight
-    
+    RTC->TR = 0x0;  // from 00:00 midnight
+
     uint32_t dr = 0x0UL;
     reg_set_field(&dr, RTC_DR_YT_Pos, 4, 0x2);
     reg_set_field(&dr, RTC_DR_YU_Pos, 4, 0x6);
@@ -211,15 +213,16 @@ void hal_rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd)
     rtc_disable_init();
 }
 
-void hal_rtc_wkup_isr()
+static void hal_rtc_wkup_isr(void *user_data)
 {
+    (void)user_data;
     rtc_unlock();
     reg_clear_mask(&RTC->ISR, RTC_ISR_WUTF_Msk);
     rtc_lock();
 
-    if (wkup_callback != NULL)
+    if (g_wkup_callback != NULL)
     {
-        wkup_callback();
+        g_wkup_callback();
     }
 }
 
@@ -242,12 +245,13 @@ void hal_rtc_enable_wut(uint8_t delay_s, wkup_callback_t callback, uint8_t irq_p
                              .edge = EXTI_EDGE_RISING,
                              .irq = RTC_WKUP_IRQn,
                              .irq_priority = irq_priority,
-                             .on_interrupt = hal_rtc_wkup_isr};
-    hal_exti_init(&exti_conf);
+                             .callback = hal_rtc_wkup_isr,
+                             .user_data = NULL};
+    hal_exti_init(&exti_conf, &g_wkup_exti_h);
 
     // Enable wake-up timer
     reg_set_mask(&RTC->CR, RTC_CR_WUTE_Msk);
-    wkup_callback = callback;
+    g_wkup_callback = callback;
 
     rtc_lock();
 }
@@ -255,7 +259,7 @@ void hal_rtc_enable_wut(uint8_t delay_s, wkup_callback_t callback, uint8_t irq_p
 void hal_rtc_disable_wut()
 {
     rtc_unlock();
-    hal_exti_deinit(WKUP_IM);
+    hal_exti_deinit(&g_wkup_exti_h);
     reg_clear_mask(&RTC->ISR, RTC_ISR_WUTF_Msk);
     reg_clear_mask(&RTC->CR, RTC_CR_WUTIE_Msk);
 
@@ -266,15 +270,16 @@ void hal_rtc_disable_wut()
     rtc_lock();
 }
 
-void hal_rtc_alrm_isr()
+static void hal_rtc_alrm_isr(void *user_data)
 {
+    (void)user_data;
     rtc_unlock();
     reg_clear_mask(&RTC->ISR, RTC_ISR_ALRAF_Msk);
     rtc_lock();
 
-    if (alrm_callback != NULL)
+    if (g_alrm_callback != NULL)
     {
-        alrm_callback();
+        g_alrm_callback();
     }
 }
 
@@ -287,7 +292,7 @@ void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_ca
     BW_ASSERT(sec < 60, "Invalid second %d (Expected 0-59)", sec);
 
     reg_clear_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
-    while(reg_get_bit(&RTC->ISR, RTC_ISR_ALRAWF_Pos) != 1);
+    while (reg_get_bit(&RTC->ISR, RTC_ISR_ALRAWF_Pos) != 1);
 
     uint32_t alrmar = 0x0UL;
     reg_set_mask(&alrmar, RTC_ALRMAR_MSK4_Msk);  // Don't care date/day
@@ -316,11 +321,12 @@ void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_ca
                              .edge = EXTI_EDGE_RISING,
                              .irq = RTC_Alarm_IRQn,
                              .irq_priority = irq_priority,
-                             .on_interrupt = hal_rtc_alrm_isr};
-    hal_exti_init(&exti_conf);
+                             .callback = hal_rtc_alrm_isr,
+                             .user_data = NULL};
+    hal_exti_init(&exti_conf, &g_alrm_exti_h);
 
     reg_set_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
-    alrm_callback = callback;
+    g_alrm_callback = callback;
 
     rtc_lock();
 }
@@ -328,7 +334,7 @@ void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_ca
 void hal_rtc_disable_alarm()
 {
     rtc_unlock();
-    hal_exti_deinit(ALRM_IM);
+    hal_exti_deinit(&g_alrm_exti_h);
     reg_clear_mask(&RTC->ISR, RTC_ISR_ALRAF_Msk);
     reg_clear_mask(&RTC->CR, RTC_CR_ALRAIE_Msk);
     reg_clear_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
