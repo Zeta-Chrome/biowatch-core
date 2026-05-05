@@ -172,7 +172,7 @@ void hal_i2c_reset_dma(i2c_handle_t *handle)
     hal_i2c_reset(handle);
 }
 
-static void i2c_configure_reload(volatile uint32_t* reg, i2c_handle_t *handle)
+static void i2c_configure_reload(volatile uint32_t *reg, i2c_handle_t *handle)
 {
     if (handle->remaining > 255)
     {
@@ -237,10 +237,34 @@ static void i2c_prepare_transaction(i2c_handle_t *handle)
     i2c_configure_reload(&handle->i2c->CR2, handle);
 }
 
-/* {[0x0] = 0xb1, [0x1] = 0x100ae, [0x2] = 0x8041}
- * {[0x0] = 0xb5, [0x1] = 0x20204ae, [0x2] = 0x25}
- * {[0x0] = 0xb5, [0x1] = 0x20204ae, [0x2] = 0x21}
- */
+static void i2c_start_dma(i2c_handle_t *handle)
+{
+    handle->remaining -= g_trnf_conf[handle->perip].data_count;
+    if (handle->remaining == 0)
+    {
+        return;
+    }
+
+    uint32_t offset = handle->len - handle->remaining;
+    g_trnf_conf[handle->perip].data_count = handle->remaining > 255 ? 255 : handle->remaining;
+    g_trnf_conf[handle->perip].mem_addr = (uint32_t)(handle->buf + offset);
+
+    if (handle->type == I2C_TYPE_RX)
+    {
+        g_trnf_conf[handle->perip].mode = DMA_MODE_PERI_TO_MEM;
+        g_trnf_conf[handle->perip].per_addr = (uint32_t)&handle->i2c->RXDR;
+
+        hal_dma_start(&g_rx_dma_handles[handle->perip], &g_trnf_conf[handle->perip]);
+    }
+    else if (handle->type == I2C_TYPE_TX)
+    {
+        g_trnf_conf[handle->perip].mode = DMA_MODE_MEM_TO_PERI;
+        g_trnf_conf[handle->perip].per_addr = (uint32_t)&handle->i2c->TXDR;
+
+        hal_dma_start(&g_tx_dma_handles[handle->perip], &g_trnf_conf[handle->perip]);
+    }
+}
+
 void hal_i2c_ev_isr(i2c_perip_t type)
 {
     i2c_handle_t *handle = g_i2c_handles[type];
@@ -262,6 +286,10 @@ void hal_i2c_ev_isr(i2c_perip_t type)
 
     if (reg_get_bit(&i2c->ISR, I2C_ISR_TCR_Pos))
     {
+        if (handle->dma_mode)
+        {
+            i2c_start_dma(handle);
+        }
         i2c_configure_reload(&i2c->CR2, handle);
         return;
     }
@@ -281,10 +309,12 @@ void hal_i2c_ev_isr(i2c_perip_t type)
 
         // Configure NBYTES, RELOAD and AUTOEND
         handle->remaining = handle->len;
-        i2c_configure_reload(&cr2, handle); 
+        i2c_configure_reload(&cr2, handle);
 
         if (handle->dma_mode)
         {
+            g_trnf_conf[handle->perip].data_count = 0;
+            i2c_start_dma(handle);
             uint32_t dma_bit = (handle->type == I2C_TYPE_RX) ? I2C_CR1_RXDMAEN : I2C_CR1_TXDMAEN;
             reg_set_mask(&i2c->CR1, dma_bit);
         }
@@ -334,34 +364,6 @@ void hal_i2c_er_isr(i2c_perip_t type)
     handle->callback(STATUS_I2C_ERR, handle->user_data);
 }
 
-static void i2c_start_dma(i2c_handle_t *handle)
-{
-    handle->remaining -= g_trnf_conf[handle->perip].data_count;
-    if (handle->remaining == 0)
-    {
-        return;
-    }
-
-    uint32_t offset = handle->len - handle->remaining;
-    g_trnf_conf[handle->perip].data_count = handle->remaining > 255 ? 255 : handle->remaining;
-    g_trnf_conf[handle->perip].mem_addr = (uint32_t)(handle->buf + offset);
-
-    if (handle->type == I2C_TYPE_RX)
-    {
-        g_trnf_conf[handle->perip].mode = DMA_MODE_PERI_TO_MEM;
-        g_trnf_conf[handle->perip].per_addr = (uint32_t)&handle->i2c->RXDR;
-
-        hal_dma_start(&g_rx_dma_handles[handle->perip], &g_trnf_conf[handle->perip]);
-    }
-    else if (handle->type == I2C_TYPE_TX)
-    {
-        g_trnf_conf[handle->perip].mode = DMA_MODE_MEM_TO_PERI;
-        g_trnf_conf[handle->perip].per_addr = (uint32_t)&handle->i2c->TXDR;
-
-        hal_dma_start(&g_tx_dma_handles[handle->perip], &g_trnf_conf[handle->perip]);
-    }
-}
-
 void hal_i2c_isr_dma(bw_status_t status, void *user_data)
 {
     i2c_handle_t *handle = (i2c_handle_t *)user_data;
@@ -369,12 +371,6 @@ void hal_i2c_isr_dma(bw_status_t status, void *user_data)
     if (status == STATUS_DMA_TERR)
     {
         handle->callback(status, handle->user_data);
-        return;
-    }
-
-    if (status == STATUS_DMA_TC)
-    {
-        i2c_start_dma(handle);
         return;
     }
 }
