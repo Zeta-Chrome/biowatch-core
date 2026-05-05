@@ -172,33 +172,33 @@ void hal_i2c_reset_dma(i2c_handle_t *handle)
     hal_i2c_reset(handle);
 }
 
-static void i2c_configure_reload(i2c_handle_t *handle)
+static void i2c_configure_reload(volatile uint32_t* reg, i2c_handle_t *handle)
 {
     if (handle->remaining > 255)
     {
-        reg_set_field(&handle->i2c->CR2, I2C_CR2_NBYTES_Pos, 8, 255);
-        reg_set_mask(&handle->i2c->CR2, I2C_CR2_RELOAD_Msk);
-        reg_clear_mask(&handle->i2c->CR2, I2C_CR2_AUTOEND_Msk);
+        reg_set_field(reg, I2C_CR2_NBYTES_Pos, 8, 255);
+        reg_set_mask(reg, I2C_CR2_RELOAD_Msk);
+        reg_clear_mask(reg, I2C_CR2_AUTOEND_Msk);
     }
     else
     {
-        reg_set_field(&handle->i2c->CR2, I2C_CR2_NBYTES_Pos, 8, handle->remaining);
-        reg_clear_mask(&handle->i2c->CR2, I2C_CR2_RELOAD_Msk);
+        reg_set_field(reg, I2C_CR2_NBYTES_Pos, 8, handle->remaining);
+        reg_clear_mask(reg, I2C_CR2_RELOAD_Msk);
         if (handle->repeat)
         {
-            reg_clear_mask(&handle->i2c->CR2, I2C_CR2_AUTOEND_Msk);
+            reg_clear_mask(reg, I2C_CR2_AUTOEND_Msk);
         }
         else
         {
-            reg_set_mask(&handle->i2c->CR2, I2C_CR2_AUTOEND_Msk);
+            reg_set_mask(reg, I2C_CR2_AUTOEND_Msk);
         }
     }
 }
 
 static void i2c_prepare_transaction(i2c_handle_t *handle)
 {
-    reg_clear_mask(&handle->i2c->CR1,
-                   I2C_CR1_RXIE_Msk | I2C_CR1_TXIE_Msk | I2C_CR1_RXDMAEN | I2C_CR1_TXDMAEN);
+    reg_clear_mask(&handle->i2c->CR1, I2C_CR1_RXIE_Msk | I2C_CR1_TXIE_Msk | I2C_CR1_TCIE_Msk |
+                                      I2C_CR1_RXDMAEN_Msk | I2C_CR1_TXDMAEN_Msk);
 
     handle->remaining = handle->len;
 
@@ -234,13 +234,73 @@ static void i2c_prepare_transaction(i2c_handle_t *handle)
     }
 
     // Configure NBYTES, RELOAD and AUTOEND
-    i2c_configure_reload(handle);
+    i2c_configure_reload(&handle->i2c->CR2, handle);
 }
 
+/* {[0x0] = 0xb1, [0x1] = 0x100ae, [0x2] = 0x8041}
+ * {[0x0] = 0xb5, [0x1] = 0x20204ae, [0x2] = 0x25}
+ * {[0x0] = 0xb5, [0x1] = 0x20204ae, [0x2] = 0x21}
+ */
 void hal_i2c_ev_isr(i2c_perip_t type)
 {
     i2c_handle_t *handle = g_i2c_handles[type];
     I2C_TypeDef *i2c = handle->i2c;
+
+    if (reg_get_bit(&i2c->ISR, I2C_ISR_RXNE_Pos))
+    {
+        uint16_t idx = handle->len - handle->remaining--;
+        *(handle->buf + idx) = i2c->RXDR;
+        return;
+    }
+
+    if (reg_get_bit(&i2c->ISR, I2C_ISR_TXIS_Pos))
+    {
+        uint16_t idx = handle->len - handle->remaining--;
+        i2c->TXDR = *(handle->buf + idx);
+        return;
+    }
+
+    if (reg_get_bit(&i2c->ISR, I2C_ISR_TCR_Pos))
+    {
+        i2c_configure_reload(&i2c->CR2, handle);
+        return;
+    }
+
+    if (reg_get_bit(&i2c->ISR, I2C_ISR_TC_Pos))  // only happens during repeated start
+    {
+        reg_clear_mask(&handle->i2c->CR1, I2C_CR1_TXIE_Msk | I2C_CR1_RXIE_Msk | I2C_CR1_TXDMAEN_Msk |
+                                          I2C_CR1_RXDMAEN_Msk | I2C_CR1_TCIE_Msk);
+
+        // callback to continue the repeated start
+        handle->callback(STATUS_I2C_REPEATED_START, handle->user_data);
+
+        uint32_t cr2 = i2c->CR2;
+
+        // Set 7 bit address and transfer direction (1 = read)
+        reg_set_field(&cr2, I2C_CR2_RD_WRN_Pos, 1, handle->type);
+
+        // Configure NBYTES, RELOAD and AUTOEND
+        handle->remaining = handle->len;
+        i2c_configure_reload(&cr2, handle); 
+
+        if (handle->dma_mode)
+        {
+            uint32_t dma_bit = (handle->type == I2C_TYPE_RX) ? I2C_CR1_RXDMAEN : I2C_CR1_TXDMAEN;
+            reg_set_mask(&i2c->CR1, dma_bit);
+        }
+        else
+        {
+            uint32_t ie_bit = (handle->type == I2C_TYPE_RX) ? I2C_CR1_RXIE : I2C_CR1_TXIE;
+            reg_set_mask(&i2c->CR1, ie_bit);
+        }
+
+        reg_set_mask(&cr2, I2C_CR2_START_Msk);
+
+        // Set start bit
+        i2c->CR2 = cr2;
+
+        return;
+    }
 
     if (reg_get_bit(&i2c->ISR, I2C_ISR_STOPF_Pos) || reg_get_bit(&i2c->ISR, I2C_ISR_NACKF_Pos))
     {
@@ -260,55 +320,6 @@ void hal_i2c_ev_isr(i2c_perip_t type)
     {
         reg_set_bit(&i2c->ICR, I2C_ICR_STOPCF_Pos);
         handle->callback(STATUS_OK, handle->user_data);
-        return;
-    }
-
-    if (reg_get_bit(&i2c->ISR, I2C_ISR_TC_Pos))  // only happens during repeated start
-    {
-        reg_clear_mask(&handle->i2c->CR1,
-                       I2C_CR1_TXIE_Msk | I2C_CR1_RXIE_Msk | I2C_CR1_TXDMAEN_Msk | I2C_CR1_RXDMAEN_Msk);
-
-        // callback to continue the repeated start
-        handle->callback(STATUS_I2C_REPEATED_START, handle->user_data);
-
-        // Set transfer direction (1 = read)
-        reg_set_field(&handle->i2c->CR2, I2C_CR2_RD_WRN_Pos, 1, handle->type);
-
-        // Configure NBYTES, RELOAD and AUTOEND
-        i2c_configure_reload(handle);
-        if (handle->dma_mode)
-        {
-            uint32_t dma_bit = (handle->type == I2C_TYPE_RX) ? I2C_CR1_RXDMAEN : I2C_CR1_TXDMAEN;
-            reg_set_mask(&i2c->CR1, dma_bit);
-        }
-        else
-        {
-            uint32_t ie_bit = (handle->type == I2C_TYPE_RX) ? I2C_CR1_RXIE : I2C_CR1_TXIE;
-            reg_set_mask(&i2c->CR1, ie_bit);
-        }
-
-        // Set start bit
-        reg_set_mask(&handle->i2c->CR2, I2C_CR2_START_Msk);
-        return;
-    }
-
-    if (reg_get_bit(&i2c->ISR, I2C_ISR_TCR_Pos))
-    {
-        i2c_configure_reload(handle);
-        return;
-    }
-
-    if (reg_get_bit(&i2c->ISR, I2C_ISR_RXNE_Pos))
-    {
-        uint16_t idx = handle->len - handle->remaining--;
-        *(handle->buf + idx) = i2c->RXDR;
-        return;
-    }
-
-    if (reg_get_bit(&i2c->ISR, I2C_ISR_TXIS_Pos))
-    {
-        uint16_t idx = handle->len - handle->remaining--;
-        i2c->TXDR = *(handle->buf + idx);
         return;
     }
 }
@@ -333,7 +344,7 @@ static void i2c_start_dma(i2c_handle_t *handle)
 
     uint32_t offset = handle->len - handle->remaining;
     g_trnf_conf[handle->perip].data_count = handle->remaining > 255 ? 255 : handle->remaining;
-    g_trnf_conf[handle->perip].mem_addr = (uint32_t)(handle->buf + offset); 
+    g_trnf_conf[handle->perip].mem_addr = (uint32_t)(handle->buf + offset);
 
     if (handle->type == I2C_TYPE_RX)
     {
