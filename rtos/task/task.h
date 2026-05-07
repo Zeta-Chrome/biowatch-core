@@ -64,5 +64,6 @@ bool rtos_task_notify_clear(task_handle_t handle);
 bool rtos_task_notify_clear_from_isr(task_handle_t handle);
 void rtos_task_delay(uint32_t ms);
 void rtos_task_yield();
+void rtos_task_delete(task_handle_t handle);
 
 #endif

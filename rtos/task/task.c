@@ -353,8 +353,9 @@ void rtos_scheduler_tick(void *data)
         while (tcb->delay_ticks == 0)
         {
             list_pop_front(&g_task_manager.delay_queue, NULL);
+            tcb->p_delay_queue = NULL;
             rtos_task_add_to_ready(&tcb->state_node);
-            tcb->exit_status = STATUS_TASK_TIMEOUT;
+            tcb->exit_status = STATUS_TIMEOUT;
 
             node = g_task_manager.delay_queue.head;
             if (node == NULL)
@@ -412,8 +413,7 @@ void rtos_task_delete(task_handle_t handle)
             list_delete_node(tcb->p_state_queue, &tcb->state_node);
         }
     }
-
-    if (tcb->p_state_queue != NULL)
+    else if (tcb->p_delay_queue != NULL)
     {
         list_delete_node(tcb->p_delay_queue, &tcb->delay_node);
     }

@@ -47,6 +47,11 @@ bw_status_t rtos_event_wait(event_t *event, uint32_t event_flags, uint32_t *even
         RTOS_EXIT_CRITICAL();
         return STATUS_OK;
     }
+    
+    if (timeout_ms == 0)
+    {
+        return STATUS_TIMEOUT;
+    }
 
     rtos_task_wait_on_queue(&event->wait_queue);
     rtos_task_set_delay(timeout_ms);
