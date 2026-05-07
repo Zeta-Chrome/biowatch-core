@@ -11,7 +11,7 @@ typedef enum
     EXTI_EDGE_BOTH = 0x3,
 } exti_edge_t;
 
-typedef void (*exti_callback_t)(void);
+typedef void (*exti_callback_t)(void *user_data);
 
 typedef struct
 {
@@ -24,13 +24,26 @@ typedef struct
     exti_edge_t edge;
     IRQn_Type irq;
     uint8_t irq_priority;  // 0-15
-    exti_callback_t on_interrupt;
+    exti_callback_t callback;
+    void *user_data;
 } exti_conf_t;
 
-void hal_exti_init(exti_conf_t *conf);
-void hal_exti_gpio_init(exti_conf_t *conf);
+typedef struct 
+{
+    union
+    {
+        gpio_t gpio;
+        uint8_t im;
+    };
+    IRQn_Type irq;
+    exti_callback_t callback;
+    void *user_data;
+} exti_handle_t;
+
+void hal_exti_init(exti_conf_t *conf, exti_handle_t *handle);
+void hal_exti_gpio_init(exti_conf_t *conf, exti_handle_t *handle);
 void hal_exti_isr(uint8_t im);
-void hal_exti_deinit(uint8_t im);
-void hal_exti_gpio_deinit(gpio_t gpio);
+void hal_exti_deinit(exti_handle_t *handle);
+void hal_exti_gpio_deinit(exti_handle_t *handle);
 
 #endif
