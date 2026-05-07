@@ -50,6 +50,7 @@ bw_status_t rtos_event_wait(event_t *event, uint32_t event_flags, uint32_t *even
     
     if (timeout_ms == 0)
     {
+        RTOS_EXIT_CRITICAL();
         return STATUS_TIMEOUT;
     }
 
