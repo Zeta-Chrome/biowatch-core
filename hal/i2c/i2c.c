@@ -77,6 +77,15 @@ static void i2c_hw_init(i2c_conf_t *conf, i2c_handle_t *handle)
     // Configure the timing
     switch (conf->speed)
     {
+    case I2C_SPEED_LOW:
+    {
+        reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_PRESC_Pos, 4, 0x3);
+        reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLL_Pos, 8, 0xC7);
+        reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLH_Pos, 8, 0xC3);
+        reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SDADEL_Pos, 4, 0x2);
+        reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLDEL_Pos, 4, 0x4);
+        break;
+    }
     case I2C_SPEED_STANDARD:
     {
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_PRESC_Pos, 4, 0x3);
