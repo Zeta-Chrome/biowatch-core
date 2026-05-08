@@ -88,10 +88,12 @@ void rtos_event_set(event_t *event, uint32_t event_flags)
     uint32_t clear_mask = 0;
 
     list_node_t *node = event->wait_queue.head;
+    list_node_t *next;
     tcb_t *tcb;
     while (node != NULL)
     {
         tcb = node->data;
+        next = node->next; 
         if (event_check_flags(event, tcb))
         {
             if (tcb->event_clear_exit)
@@ -104,8 +106,8 @@ void rtos_event_set(event_t *event, uint32_t event_flags)
             tcb->exit_status = STATUS_OK;
         }
 
-        // cannot do node = node->next ,cause this node is removed and placed in another list
-        node = event->wait_queue.head;
+        // cannot do node = node->next here, cause this node is removed and placed in another list
+        node = next; 
     }
 
     if (clear_on_exit)
