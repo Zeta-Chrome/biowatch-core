@@ -11,13 +11,13 @@
 
 #define SPI_RX_DMA DMA1
 #define SPI_RX_DMA_CH_NO 1
-#define SPI1_RX_DMAREQ_ID 27
-#define SPI2_RX_DMAREQ_ID 29
+#define SPI1_RX_DMAREQ_ID 6
+#define SPI2_RX_DMAREQ_ID 8
 
 #define SPI_TX_DMA DMA1
 #define SPI_TX_DMA_CH_NO 2
-#define SPI1_TX_DMAREQ_ID 28
-#define SPI2_TX_DMAREQ_ID 30
+#define SPI1_TX_DMAREQ_ID 7
+#define SPI2_TX_DMAREQ_ID 9
 
 static spi_handle_t *g_spi_handles[MAX_SPI_PERIPHERALS];
 static dma_handle_t g_rx_dma_h;
@@ -46,9 +46,6 @@ static void spi_gpio_init(spi_conf_t *conf)
     hal_gpio_init(&gpio_conf);
 
     gpio_conf.gpio = conf->sck;
-    hal_gpio_init(&gpio_conf);
-
-    gpio_conf.gpio = conf->nss;
     hal_gpio_init(&gpio_conf);
 }
 
@@ -91,9 +88,6 @@ static void spi_hw_init(spi_conf_t *conf, spi_handle_t *handle)
 
     // Configure NSS control (software master control)
     reg_set_mask(&conf->spi->CR1, SPI_CR1_SSM_Msk | SPI_CR1_SSI_Msk);
-
-    // Configure master pin
-    reg_set_mask(&conf->spi->CR1, SPI_CR1_MSTR_Msk);
 }
 
 void hal_spi_init(spi_conf_t *conf, spi_handle_t *handle)
@@ -117,7 +111,7 @@ void hal_spi_init(spi_conf_t *conf, spi_handle_t *handle)
 void hal_spi_init_dma(spi_conf_t *conf, spi_handle_t *handle)
 {
     // Hardware configuration
-    spi_hw_init(conf, handle);
+    hal_spi_init(conf, handle);
 
     // Transmitter DMA configuration
     dma_conf_t tx_dma_conf = {
@@ -125,7 +119,8 @@ void hal_spi_init_dma(spi_conf_t *conf, spi_handle_t *handle)
     .ch_no = SPI_TX_DMA_CH_NO,
     .priority = DMA_PL_VERY_HIGH,
     .dmamux = {.dmareq_id = conf->spi == SPI1 ? SPI1_TX_DMAREQ_ID : SPI2_TX_DMAREQ_ID,
-               .sync_pol = false}};
+               .sync_pol = false},
+    .irq_priority = conf->irq_priority};
     hal_dma_init(&tx_dma_conf, &g_tx_dma_h);
 
     // Reciever DMA configuration
@@ -134,7 +129,8 @@ void hal_spi_init_dma(spi_conf_t *conf, spi_handle_t *handle)
     .ch_no = SPI_RX_DMA_CH_NO,
     .priority = DMA_PL_VERY_HIGH,
     .dmamux = {.dmareq_id = conf->spi == SPI1 ? SPI1_RX_DMAREQ_ID : SPI2_RX_DMAREQ_ID,
-               .sync_pol = false}};
+               .sync_pol = false},
+    .irq_priority = conf->irq_priority};
     hal_dma_init(&rx_dma_conf, &g_rx_dma_h);
 }
 
@@ -142,6 +138,8 @@ static void spi_prep_transaction(spi_handle_t *handle)
 {
     BW_ASSERT(handle->data_sz >= 4 && handle->data_sz <= 16,
               "Invalid Data Len: %d (Expected range 4-16)", handle->data_sz);
+
+    handle->tx_count = handle->rx_count = 0;
 
     // Store the handles
     if (handle->spi == SPI1)
@@ -153,14 +151,24 @@ static void spi_prep_transaction(spi_handle_t *handle)
         g_spi_handles[SPI_PERIPH_2] = handle;
     }
 
+    // Enable master bit
+    reg_set_mask(&handle->spi->CR1, SPI_CR1_MSTR_Msk);
+
+    // Disable SPE
+    reg_clear_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);
+
+    // Clear all interrupts
+    reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXDMAEN_Msk | SPI_CR2_RXDMAEN_Msk | SPI_CR2_TXEIE_Msk |
+                                      SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
+
     // Configure DS
-    reg_set_field(&handle->spi->CR2, SPI_CR2_DS_Pos, 4, handle->data_sz);
+    reg_set_field(&handle->spi->CR2, SPI_CR2_DS_Pos, 4, handle->data_sz - 1);
 
     // Set SPI MOTOROLA mode
     reg_clear_mask(&handle->spi->CR2, SPI_CR2_FRF_Msk);
 
     // Set FRXTH
-    reg_set_field(&handle->spi->CR2, SPI_CR2_FRXTH_Pos, 1, handle->data_sz > 8);
+    reg_set_field(&handle->spi->CR2, SPI_CR2_FRXTH_Pos, 1, handle->data_sz <= 8);
 
     // Enable error interrupt
     reg_set_mask(&handle->spi->CR2, SPI_CR2_ERRIE_Msk);
@@ -168,6 +176,8 @@ static void spi_prep_transaction(spi_handle_t *handle)
 
 static inline void spi_write_buf(spi_handle_t *handle)
 {
+    if (handle->tx_count - handle->rx_count >= 1)
+        return;
 
     if (handle->data_sz > 8)
     {
@@ -185,12 +195,11 @@ static inline void spi_write_buf(spi_handle_t *handle)
 
 static inline void spi_read_buf(spi_handle_t *handle)
 {
-
     if (handle->data_sz > 8)
     {
         if (handle->rx_buf)
         {
-            *((uint16_t *)(handle->rx_buf + handle->rx_count)) = handle->spi->DR;
+            *((uint16_t *)(handle->rx_buf + handle->rx_count)) = *(__IO uint16_t *)&handle->spi->DR;
         }
         handle->rx_count += 2;
     }
@@ -198,13 +207,17 @@ static inline void spi_read_buf(spi_handle_t *handle)
     {
         if (handle->rx_buf)
         {
-            *(handle->rx_buf + handle->rx_count) = handle->spi->DR;
+            *(handle->rx_buf + handle->rx_count) = *(__IO uint8_t *)&handle->spi->DR;
         }
         handle->rx_count++;
     }
 
-    if (handle->rx_count > handle->len)
+    if (handle->rx_count >= handle->len)
     {
+        // Busy wait for completion
+        while (reg_get_field(&handle->spi->SR, SPI_SR_FTLVL_Pos, 2));
+        while (reg_get_bit(&handle->spi->SR, SPI_SR_BSY_Pos));
+
         reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
         handle->callback(STATUS_OK, handle->user_data);
     }
@@ -213,8 +226,9 @@ static inline void spi_read_buf(spi_handle_t *handle)
 void hal_spi_isr(spi_perip_t type)
 {
     spi_handle_t *handle = g_spi_handles[type];
+    uint32_t sr = handle->spi->SR;
 
-    if (reg_get_bit(&handle->spi->SR, SPI_SR_OVR_Pos))
+    if (sr & SPI_SR_OVR_Msk)
     {
         (void)handle->spi->DR;
         (void)handle->spi->SR;
@@ -228,24 +242,24 @@ void hal_spi_isr(spi_perip_t type)
         return;
     }
 
-    if (reg_get_bit(&handle->spi->SR, SPI_SR_MODF_Pos))
+    if (sr & SPI_SR_MODF_Msk)
     {
-        handle->spi->CR1 = handle->spi->CR1;  // Write to the CR1 to clear MODF bit
+        handle->spi->CR1 = handle->spi->CR1;
         reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
-        reg_set_mask(&handle->spi->CR1, SPI_CR1_MSTR_Msk | SPI_CR1_SPE_Msk);
+        reg_clear_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);  // Write CR1 to clear the MODF
         handle->callback(STATUS_SPI_MODF, handle->user_data);
         return;
     }
 
-    if (reg_get_bit(&handle->spi->SR, SPI_SR_TXE_Pos))
+    if (sr & SPI_SR_RXNE_Msk)
     {
-        spi_write_buf(handle);
+        spi_read_buf(handle);
         return;
     }
 
-    if (reg_get_bit(&handle->spi->SR, SPI_SR_RXNE_Pos))
+    if (sr & SPI_SR_TXE_Msk)
     {
-        spi_read_buf(handle);
+        spi_write_buf(handle);
         return;
     }
 }
@@ -265,8 +279,12 @@ void hal_spi_transact(spi_handle_t *handle)
 void hal_spi_isr_dma(bw_status_t status, void *user_data)
 {
     spi_handle_t *handle = (spi_handle_t *)user_data;
+
+    // Busy wait for completion
+    while (reg_get_field(&handle->spi->SR, SPI_SR_FTLVL_Pos, 2));
+    while (reg_get_bit(&handle->spi->SR, SPI_SR_BSY_Pos));
+
     reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
-    reg_set_mask(&handle->spi->CR1, SPI_CR1_MSTR_Msk | SPI_CR1_SPE_Msk);
 
     if (status == STATUS_DMA_TC)
     {

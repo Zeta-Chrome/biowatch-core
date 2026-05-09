@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include "cmsis_gcc.h"
 #include "stm32wb55xx.h"
-#include "utils/logger.h"
 
 #define HIGHEST_IRQ_PRIO 3
 #define RTOS_ENTER_CRITICAL() rtos_enter_critical()

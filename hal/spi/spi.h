@@ -64,7 +64,6 @@ typedef struct
     gpio_t mosi;
     gpio_t miso;
     gpio_t sck;
-    gpio_t nss;
     spi_br_t baud_rate;
     spi_cpol_t cpol;
     spi_cpha_t cpha;
