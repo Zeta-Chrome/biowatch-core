@@ -1,5 +1,5 @@
-#ifndef PLATFORM_LOGGER_H
-#define PLATFORM_LOGGER_H
+#ifndef UTILS_LOGGER_H
+#define UTILS_LOGGER_H
 
 #include <stdint.h>
 

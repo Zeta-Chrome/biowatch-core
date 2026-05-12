@@ -1,5 +1,5 @@
-#ifndef PLATFORM_ASSERT_H
-#define PLATFORM_ASSERT_H
+#ifndef UTILS_ASSERT_H
+#define UTILS_ASSERT_H
 
 #ifdef DEBUG
 

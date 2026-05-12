@@ -1,5 +1,5 @@
-#ifndef UTILS_UTILS_H
-#define UTILS_UTILS_H
+#ifndef UTILS_H
+#define UTILS_H
 
 #include "stm32wb55xx.h"
 #include "status.h"

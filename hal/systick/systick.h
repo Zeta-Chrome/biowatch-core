@@ -1,5 +1,5 @@
-#ifndef PLATFORM_TIMER_H
-#define PLATFORM_TIMER_H
+#ifndef HAL_SYSTICK_H
+#define HAL_SYSTICK_H
 
 #include <stdint.h>
 
