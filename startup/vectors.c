@@ -3,6 +3,7 @@
 #include "hal/exti/exti.h"
 #include "hal/rtc/rtc.h"
 #include "hal/reg.h"
+#include "logger.h"
 #include "stm32wb55xx.h"
 
 void hal_systick_tick();
@@ -189,18 +190,21 @@ void HardFault_Handler(void)
 
 void MemManage_Handler(void)
 {
+    BW_LOG("Mem manage fault status: %x\n", SCB->CFSR & SCB_CFSR_MEMFAULTSR_Msk);
     __asm volatile("bkpt #0");
     while(1);
 }
 
 void BusFault_Handler(void)
 {
+    BW_LOG("Usage fault status: %x\n", SCB->CFSR & SCB_CFSR_BUSFAULTSR_Msk);
     __asm volatile("bkpt #0");
     while(1);
 }
 
 void UsageFault_Handler(void)
 {
+    BW_LOG("Usage fault status: %x\n", SCB->CFSR & SCB_CFSR_USGFAULTSR_Msk);
     __asm volatile("bkpt #0");
     while(1);
 }
