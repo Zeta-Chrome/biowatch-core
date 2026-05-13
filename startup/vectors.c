@@ -14,7 +14,10 @@ void hal_spi_isr(spi_perip_t);
 void hal_dma_isr(DMA_TypeDef *, uint8_t);
 void hal_adc_isr();
 void hal_lptim_isr();
-  
+void hal_ipcc_tx_isr(); 
+void hal_ipcc_rx_isr(); 
+void hal_hsem_isr();
+
 void SysTick_Handler(void)
 {
     hal_systick_tick();
@@ -180,6 +183,21 @@ void ADC1_IRQHandler()
 void LPTIM1_IRQHandler()
 {
     hal_lptim_isr();
+}
+
+void IPCC_C1_TX_IRQHandler()
+{
+    hal_ipcc_tx_isr();
+}
+
+void IPCC_C1_RX_IRQHandler()
+{
+    hal_ipcc_rx_isr();
+}
+
+void HSEM_IRQHandler()
+{
+    hal_hsem_isr();
 }
 
 void HardFault_Handler(void)
