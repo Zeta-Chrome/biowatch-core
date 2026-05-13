@@ -1,5 +1,6 @@
 #include "rtc.h"
 #include "assert.h"
+#include "clock/clock_srcs.h"
 #include "exti/exti.h"
 #include "stm32wb55xx.h"
 #include "reg.h"
@@ -36,8 +37,7 @@ static void rtc_clock_init()
     rtc_unlock();
 
     // Enable LSE clock
-    reg_set_mask(&RCC->BDCR, RCC_BDCR_LSEON_Msk);
-    while (reg_get_bit(&RCC->BDCR, RCC_BDCR_LSERDY_Pos) != 1);
+    hal_clock_enable_lse(); 
 
     reg_set_field(&RCC->BDCR, RCC_BDCR_RTCSEL_Pos, 2, 0x01);  // Use LSE clock
     reg_set_mask(&RCC->BDCR, RCC_BDCR_RTCEN_Msk);

@@ -1,5 +1,6 @@
 #include "lptim.h"
 #include "assert.h"
+#include "clock/clock_srcs.h"
 #include "reg.h"
 #include "stm32wb55xx.h"
 
@@ -32,8 +33,7 @@ static void lptim_clock_init()
     reg_set_mask(&PWR->CR1, PWR_CR1_DBP_Msk);
 
     // Enable LSE clock
-    reg_set_mask(&RCC->BDCR, RCC_BDCR_LSEON_Msk);
-    while (reg_get_bit(&RCC->BDCR, RCC_BDCR_LSERDY_Pos) != 1);
+    hal_clock_enable_lse(); 
 
     reg_set_field(&RCC->CCIPR, RCC_CCIPR_LPTIM1SEL_Pos, 2, 0x3);  // Use LSE clock
     reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_LPTIM1EN_Msk);
