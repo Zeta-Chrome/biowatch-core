@@ -73,7 +73,13 @@ typedef struct
     clock_ppre_t ppre2;
 } clock_conf_t;
 
-// 64 MHz
+extern uint32_t SYSCLK_FREQ;
+extern uint32_t HCLK1_FREQ;
+extern uint32_t HCLK2_FREQ;
+extern uint32_t HCLK4_FREQ;
+extern uint32_t PCLK1_FREQ;
+extern uint32_t PCLK2_FREQ;
+
 static inline clock_conf_t clock_conf_performance()
 {
     return (clock_conf_t){
@@ -85,6 +91,29 @@ static inline clock_conf_t clock_conf_performance()
     };
 }
 
+static inline clock_conf_t clock_conf_lp_sleep()
+{
+    return (clock_conf_t){
+        .src = CLOCK_SRC_MSI,
+        .msi_range = CLOCK_MSI_RANGE_1M,
+        .hpre = CLOCK_HPRE_1,
+        .ppre1 = CLOCK_PPRE_1,
+        .ppre2 = CLOCK_PPRE_1
+    };
+}
+
+static inline clock_conf_t clock_conf_stop()
+{
+    return (clock_conf_t){
+        .src = CLOCK_SRC_MSI,
+        .msi_range = CLOCK_MSI_RANGE_48M,
+        .hpre = CLOCK_HPRE_1,
+        .ppre1 = CLOCK_PPRE_2,
+        .ppre2 = CLOCK_PPRE_1
+    };
+}
+
 bw_status_t hal_clock_configure(clock_conf_t *conf);
+bw_status_t hal_clock_reconfigure(clock_conf_t *conf);
 
 #endif

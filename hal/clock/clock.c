@@ -3,6 +3,7 @@
 #include "clock_srcs.h"
 #include "logger.h"
 #include "reg.h"
+#include "status.h"
 #include "stm32wb55xx.h"
 
 uint32_t SYSCLK_FREQ;
@@ -62,6 +63,29 @@ static bw_status_t hal_clock_configure_pll(clock_conf_t *conf)
     return STATUS_OK;
 }
 
+static void configure_flash_latency(uint32_t freq)
+{
+    uint8_t latency = 0;
+    if (freq <= 18000000)
+    {
+        latency = 0;
+    }
+    else if (freq <= 36000000)
+    {
+        latency = 1;
+    }
+    else if (freq <= 54000000)
+    {
+        latency = 2;
+    }
+    else if (freq <= 64000000)
+    {
+        latency = 3;
+    }
+    reg_set_field(&FLASH->ACR, FLASH_ACR_LATENCY_Pos, 2, latency);
+    while ((FLASH->ACR & FLASH_ACR_LATENCY_Msk) != latency);  // Wait for latency to set
+}
+
 bw_status_t hal_clock_configure(clock_conf_t *conf)
 {
     uint8_t clk_src;
@@ -97,37 +121,14 @@ bw_status_t hal_clock_configure(clock_conf_t *conf)
     HCLK4_FREQ = SYSCLK_FREQ;
 
     // Set wait states in flash memory
-    uint8_t latency = 0;
-    if (HCLK4_FREQ <= 18000000)
-    {
-        latency = 0;
-    }
-    else if (HCLK4_FREQ <= 36000000)
-    {
-        latency = 1;
-    } 
-    else if (HCLK4_FREQ <= 54000000)
-    {
-        latency = 2;
-    }
-    else if (HCLK4_FREQ <= 64000000)
-    {
-        latency = 3;
-    } 
-    reg_set_field(&FLASH->ACR, FLASH_ACR_LATENCY_Pos, 2, latency);
-    while((FLASH->ACR & FLASH_ACR_LATENCY_Msk) != latency); // Wait for latency to set
-    
+    configure_flash_latency(HCLK4_FREQ); 
+
     // Set clock source
     reg_set_field(&RCC->CFGR, RCC_CFGR_SW_Pos, 2, clk_src);
     while ((RCC->CFGR & RCC_CFGR_SWS_Msk) != (clk_src << RCC_CFGR_SWS_Pos));
 
-    if (conf->src != CLOCK_SRC_MSI && conf->pllr.src != CLOCK_SRC_MSI)
-    {
-        hal_clock_disable_msi();
-    }
-    
     // Configure hclk1 prescalar
-    HCLK1_FREQ = SYSCLK_FREQ / g_hpre_map[conf->hpre]; 
+    HCLK1_FREQ = SYSCLK_FREQ / g_hpre_map[conf->hpre];
     reg_set_field(&RCC->CFGR, RCC_CFGR_HPRE_Pos, 4, conf->hpre);
     while (!(RCC->CFGR & RCC_CFGR_HPREF_Msk));
 
@@ -142,9 +143,41 @@ bw_status_t hal_clock_configure(clock_conf_t *conf)
     while (!(RCC->CFGR & RCC_CFGR_PPRE1F_Msk));
 
     // Configure pclk2 prescalar
-    PCLK2_FREQ = SYSCLK_FREQ / (1 << conf->ppre2); 
+    PCLK2_FREQ = SYSCLK_FREQ / (1 << conf->ppre2);
     reg_set_field(&RCC->CFGR, RCC_CFGR_PPRE2_Pos, 3, conf->ppre2);
     while (!(RCC->CFGR & RCC_CFGR_PPRE2F_Msk));
+
+    return STATUS_OK;
+}
+
+bw_status_t hal_clock_reconfigure(clock_conf_t *conf)
+{
+    if (hal_clock_configure(conf) == STATUS_OK)
+    {
+        return STATUS_ERR;
+    }
+
+    // Disable the rest of the clocks
+    if (conf->src != CLOCK_SRC_MSI && conf->pllr.src != CLOCK_SRC_MSI)
+    {
+        hal_clock_disable_msi();
+    }
+
+    if (conf->src != CLOCK_SRC_HSI && conf->pllr.src != CLOCK_SRC_HSI)
+    {
+        hal_clock_disable_hsi();
+    }
+
+    if (conf->src != CLOCK_SRC_HSE && conf->pllr.src != CLOCK_SRC_HSE)
+    {
+        hal_clock_disable_hse();
+    }
+
+    if (conf->src != CLOCK_SRC_PLL)
+    {
+        reg_clear_mask(&RCC->PLLCFGR, RCC_PLLCFGR_PLLREN_Msk);
+        hal_clock_disable_pll();
+    }
 
     return STATUS_OK;
 }

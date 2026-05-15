@@ -10,7 +10,7 @@ void hal_clock_enable_hsi();
 void hal_clock_disable_hsi();
 
 void hal_clock_enable_hse();
-void hal_clock_disable_lse();
+void hal_clock_disable_hse();
 
 void hal_clock_enable_pll();
 void hal_clock_disable_pll();
