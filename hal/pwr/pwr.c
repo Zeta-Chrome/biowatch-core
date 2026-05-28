@@ -1,7 +1,36 @@
 #include "pwr.h"
 #include "clock/clock.h"
+#include "clock/clock_srcs.h"
+#include "exti/exti.h"
 #include "reg.h"
 #include "stm32wb55xx.h"
+#include "utils.h"
+
+#define CPU2_SEV_IM 41
+
+static exti_handle_t g_exti_h;
+
+void hal_pwr_enable_wkup(pwr_wkup_t wkup, pwr_wkup_edge_t edge)
+{
+    reg_set_mask(&PWR->CR3, PWR_CR3_EWUP1_Msk << wkup);
+    reg_set_field(&PWR->CR4, PWR_CR4_WP1_Pos + wkup, 1, edge);
+}
+
+void hal_pwr_boot_cpu2()
+{
+    // Enable hse for ble 
+    hal_clock_enable_hse();
+
+    // Enable SEV EXTI for cpu2 wakeup
+    exti_conf_t conf = {.im = CPU2_SEV_IM, .edge = EXTI_EDGE_RISING, .irq_priority = 0, .callback = NULL, .user_data = NULL};
+    hal_exti_init(&conf, &g_exti_h);
+ 
+    __SEV(); // Send Event
+    __WFE(); // Clear event flag
+
+    // Boot CPU2
+    reg_set_mask(&PWR->CR4, PWR_CR4_C2BOOT_Msk); 
+}
 
 void hal_pwr_enter_sleep()
 {

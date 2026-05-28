@@ -168,10 +168,11 @@ bw_status_t hal_clock_reconfigure(clock_conf_t *conf)
         hal_clock_disable_hsi();
     }
 
-    if (conf->src != CLOCK_SRC_HSE && conf->pllr.src != CLOCK_SRC_HSE)
-    {
-        hal_clock_disable_hse();
-    }
+    // Required for ble task
+    // if (conf->src != CLOCK_SRC_HSE && conf->pllr.src != CLOCK_SRC_HSE)
+    // {
+    //     hal_clock_disable_hse();
+    // }
 
     if (conf->src != CLOCK_SRC_PLL)
     {

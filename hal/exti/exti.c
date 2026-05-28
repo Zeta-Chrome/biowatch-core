@@ -45,7 +45,7 @@ void hal_exti_init(exti_conf_t *conf, exti_handle_t *handle)
 void hal_exti_gpio_init(exti_conf_t *conf, exti_handle_t *handle)
 {
     // Configure as input pin
-    gpio_conf_t int_conf = gpio_conf_input(conf->gpio, GPIO_PULL_NONE);
+    gpio_conf_t int_conf = gpio_conf_input(conf->gpio, conf->pupd);
     hal_gpio_init(&int_conf);
 
     uint8_t port = gpio_port_index(conf->gpio.port);

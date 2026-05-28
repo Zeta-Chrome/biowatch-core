@@ -34,12 +34,12 @@ static void i2c_clock_init(I2C_TypeDef *i2c)
 {
     if (i2c == I2C1)
     {
-        reg_set_field(&RCC->CCIPR, RCC_CCIPR_I2C1SEL_Pos, 2, 0x1);  // System Clock
+        reg_set_field(&RCC->CCIPR, RCC_CCIPR_I2C1SEL_Pos, 2, 0x00);  // PCLK1
         reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_I2C1EN_Msk);
     }
     else if (i2c == I2C3)
     {
-        reg_set_field(&RCC->CCIPR, RCC_CCIPR_I2C3SEL_Pos, 2, 0x1);  // System Clock
+        reg_set_field(&RCC->CCIPR, RCC_CCIPR_I2C3SEL_Pos, 2, 0x00);  // PCLK1
         reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_I2C3EN_Msk);
     }
 }
@@ -77,7 +77,7 @@ static void i2c_hw_init(i2c_conf_t *conf, i2c_handle_t *handle)
     // Configure the timing
     switch (conf->speed)
     {
-    case I2C_SPEED_LOW:
+    case I2C_SPEED_LOW:  // 10kHz
     {
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_PRESC_Pos, 4, 0x3);
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLL_Pos, 8, 0xC7);
@@ -86,7 +86,7 @@ static void i2c_hw_init(i2c_conf_t *conf, i2c_handle_t *handle)
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLDEL_Pos, 4, 0x4);
         break;
     }
-    case I2C_SPEED_STANDARD:
+    case I2C_SPEED_STANDARD:  // 100kHz
     {
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_PRESC_Pos, 4, 0x3);
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLL_Pos, 8, 0x13);
@@ -95,7 +95,7 @@ static void i2c_hw_init(i2c_conf_t *conf, i2c_handle_t *handle)
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLDEL_Pos, 4, 0x4);
         break;
     }
-    case I2C_SPEED_FAST:
+    case I2C_SPEED_FAST:  // 400KHz
     {
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_PRESC_Pos, 4, 0x1);
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLL_Pos, 8, 0x9);
@@ -104,7 +104,7 @@ static void i2c_hw_init(i2c_conf_t *conf, i2c_handle_t *handle)
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLDEL_Pos, 4, 0x3);
         break;
     }
-    case I2C_SPEED_FAST_PLUS:
+    case I2C_SPEED_FAST_PLUS:  // 1MHz
     {
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_PRESC_Pos, 4, 0x0);
         reg_set_field(&conf->i2c->TIMINGR, I2C_TIMINGR_SCLL_Pos, 8, 0x4);
@@ -350,7 +350,7 @@ void hal_i2c_ev_isr(i2c_perip_t type)
 
     if (reg_get_bit(&i2c->ISR, I2C_ISR_NACKF_Pos))
     {
-        reg_set_bit(&i2c->ICR, I2C_ICR_NACKCF_Pos);
+        reg_set_bit(&i2c->ICR, I2C_ICR_NACKCF_Pos | I2C_ICR_STOPCF_Pos);
         handle->callback(STATUS_I2C_NACKF, handle->user_data);
         return;
     }

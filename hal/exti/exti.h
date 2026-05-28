@@ -18,8 +18,12 @@ typedef struct
     union
     {
         // Both pin and im occupy the same space
-        gpio_t gpio; // 1 byte of pin + 8 bytes of GPIO_Typedef *
-        uint8_t im; // 1 byte of im
+        struct
+        {
+            gpio_t gpio; // 1 byte of pin + 8 bytes of GPIO_Typedef *
+            gpio_pupd_t pupd;
+        };
+        uint8_t im;   // 1 byte of im
     };
     exti_edge_t edge;
     IRQn_Type irq;
@@ -28,11 +32,16 @@ typedef struct
     void *user_data;
 } exti_conf_t;
 
-typedef struct 
+typedef struct
 {
     union
     {
-        gpio_t gpio;
+        struct
+        {
+            gpio_t gpio;
+            gpio_pupd_t pupd;
+        };
+
         uint8_t im;
     };
     IRQn_Type irq;

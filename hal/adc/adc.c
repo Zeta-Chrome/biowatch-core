@@ -7,7 +7,6 @@
 #include "stm32wb55xx.h"
 #include "reg.h"
 
-
 static adc_handle_t *g_adc_h;
 
 static void adc_clock_init()
@@ -49,7 +48,7 @@ static void adc_hw_conf(adc_conf_t *conf)
     BW_ASSERT(conf->inlen <= 4, "Invalid No of ADC channels %d (Expected 0-4)");
 
     // Wait till no more conversions
-    while (reg_get_bit(&ADC1->CR, ADC_CR_ADSTART_Pos) != 0 &&
+    while (reg_get_bit(&ADC1->CR, ADC_CR_ADSTART_Pos) != 0 ||
            reg_get_bit(&ADC1->CR, ADC_CR_JADSTART_Pos) != 0);
 
     // Configure channels
@@ -70,12 +69,16 @@ static void adc_hw_conf(adc_conf_t *conf)
         {
             reg_set_field(&ADC1->SMPR2, 3 * (in - 10), 3, conf->smp[i]);
         }
+
         // Select adc input type (single ended or differential)
-        reg_set_bit(&ADC1->DIFSEL, conf->inp);
+        if (conf->inp == ADC_INP_DIFFERENTIAL)
+            reg_set_bit(&ADC1->DIFSEL, in);  // 'in' = conf->in[i], e.g. 5 for PA0
+        else
+            reg_clear_bit(&ADC1->DIFSEL, in);  // ensure single-ended for this channel
     }
 
     // Set single conversion mode (CONT = 0)
-    reg_clear_mask(&ADC1->CFGR, ADC_CFGR_CONT);
+    reg_clear_mask(&ADC1->CFGR, ADC_CFGR_CONT_Msk);
 }
 
 void hal_adc_init(adc_conf_t *conf)
@@ -90,7 +93,8 @@ void hal_adc_isr()
 {
     if (reg_get_bit(&ADC1->ISR, ADC_ISR_EOC_Pos) == 1)
     {
-        *(g_adc_h->buf + g_adc_h->buf_count++) = ADC1->DR;
+        uint16_t raw = ADC1->DR;
+        *(g_adc_h->buf + g_adc_h->buf_count++) = raw;
     }
 
     if (reg_get_bit(&ADC1->ISR, ADC_ISR_EOS_Pos) == 1)
@@ -117,7 +121,7 @@ static void adc_prep_conversion(adc_handle_t *handle)
     BW_ASSERT(handle->inseqlen <= 4, "Invalid ADC Sequence Length %d (Expected 0-4)");
 
     // Wait till no more conversions
-    while (reg_get_bit(&ADC1->CR, ADC_CR_ADSTART_Pos) != 0 &&
+    while (reg_get_bit(&ADC1->CR, ADC_CR_ADSTART_Pos) != 0 ||
            reg_get_bit(&ADC1->CR, ADC_CR_JADSTART_Pos) != 0);
 
     // Configure channel sequence

@@ -86,7 +86,7 @@ static inline clock_conf_t clock_conf_performance()
         .src = CLOCK_SRC_PLL,
         .pllr = {.src = CLOCK_SRC_HSE, .mul = 6, .div = 1, .rdiv = 3},
         .hpre = CLOCK_HPRE_1,
-        .ppre1 = CLOCK_PPRE_2,
+        .ppre1 = CLOCK_PPRE_4,
         .ppre2 = CLOCK_PPRE_1
     };
 }
