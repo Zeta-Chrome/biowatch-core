@@ -155,13 +155,13 @@ static void print(const char *msg, int msg_len)
     char out[256];
     uint16_t out_len = 0;
 
-    for (int i = 0; i < buf_len; i++)
+    for (int i = 0; i < out_len; i++)
     {
-        if (buf[i] == '\n')
+        if (out[i] == '\n')
         {
             out[out_len++] = '\r';
         }
-        out[out_len++] = buf[i];
+        out[out_len++] = out[i];
     }
     out[out_len] = '\0';
 
