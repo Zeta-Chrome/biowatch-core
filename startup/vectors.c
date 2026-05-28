@@ -215,7 +215,7 @@ void MemManage_Handler(void)
 
 void BusFault_Handler(void)
 {
-    BW_LOG("Usage fault status: %x\n", SCB->CFSR & SCB_CFSR_BUSFAULTSR_Msk);
+    BW_LOG("Bus fault status: %x\n", SCB->CFSR & SCB_CFSR_BUSFAULTSR_Msk);
     __asm volatile("bkpt #0");
     while(1);
 }
