@@ -155,15 +155,11 @@ void list_delete_node(list_t *list, list_node_t *node)
     }
 #endif
 
-    // Unlink for circular list 
-    list->head->prev = NULL;
-    list->tail->next = NULL;
-
     if (node->next != NULL)
     {
         node->next->prev = node->prev;
     }
-    else 
+    else
     {
         list->tail = node->prev;
     }
@@ -172,7 +168,7 @@ void list_delete_node(list_t *list, list_node_t *node)
     {
         node->prev->next = node->next;
     }
-    else 
+    else
     {
         list->head = node->next;
     }

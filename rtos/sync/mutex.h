@@ -1,14 +1,12 @@
 #ifndef RTOS_MUTEX_H
 #define RTOS_MUTEX_H
 
-
-#include "utils/containers/list.h"
 #include "rtos/task/task.h"
+#include "utils/containers/list.h"
 #include <stdint.h>
 
-typedef struct 
+typedef struct
 {
-    uint8_t count;
     list_t wait_queue;
     tcb_t *owner_task;
     uint8_t original_prio;

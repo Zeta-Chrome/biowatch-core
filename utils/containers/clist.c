@@ -1,4 +1,5 @@
 #include "clist.h"
+#include "utils.h"
 
 void clist_init(clist_t *clist)
 {
@@ -60,6 +61,10 @@ void clist_insert_before(clist_t *clist, clist_node_t *node, clist_node_t *new_n
 
 void clist_delete_node(clist_t *clist, clist_node_t *node)
 {
+    // Unlink for circular list
+    clist->head->prev = NULL;
+    clist->tail->next = NULL;
+
     list_delete_node(clist, node);
     if (clist->count == 0)
     {

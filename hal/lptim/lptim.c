@@ -1,8 +1,8 @@
-#include "lptim.h"
 #include "assert.h"
 #include "clock/clock_srcs.h"
-#include "reg.h"
+#include "lptim.h"
 #include "stm32wb55xx.h"
+#include "utils.h"
 
 typedef enum
 {
@@ -30,16 +30,16 @@ static struct
 static void lptim_clock_init()
 {
     // Disable the write protection for RTC
-    reg_set_mask(&PWR->CR1, PWR_CR1_DBP_Msk);
+    SET_FIELD(PWR->CR1, PWR_CR1_DBP_Msk);
 
     // Enable LSE clock
-    hal_clock_enable_lse(); 
+    hal_clock_enable_lse();
 
-    reg_set_field(&RCC->CCIPR, RCC_CCIPR_LPTIM1SEL_Pos, 2, 0x3);  // Use LSE clock
-    reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_LPTIM1EN_Msk);
+    MODIFY_FIELD(RCC->CCIPR, RCC_CCIPR_LPTIM1SEL_Msk, RCC_CCIPR_LPTIM1SEL_Pos, 0x3); // Use LSE clock
+    SET_FIELD(RCC->APB1ENR1, RCC_APB1ENR1_LPTIM1EN_Msk);
 
     // Enable write protection
-    reg_clear_mask(&PWR->CR1, PWR_CR1_DBP_Msk);
+    CLEAR_FIELD(PWR->CR1, PWR_CR1_DBP_Msk);
 }
 
 void hal_lptim_init(lptim_conf_t *conf)
@@ -50,21 +50,21 @@ void hal_lptim_init(lptim_conf_t *conf)
 
     lptim_clock_init();
 
-    reg_clear_mask(&LPTIM1->CFGR, LPTIM_CFGR_CKSEL_Msk);      // Clocked by LSE
-    reg_clear_mask(&LPTIM1->CFGR, LPTIM_CFGR_COUNTMODE_Msk);  // Clocked by LSE
-    reg_clear_mask(&LPTIM1->CFGR, LPTIM_CFGR_TRIGEN);
+    CLEAR_FIELD(LPTIM1->CFGR, LPTIM_CFGR_CKSEL_Msk);     // Clocked by LSE
+    CLEAR_FIELD(LPTIM1->CFGR, LPTIM_CFGR_COUNTMODE_Msk); // Clocked by LSE
+    CLEAR_FIELD(LPTIM1->CFGR, LPTIM_CFGR_TRIGEN);
 
     NVIC_SetPriority(LPTIM1_IRQn, conf->priority);
     NVIC_EnableIRQ(LPTIM1_IRQn);
 
-    reg_set_mask(&LPTIM1->IER, LPTIM_IER_CMPMIE_Msk);
-    reg_set_mask(&LPTIM1->CR, LPTIM_CR_ENABLE_Msk);
+    SET_FIELD(LPTIM1->IER, LPTIM_IER_CMPMIE_Msk);
+    SET_FIELD(LPTIM1->CR, LPTIM_CR_ENABLE_Msk);
 }
 
 static inline void lptim_write_cmp(uint16_t ticks)
 {
-    LPTIM1->ICR = LPTIM_ICR_CMPOKCF_Msk;
-    LPTIM1->CMP = ticks;
+    WRITE_FIELD(LPTIM1->ICR, LPTIM_ICR_CMPOKCF_Msk);
+    WRITE_FIELD(LPTIM1->CMP, ticks);
     while (!(LPTIM1->ISR & LPTIM_ISR_CMPOK_Msk));
 }
 
@@ -84,7 +84,7 @@ static inline void lptim_set_once()
 
 void hal_lptim_isr()
 {
-    LPTIM1->ICR = LPTIM_ICR_CMPMCF_Msk;
+    WRITE_FIELD(LPTIM1->ICR, LPTIM_ICR_CMPMCF_Msk);
 
     if (g_handle.type == LPTIM_TYPE_PERIOD)
     {
@@ -98,7 +98,7 @@ void hal_lptim_isr()
             lptim_set_once();
             return;
         }
-        reg_clear_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
+        CLEAR_FIELD(LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
         g_handle.callback(g_handle.user_data);
     }
 }
@@ -107,7 +107,7 @@ void hal_lptim_trigger_period(uint16_t ms)
 {
     BW_ASSERT(ms < 2000, "Out of range ms: %d (Expected 0-1999)", ms);
 
-    reg_clear_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
+    CLEAR_FIELD(LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
 
     g_handle.type = LPTIM_TYPE_PERIOD;
     g_handle.last_tick_goal = 0;
@@ -118,12 +118,12 @@ void hal_lptim_trigger_period(uint16_t ms)
     LPTIM1->ICR = LPTIM_ICR_CMPMCF_Msk;
 
     // Start counting
-    reg_set_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
+    SET_FIELD(LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
 }
 
 void hal_lptim_trigger_once(uint16_t ms)
 {
-    reg_clear_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
+    CLEAR_FIELD(LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
 
     g_handle.type = LPTIM_TYPE_ONCE;
     g_handle.last_tick_goal = 0;
@@ -134,11 +134,11 @@ void hal_lptim_trigger_once(uint16_t ms)
     LPTIM1->ICR = LPTIM_ICR_CMPMCF_Msk;
 
     // Start counting
-    reg_set_mask(&LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
+    SET_FIELD(LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
 }
 
 void hal_lptim_deinit()
 {
-    reg_clear_mask(&LPTIM1->CR, LPTIM_CR_ENABLE_Msk);
-    reg_clear_mask(&LPTIM1->IER, LPTIM_IER_ARRMIE_Msk | LPTIM_IER_CMPMIE_Msk);
+    CLEAR_FIELD(LPTIM1->CR, LPTIM_CR_ENABLE_Msk);
+    CLEAR_FIELD(LPTIM1->IER, LPTIM_IER_ARRMIE_Msk | LPTIM_IER_CMPMIE_Msk);
 }

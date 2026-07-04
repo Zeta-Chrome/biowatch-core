@@ -1,10 +1,10 @@
-#include "hal/i2c/i2c.h"
-#include "hal/spi/spi.h"
 #include "hal/exti/exti.h"
+#include "hal/i2c/i2c.h"
 #include "hal/rtc/rtc.h"
-#include "hal/reg.h"
+#include "hal/spi/spi.h"
 #include "logger.h"
 #include "stm32wb55xx.h"
+#include "utils/utils.h"
 
 void hal_systick_tick();
 void rtos_scheduler_tick();
@@ -14,13 +14,16 @@ void hal_spi_isr(spi_perip_t);
 void hal_dma_isr(DMA_TypeDef *, uint8_t);
 void hal_adc_isr();
 void hal_lptim_isr();
-void hal_ipcc_tx_isr(); 
-void hal_ipcc_rx_isr(); 
+void hal_ipcc_tx_isr();
+void hal_ipcc_rx_isr();
 void hal_hsem_isr();
 
 void SysTick_Handler(void)
 {
     hal_systick_tick();
+#ifdef DEBUG
+    rtos_scheduler_tick();
+#endif
 }
 
 void I2C1_EV_IRQHandler(void)
@@ -83,7 +86,7 @@ void EXTI4_IRQHandler(void)
 void EXTI9_5_IRQHandler(void)
 {
     for (uint8_t i = 5; i <= 9; i++)
-        if (reg_get_bit(&EXTI->PR1, i))
+        if (READ_BIT(EXTI->PR1, i))
             hal_exti_isr(i);
 }
 
@@ -91,76 +94,76 @@ void EXTI9_5_IRQHandler(void)
 void EXTI15_10_IRQHandler(void)
 {
     for (uint8_t i = 10; i <= 15; i++)
-        if (reg_get_bit(&EXTI->PR1, i))
+        if (READ_BIT(EXTI->PR1, i))
             hal_exti_isr(i);
 }
 
-void DMA1_Channel1_IRQHandler(void) 
+void DMA1_Channel1_IRQHandler(void)
 {
     hal_dma_isr(DMA1, 1);
 }
 
-void DMA1_Channel2_IRQHandler(void) 
+void DMA1_Channel2_IRQHandler(void)
 {
     hal_dma_isr(DMA1, 2);
 }
 
-void DMA1_Channel3_IRQHandler(void) 
+void DMA1_Channel3_IRQHandler(void)
 {
     hal_dma_isr(DMA1, 3);
 }
 
-void DMA1_Channel4_IRQHandler(void) 
+void DMA1_Channel4_IRQHandler(void)
 {
     hal_dma_isr(DMA1, 4);
 }
 
-void DMA1_Channel5_IRQHandler(void) 
+void DMA1_Channel5_IRQHandler(void)
 {
     hal_dma_isr(DMA1, 5);
 }
 
-void DMA1_Channel6_IRQHandler(void) 
+void DMA1_Channel6_IRQHandler(void)
 {
     hal_dma_isr(DMA1, 6);
 }
 
-void DMA1_Channel7_IRQHandler(void) 
+void DMA1_Channel7_IRQHandler(void)
 {
     hal_dma_isr(DMA1, 7);
 }
 
-void DMA2_Channel1_IRQHandler(void) 
+void DMA2_Channel1_IRQHandler(void)
 {
     hal_dma_isr(DMA2, 1);
 }
 
-void DMA2_Channel2_IRQHandler(void) 
+void DMA2_Channel2_IRQHandler(void)
 {
     hal_dma_isr(DMA2, 2);
 }
 
-void DMA2_Channel3_IRQHandler(void) 
+void DMA2_Channel3_IRQHandler(void)
 {
     hal_dma_isr(DMA2, 3);
 }
 
-void DMA2_Channel4_IRQHandler(void) 
+void DMA2_Channel4_IRQHandler(void)
 {
     hal_dma_isr(DMA2, 4);
 }
 
-void DMA2_Channel5_IRQHandler(void) 
+void DMA2_Channel5_IRQHandler(void)
 {
     hal_dma_isr(DMA2, 5);
 }
 
-void DMA2_Channel6_IRQHandler(void) 
+void DMA2_Channel6_IRQHandler(void)
 {
     hal_dma_isr(DMA2, 6);
 }
 
-void DMA2_Channel7_IRQHandler(void) 
+void DMA2_Channel7_IRQHandler(void)
 {
     hal_dma_isr(DMA2, 7);
 }
@@ -203,26 +206,26 @@ void HSEM_IRQHandler()
 void HardFault_Handler(void)
 {
     __asm volatile("bkpt #0");
-    while(1);
+    while (1);
 }
 
 void MemManage_Handler(void)
 {
     BW_LOG("Mem manage fault status: %x\n", SCB->CFSR & SCB_CFSR_MEMFAULTSR_Msk);
     __asm volatile("bkpt #0");
-    while(1);
+    while (1);
 }
 
 void BusFault_Handler(void)
 {
     BW_LOG("Bus fault status: %x\n", SCB->CFSR & SCB_CFSR_BUSFAULTSR_Msk);
     __asm volatile("bkpt #0");
-    while(1);
+    while (1);
 }
 
 void UsageFault_Handler(void)
 {
     BW_LOG("Usage fault status: %x\n", SCB->CFSR & SCB_CFSR_USGFAULTSR_Msk);
     __asm volatile("bkpt #0");
-    while(1);
+    while (1);
 }

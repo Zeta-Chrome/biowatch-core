@@ -23,11 +23,11 @@ typedef struct
             gpio_t gpio; // 1 byte of pin + 8 bytes of GPIO_Typedef *
             gpio_pupd_t pupd;
         };
-        uint8_t im;   // 1 byte of im
+        uint8_t im; // 1 byte of im
     };
     exti_edge_t edge;
     IRQn_Type irq;
-    uint8_t irq_priority;  // 0-15
+    uint8_t irq_priority; // 0-15
     exti_callback_t callback;
     void *user_data;
 } exti_conf_t;
@@ -50,6 +50,7 @@ typedef struct
 } exti_handle_t;
 
 void hal_exti_init(exti_conf_t *conf, exti_handle_t *handle);
+void hal_exti_enable_line(uint8_t im);
 void hal_exti_gpio_init(exti_conf_t *conf, exti_handle_t *handle);
 void hal_exti_isr(uint8_t im);
 void hal_exti_deinit(exti_handle_t *handle);

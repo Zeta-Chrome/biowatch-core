@@ -1,15 +1,16 @@
-#include "task.h"
-#include <stdbool.h>
-#include <string.h>
 #include "cmsis_gcc.h"
-#include "critical.h"
-#include "status.h"
-#include "task/mem.h"
-#include "utils.h"
-#include "utils/logger.h"
-#include "hal/reg.h"
 #include "containers/clist.h"
 #include "containers/list.h"
+#include "critical.h"
+#include "status.h"
+#include "stm32wb55xx.h"
+#include "task.h"
+#include "task/mem.h"
+#include "task_kernel.h"
+#include "utils.h"
+#include "utils/logger.h"
+#include <stdbool.h>
+#include <string.h>
 
 typedef uint16_t prio_msk_t;
 
@@ -40,17 +41,22 @@ void rtos_task_init()
         g_task_table[i].idx = i;
         g_task_table[i].state_node.data = &g_task_table[i];
         g_task_table[i].delay_node.data = &g_task_table[i];
-        g_task_table[i].p_state_queue = &g_task_manager.free_queue;
+        g_task_table[i].p_state_queue = NULL;
         g_task_table[i].p_delay_queue = NULL;
         list_push_back(&g_task_manager.free_queue, &g_task_table[i].state_node);
     }
 }
 
-void rtos_task_create(task_func_t task_ptr, const char *name, uint8_t priority, uint32_t stack_depth,
-                      void *p_usr_data, task_handle_t *handle)
+void rtos_task_create(task_func_t task_ptr,
+                      const char *name,
+                      uint8_t priority,
+                      uint32_t stack_depth,
+                      void *p_usr_data,
+                      task_handle_t *handle)
 {
     BW_ASSERT(priority < 16, "Invalid priority : %d, (Expected range (0-15))");
 
+    RTOS_ENTER_CRITICAL();
     list_node_t *node;
     list_pop_front(&g_task_manager.free_queue, &node);
     if (node == NULL)
@@ -67,6 +73,7 @@ void rtos_task_create(task_func_t task_ptr, const char *name, uint8_t priority, 
     tcb->priority = priority;
     tcb->p_usr_data = p_usr_data;
     tcb->stack.size = stack_depth;
+    tcb->p_state_queue = &g_task_manager.ready_queues[priority];
     bw_status_t status = rtos_mem_alloc(&tcb->stack);
     if (status != STATUS_OK)
     {
@@ -79,6 +86,7 @@ void rtos_task_create(task_func_t task_ptr, const char *name, uint8_t priority, 
     {
         *handle = &tcb->idx;
     }
+    RTOS_EXIT_CRITICAL();
 }
 
 void rtos_task_add_to_ready(list_node_t *node)
@@ -199,12 +207,12 @@ void rtos_task_wait_on_queue(list_t *wait_queue)
 void rtos_task_yield()
 {
     uint8_t highest_prio = __CLZ(__RBIT(g_priority_mask));
-    if (g_current_task == g_task_manager.ready_queues[highest_prio].head->data &&
-        g_task_manager.ready_queues[highest_prio].count == 1)
+    if (g_current_task == g_task_manager.ready_queues[highest_prio].head->data
+        && g_task_manager.ready_queues[highest_prio].count == 1)
     {
         return;
     }
-    reg_set_mask(&SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
+    SET_FIELD(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
 }
 
 void rtos_task_yield_if_higher()
@@ -223,8 +231,10 @@ void rtos_task_wake_from_queue(list_t *wait_queue, list_node_t *node)
     RTOS_EXIT_CRITICAL();
 }
 
-bw_status_t rtos_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear_exit_mask,
-                                  uint32_t *p_notification, uint32_t timeout_ms)
+bw_status_t rtos_task_notify_wait(uint32_t clear_entry_mask,
+                                  uint32_t clear_exit_mask,
+                                  uint32_t *p_notification,
+                                  uint32_t timeout_ms)
 {
     RTOS_ENTER_CRITICAL();
     g_current_task->notification_value &= ~clear_entry_mask;
@@ -336,6 +346,7 @@ void rtos_task_delay(uint32_t ms)
     RTOS_ENTER_CRITICAL();
     rtos_task_remove_from_ready(&g_current_task->state_node);
     rtos_task_set_delay(ms);
+    g_current_task->p_state_queue = NULL;
     RTOS_EXIT_CRITICAL();
     rtos_task_yield();
 }
@@ -352,9 +363,15 @@ void rtos_scheduler_tick(void *data)
         tcb->delay_ticks--;
         while (tcb->delay_ticks == 0)
         {
+            // Remove from from any wait queue either from semaphore, mutex, event or mqueue
+            if (tcb->p_state_queue != NULL)
+            {
+                list_delete_node(tcb->p_state_queue, &tcb->state_node);
+            }
             list_pop_front(&g_task_manager.delay_queue, NULL);
             tcb->p_delay_queue = NULL;
             rtos_task_add_to_ready(&tcb->state_node);
+
             tcb->exit_status = STATUS_TIMEOUT;
 
             node = g_task_manager.delay_queue.head;

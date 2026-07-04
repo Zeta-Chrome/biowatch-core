@@ -1,9 +1,9 @@
-#include "mqueue.h"
 #include "containers/list.h"
+#include "critical.h"
+#include "mqueue.h"
 #include "status.h"
 #include "task/task.h"
 #include "task/task_kernel.h"
-#include "critical.h"
 #include <string.h>
 
 void rtos_mqueue_init(mqueue_t *mqueue, void *buf, uint16_t length, uint16_t element_size)
@@ -51,7 +51,7 @@ bw_status_t rtos_mqueue_send(mqueue_t *mqueue, void *data, uint32_t timeout_ms)
             tcb->exit_status = STATUS_OK;
         }
     }
-    else if (queue_push(&mqueue->container, data))  // if not full return
+    else if (queue_push(&mqueue->container, data)) // if not full return
     {
         RTOS_EXIT_CRITICAL();
         return STATUS_OK;
@@ -71,15 +71,8 @@ bw_status_t rtos_mqueue_send(mqueue_t *mqueue, void *data, uint32_t timeout_ms)
     bw_status_t exit_status = get_task_tcb()->exit_status;
     get_task_tcb()->exit_status = STATUS_OK;
 
-    if (exit_status != STATUS_OK)
-    {
-        list_delete_node(&mqueue->swait_queue, &get_task_tcb()->state_node);
-        RTOS_EXIT_CRITICAL();
-        return exit_status;
-    }
     RTOS_EXIT_CRITICAL();
-
-    return STATUS_OK;
+    return exit_status;
 }
 
 bw_status_t rtos_mqueue_receive(mqueue_t *mqueue, void *data, uint32_t timeout_ms)
@@ -133,14 +126,7 @@ bw_status_t rtos_mqueue_receive(mqueue_t *mqueue, void *data, uint32_t timeout_m
     bw_status_t exit_status = get_task_tcb()->exit_status;
     get_task_tcb()->exit_status = STATUS_OK;
 
-    if (exit_status != STATUS_OK)
-    {
-        list_delete_node(&mqueue->swait_queue, &get_task_tcb()->state_node);
-        RTOS_EXIT_CRITICAL();
-        return exit_status;
-    }
     RTOS_EXIT_CRITICAL();
-
     return exit_status;
 }
 

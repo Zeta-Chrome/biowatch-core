@@ -1,10 +1,10 @@
-#include "clock.h"
 #include "assert.h"
+#include "clock.h"
 #include "clock_srcs.h"
 #include "logger.h"
-#include "reg.h"
 #include "status.h"
 #include "stm32wb55xx.h"
+#include "utils.h"
 
 uint32_t SYSCLK_FREQ;
 uint32_t HCLK1_FREQ;
@@ -13,9 +13,18 @@ uint32_t HCLK4_FREQ;
 uint32_t PCLK1_FREQ;
 uint32_t PCLK2_FREQ;
 
-static uint32_t g_msi_rmap[CLOCK_MSI_RANGE_48M + 1] = {100000,   200000,   400000,   800000,
-                                                       1000000,  2000000,  4000000,  8000000,
-                                                       16000000, 24000000, 32000000, 48000000};
+static uint32_t g_msi_rmap[CLOCK_MSI_RANGE_48M + 1] = {100000,
+                                                       200000,
+                                                       400000,
+                                                       800000,
+                                                       1000000,
+                                                       2000000,
+                                                       4000000,
+                                                       8000000,
+                                                       16000000,
+                                                       24000000,
+                                                       32000000,
+                                                       48000000};
 static uint16_t g_hpre_map[CLOCK_HPRE_512 + 1] = {1, 3, 5, 6, 10, 32, 2, 4, 8, 16, 64, 128, 256, 512};
 
 static bw_status_t hal_clock_configure_pll(clock_conf_t *conf)
@@ -29,17 +38,17 @@ static bw_status_t hal_clock_configure_pll(clock_conf_t *conf)
     {
     case CLOCK_SRC_MSI:
         hal_clock_enable_msi(conf->msi_range);
-        reg_set_field(&RCC->PLLCFGR, RCC_PLLCFGR_PLLSRC_Pos, 2, 0x1);
+        MODIFY_FIELD(RCC->PLLCFGR, RCC_PLLCFGR_PLLSRC_Msk, RCC_PLLCFGR_PLLSRC_Pos, 0x1);
         SYSCLK_FREQ = g_msi_rmap[conf->msi_range];
         break;
     case CLOCK_SRC_HSI:
         hal_clock_enable_hsi();
-        reg_set_field(&RCC->PLLCFGR, RCC_PLLCFGR_PLLSRC_Pos, 2, 0x2);
+        MODIFY_FIELD(RCC->PLLCFGR, RCC_PLLCFGR_PLLSRC_Msk, RCC_PLLCFGR_PLLSRC_Pos, 0x2);
         SYSCLK_FREQ = 16000000;
         break;
     case CLOCK_SRC_HSE:
         hal_clock_enable_hse();
-        reg_set_field(&RCC->PLLCFGR, RCC_PLLCFGR_PLLSRC_Pos, 2, 0x3);
+        MODIFY_FIELD(RCC->PLLCFGR, RCC_PLLCFGR_PLLSRC_Msk, RCC_PLLCFGR_PLLSRC_Pos, 0x3);
         SYSCLK_FREQ = 32000000;
         break;
     default:
@@ -54,10 +63,10 @@ static bw_status_t hal_clock_configure_pll(clock_conf_t *conf)
         return STATUS_ERR;
     }
 
-    reg_set_field(&RCC->PLLCFGR, RCC_PLLCFGR_PLLN_Pos, 7, pllr->mul);
-    reg_set_field(&RCC->PLLCFGR, RCC_PLLCFGR_PLLM_Pos, 3, pllr->div - 1);
-    reg_set_field(&RCC->PLLCFGR, RCC_PLLCFGR_PLLR_Pos, 3, pllr->rdiv - 1);
-    reg_set_mask(&RCC->PLLCFGR, RCC_PLLCFGR_PLLREN_Msk);
+    MODIFY_FIELD(RCC->PLLCFGR, RCC_PLLCFGR_PLLN_Msk, RCC_PLLCFGR_PLLN_Pos, pllr->mul);
+    MODIFY_FIELD(RCC->PLLCFGR, RCC_PLLCFGR_PLLM_Msk, RCC_PLLCFGR_PLLM_Pos, pllr->div - 1);
+    MODIFY_FIELD(RCC->PLLCFGR, RCC_PLLCFGR_PLLR_Msk, RCC_PLLCFGR_PLLR_Pos, pllr->rdiv - 1);
+    SET_FIELD(RCC->PLLCFGR, RCC_PLLCFGR_PLLREN_Msk);
     hal_clock_enable_pll();
 
     return STATUS_OK;
@@ -82,8 +91,8 @@ static void configure_flash_latency(uint32_t freq)
     {
         latency = 3;
     }
-    reg_set_field(&FLASH->ACR, FLASH_ACR_LATENCY_Pos, 2, latency);
-    while ((FLASH->ACR & FLASH_ACR_LATENCY_Msk) != latency);  // Wait for latency to set
+    MODIFY_FIELD(FLASH->ACR, FLASH_ACR_LATENCY_Msk, FLASH_ACR_LATENCY_Pos, latency);
+    while (READ_FIELD(FLASH->ACR, FLASH_ACR_LATENCY_Msk, FLASH_ACR_LATENCY_Pos) != latency);
 }
 
 bw_status_t hal_clock_configure(clock_conf_t *conf)
@@ -121,15 +130,15 @@ bw_status_t hal_clock_configure(clock_conf_t *conf)
     HCLK4_FREQ = SYSCLK_FREQ;
 
     // Set wait states in flash memory
-    configure_flash_latency(HCLK4_FREQ); 
+    configure_flash_latency(HCLK4_FREQ);
 
     // Set clock source
-    reg_set_field(&RCC->CFGR, RCC_CFGR_SW_Pos, 2, clk_src);
-    while ((RCC->CFGR & RCC_CFGR_SWS_Msk) != (clk_src << RCC_CFGR_SWS_Pos));
+    MODIFY_FIELD(RCC->CFGR, RCC_CFGR_SW_Msk, RCC_CFGR_SW_Pos, clk_src);
+    while (READ_FIELD(RCC->CFGR, RCC_CFGR_SWS_Msk, RCC_CFGR_SWS_Pos) != clk_src);
 
     // Configure hclk1 prescalar
     HCLK1_FREQ = SYSCLK_FREQ / g_hpre_map[conf->hpre];
-    reg_set_field(&RCC->CFGR, RCC_CFGR_HPRE_Pos, 4, conf->hpre);
+    MODIFY_FIELD(RCC->CFGR, RCC_CFGR_HPRE_Msk, RCC_CFGR_HPRE_Pos, conf->hpre);
     while (!(RCC->CFGR & RCC_CFGR_HPREF_Msk));
 
     // Configure pclk1 prescalar
@@ -139,12 +148,12 @@ bw_status_t hal_clock_configure(clock_conf_t *conf)
         BW_LOG("PCLK1 cannot be greater than 32MHz\n");
         return STATUS_ERR;
     }
-    reg_set_field(&RCC->CFGR, RCC_CFGR_PPRE1_Pos, 3, conf->ppre1);
+    MODIFY_FIELD(RCC->CFGR, RCC_CFGR_PPRE1_Msk, RCC_CFGR_PPRE1_Pos, conf->ppre1);
     while (!(RCC->CFGR & RCC_CFGR_PPRE1F_Msk));
 
     // Configure pclk2 prescalar
     PCLK2_FREQ = SYSCLK_FREQ / (1 << conf->ppre2);
-    reg_set_field(&RCC->CFGR, RCC_CFGR_PPRE2_Pos, 3, conf->ppre2);
+    MODIFY_FIELD(RCC->CFGR, RCC_CFGR_PPRE2_Msk, RCC_CFGR_PPRE2_Pos, conf->ppre2);
     while (!(RCC->CFGR & RCC_CFGR_PPRE2F_Msk));
 
     return STATUS_OK;
@@ -152,7 +161,7 @@ bw_status_t hal_clock_configure(clock_conf_t *conf)
 
 bw_status_t hal_clock_reconfigure(clock_conf_t *conf)
 {
-    if (hal_clock_configure(conf) == STATUS_OK)
+    if (hal_clock_configure(conf) != STATUS_OK)
     {
         return STATUS_ERR;
     }
@@ -168,15 +177,14 @@ bw_status_t hal_clock_reconfigure(clock_conf_t *conf)
         hal_clock_disable_hsi();
     }
 
-    // Required for ble task
-    // if (conf->src != CLOCK_SRC_HSE && conf->pllr.src != CLOCK_SRC_HSE)
-    // {
-    //     hal_clock_disable_hse();
-    // }
+    if (conf->src != CLOCK_SRC_HSE && conf->pllr.src != CLOCK_SRC_HSE)
+    {
+        hal_clock_disable_hse();
+    }
 
     if (conf->src != CLOCK_SRC_PLL)
     {
-        reg_clear_mask(&RCC->PLLCFGR, RCC_PLLCFGR_PLLREN_Msk);
+        CLEAR_FIELD(RCC->PLLCFGR, RCC_PLLCFGR_PLLREN_Msk);
         hal_clock_disable_pll();
     }
 

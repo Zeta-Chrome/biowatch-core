@@ -1,5 +1,5 @@
-#include "event.h"
 #include "critical.h"
+#include "event.h"
 #include "status.h"
 #include "task/task.h"
 #include "task/task_kernel.h"
@@ -13,8 +13,8 @@ void rtos_event_init(event_t *event)
 
 static bool event_check_flags(event_t *event, tcb_t *tcb)
 {
-    if ((tcb->event_wait_all && ((event->event_flags & tcb->event_flags) == tcb->event_flags)) ||
-        (!tcb->event_wait_all && (event->event_flags & tcb->event_flags)))
+    if ((tcb->event_wait_all && ((event->event_flags & tcb->event_flags) == tcb->event_flags))
+        || (!tcb->event_wait_all && (event->event_flags & tcb->event_flags)))
     {
         tcb->events_received = event->event_flags & tcb->event_flags;
         return true;
@@ -23,8 +23,12 @@ static bool event_check_flags(event_t *event, tcb_t *tcb)
     return false;
 }
 
-bw_status_t rtos_event_wait(event_t *event, uint32_t event_flags, uint32_t *events_received,
-                            bool clear_on_exit, bool wait_for_all, uint32_t timeout_ms)
+bw_status_t rtos_event_wait(event_t *event,
+                            uint32_t event_flags,
+                            uint32_t *events_received,
+                            bool clear_on_exit,
+                            bool wait_for_all,
+                            uint32_t timeout_ms)
 {
     RTOS_ENTER_CRITICAL();
     tcb_t *tcb = get_task_tcb();
@@ -47,7 +51,7 @@ bw_status_t rtos_event_wait(event_t *event, uint32_t event_flags, uint32_t *even
         RTOS_EXIT_CRITICAL();
         return STATUS_OK;
     }
-    
+
     if (timeout_ms == 0)
     {
         RTOS_EXIT_CRITICAL();
@@ -64,19 +68,13 @@ bw_status_t rtos_event_wait(event_t *event, uint32_t event_flags, uint32_t *even
     bw_status_t exit_status = get_task_tcb()->exit_status;
     get_task_tcb()->exit_status = STATUS_OK;
 
-    if (exit_status != STATUS_OK)
-    {
-        list_delete_node(&event->wait_queue, &get_task_tcb()->state_node);
-        RTOS_EXIT_CRITICAL();
-        return exit_status;
-    }
-    else if (events_received != NULL)
+    if (exit_status == STATUS_OK && events_received != NULL)
     {
         *events_received = get_task_tcb()->events_received;
     }
     RTOS_EXIT_CRITICAL();
 
-    return STATUS_OK;
+    return exit_status;
 }
 
 void rtos_event_set(event_t *event, uint32_t event_flags)
@@ -93,7 +91,7 @@ void rtos_event_set(event_t *event, uint32_t event_flags)
     while (node != NULL)
     {
         tcb = node->data;
-        next = node->next; 
+        next = node->next;
         if (event_check_flags(event, tcb))
         {
             if (tcb->event_clear_exit)
@@ -107,7 +105,7 @@ void rtos_event_set(event_t *event, uint32_t event_flags)
         }
 
         // cannot do node = node->next here, cause this node is removed and placed in another list
-        node = next; 
+        node = next;
     }
 
     if (clear_on_exit)

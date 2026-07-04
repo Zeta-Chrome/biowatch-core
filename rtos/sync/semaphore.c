@@ -1,17 +1,17 @@
-#include "semaphore.h"
 #include "critical.h"
+#include "semaphore.h"
 #include "status.h"
 #include "task/task_kernel.h"
 #include "utils.h"
 
-void rtos_bsemaphore_init(semaphore_t *semaphore)
+void rtos_semaphore_binary_init(semaphore_t *semaphore)
 {
     semaphore->max_count = 1;
     semaphore->count = 1;
     list_init(&semaphore->wait_queue);
 }
 
-void rtos_csemaphore_init(semaphore_t *semaphore, uint32_t max_count)
+void rtos_semaphore_counting_init(semaphore_t *semaphore, uint32_t max_count)
 {
     semaphore->max_count = max_count;
     semaphore->count = max_count;
@@ -38,14 +38,7 @@ bw_status_t rtos_semaphore_take(semaphore_t *semaphore, uint32_t timeout_ms)
     bw_status_t exit_status = get_task_tcb()->exit_status;
     get_task_tcb()->exit_status = STATUS_OK;
 
-    if (exit_status != STATUS_OK)
-    {
-        list_delete_node(&semaphore->wait_queue, &get_task_tcb()->state_node);
-        RTOS_EXIT_CRITICAL();
-        return exit_status;
-    }
     RTOS_EXIT_CRITICAL();
-
     return exit_status;
 }
 

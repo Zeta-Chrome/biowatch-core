@@ -1,15 +1,15 @@
 #include "gpio.h"
+#include "utils.h"
 #include "utils/assert.h"
-#include "reg.h"
-
-#ifdef DEBUG
-// one bit per pin, one entry per port
-static uint16_t g_reserved_pins[5] = {0};  // A, B, C, D, E
 
 uint8_t gpio_port_index(GPIO_TypeDef *port)
 {
     return ((uint8_t *)port - (uint8_t *)GPIOA) / ((uint8_t *)GPIOB - (uint8_t *)GPIOA);
 }
+
+#ifdef DEBUG
+// one bit per pin, one entry per port
+static uint16_t g_reserved_pins[5] = {0}; // A, B, C, D, E
 
 static void gpio_reserve_pins(gpio_t gpio)
 {
@@ -26,23 +26,23 @@ static void gpio_clock_init(GPIO_TypeDef *port)
 {
     if (port == GPIOA)
     {
-        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN_Msk);
+        SET_FIELD(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN_Msk);
     }
     else if (port == GPIOB)
     {
-        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN_Msk);
+        SET_FIELD(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN_Msk);
     }
     else if (port == GPIOC)
     {
-        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN_Msk);
+        SET_FIELD(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN_Msk);
     }
     else if (port == GPIOD)
     {
-        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN_Msk);
+        SET_FIELD(RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN_Msk);
     }
     else if (port == GPIOE)
     {
-        reg_set_mask(&RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN_Msk);
+        SET_FIELD(RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN_Msk);
     }
 }
 
@@ -57,44 +57,43 @@ void hal_gpio_init(gpio_conf_t *conf)
     gpio_clock_init(conf->gpio.port);
 
     // Set MODER
-    reg_set_field(&conf->gpio.port->MODER, conf->gpio.pin << 1, 2, conf->mode);
+    MODIFY_FIELD_W(conf->gpio.port->MODER, 2, conf->gpio.pin << 1, conf->mode);
 
     // Set OTYPER
-    reg_set_field(&conf->gpio.port->OTYPER, conf->gpio.pin, 1, conf->type);
+    MODIFY_BIT(conf->gpio.port->OTYPER, conf->gpio.pin, conf->type);
 
     // Set OSPEEDR
-    reg_set_field(&conf->gpio.port->OSPEEDR, conf->gpio.pin << 1, 2, conf->speed);
+    MODIFY_FIELD_W(conf->gpio.port->OSPEEDR, 2, conf->gpio.pin << 1, conf->speed);
 
     // Set PUPDR
-    reg_set_field(&conf->gpio.port->PUPDR, conf->gpio.pin << 1, 2, conf->pupd);
+    MODIFY_FIELD_W(conf->gpio.port->PUPDR, 2, conf->gpio.pin << 1, conf->pupd);
 
     // Set AFRL/H
     if (conf->mode == GPIO_MODE_AF)
     {
-        reg_set_field(&conf->gpio.port->AFR[conf->gpio.pin >> 3], (conf->gpio.pin & 0x7) << 2, 4,
-                      conf->af);
+        MODIFY_FIELD_W(conf->gpio.port->AFR[conf->gpio.pin >> 3], 4, (conf->gpio.pin & 0x7) << 2, conf->af);
     }
 }
 
 uint8_t hal_gpio_read_level(gpio_t gpio)
 {
-    return reg_get_bit(&gpio.port->IDR, gpio.pin);
+    return READ_BIT(gpio.port->IDR, gpio.pin);
 }
 
 void hal_gpio_set_level(gpio_t gpio, uint8_t level)
 {
     uint8_t pos = (level == 0 ? 16 : 0) + gpio.pin;
-    reg_set_bit(&gpio.port->BSRR, pos);
+    SET_BIT(gpio.port->BSRR, pos);
 }
 
 void hal_gpio_deinit(gpio_t gpio)
 {
     // set to analog mode — reset state, minimum power draw
-    reg_set_field(&gpio.port->MODER,  gpio.pin << 1, 2, GPIO_MODE_ANALOG);
-    reg_set_field(&gpio.port->PUPDR,  gpio.pin << 1, 2, GPIO_PULL_NONE);
-    reg_set_field(&gpio.port->OSPEEDR, gpio.pin << 1, 2, 0x0);
-    reg_set_field(&gpio.port->OTYPER,  gpio.pin, 1, 0x0);
+    MODIFY_FIELD_W(gpio.port->MODER, 2, gpio.pin << 1, GPIO_MODE_ANALOG);
+    CLEAR_FIELD_W(gpio.port->PUPDR, 2, gpio.pin << 1);
+    CLEAR_FIELD_W(gpio.port->OSPEEDR, 2, gpio.pin << 1);
+    CLEAR_BIT(gpio.port->OTYPER, gpio.pin);
 
     // clear alternate function
-    reg_set_field(&gpio.port->AFR[gpio.pin >> 3], (gpio.pin & 0x7) << 2, 4, 0x0);
+    CLEAR_FIELD_W(gpio.port->AFR[gpio.pin >> 3], 4, (gpio.pin & 0x7) << 2);
 }

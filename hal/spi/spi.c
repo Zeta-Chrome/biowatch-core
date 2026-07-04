@@ -1,11 +1,11 @@
-#include "spi.h"
 #include "dma/dma.h"
-#include "utils/status.h"
-#include "utils/assert.h"
 #include "gpio/gpio.h"
 #include "gpio/gpio_types.h"
+#include "spi.h"
 #include "stm32wb55xx.h"
-#include "reg.h"
+#include "utils.h"
+#include "utils/assert.h"
+#include "utils/status.h"
 
 #define NULL ((void *)0)
 
@@ -29,11 +29,11 @@ static void spi_clock_init(SPI_TypeDef *spi)
 {
     if (spi == SPI1)
     {
-        reg_set_mask(&RCC->APB2ENR, RCC_APB2ENR_SPI1EN_Msk);
+        SET_FIELD(RCC->APB2ENR, RCC_APB2ENR_SPI1EN_Msk);
     }
     else if (spi == SPI2)
     {
-        reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_SPI2EN_Msk);
+        SET_FIELD(RCC->APB1ENR1, RCC_APB1ENR1_SPI2EN_Msk);
     }
 }
 
@@ -63,31 +63,31 @@ static void spi_hw_init(spi_conf_t *conf, spi_handle_t *handle)
     spi_gpio_init(conf);
 
     // Configure Baud rate
-    reg_set_field(&conf->spi->CR1, SPI_CR1_BR_Pos, 3, conf->baud_rate);
+    MODIFY_FIELD(conf->spi->CR1, SPI_CR1_BR_Msk, SPI_CR1_BR_Pos, conf->baud_rate);
 
     // Configure CPOL and CPHA
-    reg_set_field(&conf->spi->CR1, SPI_CR1_CPOL_Pos, 1, conf->cpol);
-    reg_set_field(&conf->spi->CR1, SPI_CR1_CPHA_Pos, 1, conf->cpha);
+    MODIFY_BIT(conf->spi->CR1, SPI_CR1_CPOL_Pos, conf->cpol);
+    MODIFY_BIT(conf->spi->CR1, SPI_CR1_CPHA_Pos, conf->cpha);
 
     // Configure full-duplex, half-duplex or simplex
     switch (conf->mode)
     {
     case SPI_MODE_HALF_DUPLEX:
-        reg_set_mask(&conf->spi->CR1, SPI_CR1_BIDIMODE_Msk);
-        reg_set_field(&conf->spi->CR1, SPI_CR1_BIDIOE_Pos, 1, conf->bidioe);
+        SET_FIELD(conf->spi->CR1, SPI_CR1_BIDIMODE_Msk);
+        MODIFY_BIT(conf->spi->CR1, SPI_CR1_BIDIOE_Pos, conf->bidioe);
         break;
     case SPI_MODE_SIMPLEX:
-        reg_set_mask(&conf->spi->CR1, SPI_CR1_RXONLY_Msk);
+        SET_FIELD(conf->spi->CR1, SPI_CR1_RXONLY_Msk);
         break;
     case SPI_MODE_FULL_DUPLEX:
         break;
     };
 
     // Configure frame format
-    reg_set_field(&conf->spi->CR1, SPI_CR1_LSBFIRST_Pos, 1, conf->frame_format);
+    MODIFY_BIT(conf->spi->CR1, SPI_CR1_LSBFIRST_Pos, conf->frame_format);
 
     // Configure NSS control (software master control)
-    reg_set_mask(&conf->spi->CR1, SPI_CR1_SSM_Msk | SPI_CR1_SSI_Msk);
+    SET_FIELD(conf->spi->CR1, SPI_CR1_SSM_Msk | SPI_CR1_SSI_Msk);
 }
 
 void hal_spi_init(spi_conf_t *conf, spi_handle_t *handle)
@@ -115,29 +115,28 @@ void hal_spi_init_dma(spi_conf_t *conf, spi_handle_t *handle)
 
     // Transmitter DMA configuration
     dma_conf_t tx_dma_conf = {
-    .dma = SPI_TX_DMA,
-    .ch_no = SPI_TX_DMA_CH_NO,
-    .priority = DMA_PL_VERY_HIGH,
-    .dmamux = {.dmareq_id = conf->spi == SPI1 ? SPI1_TX_DMAREQ_ID : SPI2_TX_DMAREQ_ID,
-               .sync_pol = false},
-    .irq_priority = conf->irq_priority};
+        .dma = SPI_TX_DMA,
+        .ch_no = SPI_TX_DMA_CH_NO,
+        .priority = DMA_PL_VERY_HIGH,
+        .dmamux = {.dmareq_id = conf->spi == SPI1 ? SPI1_TX_DMAREQ_ID : SPI2_TX_DMAREQ_ID, .sync_pol = false},
+        .irq_priority = conf->irq_priority};
     hal_dma_init(&tx_dma_conf, &g_tx_dma_h);
 
     // Reciever DMA configuration
     dma_conf_t rx_dma_conf = {
-    .dma = SPI_RX_DMA,
-    .ch_no = SPI_RX_DMA_CH_NO,
-    .priority = DMA_PL_VERY_HIGH,
-    .dmamux = {.dmareq_id = conf->spi == SPI1 ? SPI1_RX_DMAREQ_ID : SPI2_RX_DMAREQ_ID,
-               .sync_pol = false},
-    .irq_priority = conf->irq_priority};
+        .dma = SPI_RX_DMA,
+        .ch_no = SPI_RX_DMA_CH_NO,
+        .priority = DMA_PL_VERY_HIGH,
+        .dmamux = {.dmareq_id = conf->spi == SPI1 ? SPI1_RX_DMAREQ_ID : SPI2_RX_DMAREQ_ID, .sync_pol = false},
+        .irq_priority = conf->irq_priority};
     hal_dma_init(&rx_dma_conf, &g_rx_dma_h);
 }
 
 static void spi_prep_transaction(spi_handle_t *handle)
 {
     BW_ASSERT(handle->data_sz >= 4 && handle->data_sz <= 16,
-              "Invalid Data Len: %d (Expected range 4-16)", handle->data_sz);
+              "Invalid Data Len: %d (Expected range 4-16)",
+              handle->data_sz);
 
     handle->tx_count = handle->rx_count = 0;
 
@@ -152,26 +151,27 @@ static void spi_prep_transaction(spi_handle_t *handle)
     }
 
     // Enable master bit
-    reg_set_mask(&handle->spi->CR1, SPI_CR1_MSTR_Msk);
+    SET_FIELD(handle->spi->CR1, SPI_CR1_MSTR_Msk);
 
     // Disable SPE
-    reg_clear_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);
+    CLEAR_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk);
 
     // Clear all interrupts
-    reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXDMAEN_Msk | SPI_CR2_RXDMAEN_Msk | SPI_CR2_TXEIE_Msk |
-                                      SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
+    CLEAR_FIELD(handle->spi->CR2,
+                SPI_CR2_TXDMAEN_Msk | SPI_CR2_RXDMAEN_Msk | SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk
+                    | SPI_CR2_ERRIE_Msk);
 
     // Configure DS
-    reg_set_field(&handle->spi->CR2, SPI_CR2_DS_Pos, 4, handle->data_sz - 1);
+    MODIFY_FIELD(handle->spi->CR2, SPI_CR2_DS_Msk, SPI_CR2_DS_Pos, handle->data_sz - 1);
 
     // Set SPI MOTOROLA mode
-    reg_clear_mask(&handle->spi->CR2, SPI_CR2_FRF_Msk);
+    CLEAR_FIELD(handle->spi->CR2, SPI_CR2_FRF_Msk);
 
     // Set FRXTH
-    reg_set_field(&handle->spi->CR2, SPI_CR2_FRXTH_Pos, 1, handle->data_sz <= 8);
+    MODIFY_BIT(handle->spi->CR2, SPI_CR2_FRXTH_Pos, handle->data_sz <= 8);
 
     // Enable error interrupt
-    reg_set_mask(&handle->spi->CR2, SPI_CR2_ERRIE_Msk);
+    SET_FIELD(handle->spi->CR2, SPI_CR2_ERRIE_Msk);
 }
 
 static inline void spi_write_buf(spi_handle_t *handle)
@@ -181,8 +181,7 @@ static inline void spi_write_buf(spi_handle_t *handle)
 
     if (handle->data_sz > 8)
     {
-        uint16_t val = handle->tx_buf ? *((uint16_t *)(handle->tx_buf + handle->tx_count))
-                                      : g_tx_dummy_val;
+        uint16_t val = handle->tx_buf ? *((uint16_t *)(handle->tx_buf + handle->tx_count)) : g_tx_dummy_val;
         *(__IO uint16_t *)&handle->spi->DR = val;
         handle->tx_count += 2;
     }
@@ -215,10 +214,10 @@ static inline void spi_read_buf(spi_handle_t *handle)
     if (handle->rx_count >= handle->len)
     {
         // Busy wait for completion
-        while (reg_get_field(&handle->spi->SR, SPI_SR_FTLVL_Pos, 2));
-        while (reg_get_bit(&handle->spi->SR, SPI_SR_BSY_Pos));
+        while (handle->spi->SR & SPI_SR_FTLVL_Msk);
+        while (handle->spi->SR & SPI_SR_BSY_Msk);
 
-        reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
+        CLEAR_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
         handle->callback(STATUS_OK, handle->user_data);
     }
 }
@@ -232,12 +231,12 @@ void hal_spi_isr(spi_perip_t type)
     {
         (void)handle->spi->DR;
         (void)handle->spi->SR;
-        while (reg_get_bit(&handle->spi->SR, SPI_SR_FRLVL_Pos) != 0)
+        while (handle->spi->SR & SPI_SR_FRLVL_Msk)
         {
             (void)handle->spi->DR;
         }
-        reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
-        reg_clear_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);
+        CLEAR_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
+        CLEAR_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk);
         handle->callback(STATUS_SPI_OVR, handle->user_data);
         return;
     }
@@ -245,8 +244,8 @@ void hal_spi_isr(spi_perip_t type)
     if (sr & SPI_SR_MODF_Msk)
     {
         handle->spi->CR1 = handle->spi->CR1;
-        reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
-        reg_clear_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);  // Write CR1 to clear the MODF
+        CLEAR_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
+        CLEAR_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk); // Write CR1 to clear the MODF
         handle->callback(STATUS_SPI_MODF, handle->user_data);
         return;
     }
@@ -270,10 +269,10 @@ void hal_spi_transact(spi_handle_t *handle)
     spi_prep_transaction(handle);
 
     // Enable interrupts
-    reg_set_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk);
+    SET_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk);
 
     // Enable peripheral
-    reg_set_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);
+    SET_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk);
 }
 
 void hal_spi_isr_dma(bw_status_t status, void *user_data)
@@ -281,10 +280,10 @@ void hal_spi_isr_dma(bw_status_t status, void *user_data)
     spi_handle_t *handle = (spi_handle_t *)user_data;
 
     // Busy wait for completion
-    while (reg_get_field(&handle->spi->SR, SPI_SR_FTLVL_Pos, 2));
-    while (reg_get_bit(&handle->spi->SR, SPI_SR_BSY_Pos));
+    while (handle->spi->SR & SPI_SR_FTLVL_Msk);
+    while (handle->spi->SR & SPI_SR_BSY_Msk);
 
-    reg_clear_mask(&handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
+    CLEAR_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
 
     if (status == STATUS_DMA_TC)
     {
@@ -310,16 +309,16 @@ void hal_spi_transact_dma(spi_handle_t *handle)
     g_rx_dma_h.callback = hal_spi_isr_dma;
 
     dma_transfer_t rx_dma_trnf = {
-    .data_count = handle->len,
-    .mode = DMA_MODE_PERI_TO_MEM,
-    .per_addr = (uint32_t)&handle->spi->DR,
-    .mem_addr = rx_is_null ? (uint32_t)&g_rx_dummy_val : (uint32_t)handle->rx_buf,
-    .mem_sz = dma_sz,
-    .per_sz = dma_sz,
-    .per_incr = false,
-    .mem_incr = !rx_is_null,
-    .circular = false,
-    .htc_trig = false,
+        .data_count = handle->len,
+        .mode = DMA_MODE_PERI_TO_MEM,
+        .per_addr = (uint32_t)&handle->spi->DR,
+        .mem_addr = rx_is_null ? (uint32_t)&g_rx_dummy_val : (uint32_t)handle->rx_buf,
+        .mem_sz = dma_sz,
+        .per_sz = dma_sz,
+        .per_incr = false,
+        .mem_incr = !rx_is_null,
+        .circular = false,
+        .htc_trig = false,
     };
     hal_dma_start(&g_rx_dma_h, &rx_dma_trnf);
 
@@ -329,24 +328,24 @@ void hal_spi_transact_dma(spi_handle_t *handle)
     g_tx_dma_h.callback = NULL;
 
     dma_transfer_t tx_dma_trnf = {
-    .data_count = handle->len,
-    .mode = DMA_MODE_MEM_TO_PERI,
-    .per_addr = (uint32_t)&handle->spi->DR,
-    .mem_addr = tx_is_null ? (uint32_t)&g_tx_dummy_val : (uint32_t)handle->tx_buf,
-    .mem_sz = dma_sz,
-    .per_sz = dma_sz,
-    .per_incr = false,
-    .mem_incr = !tx_is_null,
-    .circular = false,
-    .htc_trig = false,
+        .data_count = handle->len,
+        .mode = DMA_MODE_MEM_TO_PERI,
+        .per_addr = (uint32_t)&handle->spi->DR,
+        .mem_addr = tx_is_null ? (uint32_t)&g_tx_dummy_val : (uint32_t)handle->tx_buf,
+        .mem_sz = dma_sz,
+        .per_sz = dma_sz,
+        .per_incr = false,
+        .mem_incr = !tx_is_null,
+        .circular = false,
+        .htc_trig = false,
     };
     hal_dma_start(&g_tx_dma_h, &tx_dma_trnf);
 
     // Enable DMA requests in SPI
-    reg_set_mask(&handle->spi->CR2, SPI_CR2_TXDMAEN_Msk | SPI_CR2_RXDMAEN_Msk);
+    SET_FIELD(handle->spi->CR2, SPI_CR2_TXDMAEN_Msk | SPI_CR2_RXDMAEN_Msk);
 
     // Enable peripheral (starts the clock)
-    reg_set_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);
+    SET_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk);
 }
 
 void hal_spi_deinit(spi_handle_t *handle)
@@ -360,21 +359,20 @@ void hal_spi_deinit(spi_handle_t *handle)
         NVIC_DisableIRQ(SPI2_IRQn);
     }
 
-    if (reg_get_bit(&handle->spi->CR1, SPI_CR1_BIDIMODE_Pos) &&
-        !reg_get_bit(&handle->spi->CR1, SPI_CR1_BIDIOE_Pos))
+    if ((handle->spi->CR1 & SPI_CR1_BIDIMODE_Msk) && !(handle->spi->CR1 & SPI_CR1_BIDIOE_Msk))
     {
-        reg_clear_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);
-        while (reg_get_bit(&handle->spi->SR, SPI_SR_BSY_Pos));
+        CLEAR_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk);
+        while (handle->spi->SR & SPI_SR_BSY_Msk);
     }
     else
     {
-        while (reg_get_field(&handle->spi->SR, SPI_SR_FTLVL_Pos, 2));
-        while (reg_get_bit(&handle->spi->SR, SPI_SR_BSY_Pos));
-        reg_clear_mask(&handle->spi->CR1, SPI_CR1_SPE_Msk);
+        while (handle->spi->SR & SPI_SR_FTLVL_Msk);
+        while (handle->spi->SR & SPI_SR_BSY_Msk);
+        CLEAR_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk);
     }
 
     // clean up the rx buffer
-    while (reg_get_bit(&handle->spi->SR, SPI_SR_FRLVL_Pos) != 0)
+    while (handle->spi->SR & SPI_SR_FRLVL_Msk)
     {
         (void)handle->spi->DR;
     }

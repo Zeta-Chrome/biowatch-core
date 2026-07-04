@@ -1,26 +1,26 @@
 #ifdef DEBUG
 
-#include <stdint.h>
 #include <stdarg.h>
-#include <string.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #if defined(UART_LOGGER)
 #include "hal/uart/uart.h"
 #define PL_UART USART1
-static const gpio_t PL_UART_TX = {.port = GPIOA, .pin = 9};  // PA9
+static const gpio_t PL_UART_TX = {.port = GPIOA, .pin = 9}; // PA9
 #elif defined(RTT_LOGGER)
 #include "rtt/SEGGER_RTT.h"
 #endif
 
-#define PUTC(msg, msg_len, ch)                                                                          \
-    do                                                                                                  \
-    {                                                                                                   \
-        if ((msg_len) > 1)                                                                              \
-        {                                                                                               \
-            *(msg)++ = ch;                                                                              \
-            (msg_len)--;                                                                                \
-        }                                                                                               \
+#define PUTC(msg, msg_len, ch) \
+    do                         \
+    {                          \
+        if ((msg_len) > 1)     \
+        {                      \
+            *(msg)++ = ch;     \
+            (msg_len)--;       \
+        }                      \
     } while (0)
 
 static char g_msg[128];
@@ -29,8 +29,7 @@ void bw_logger_init()
 {
 #if defined(UART_LOGGER)
     // PA9 or PB6
-    uart_conf_t uart_conf = {
-    .tx = PL_UART_TX, .af = GPIO_AF7, .uart = PL_UART, .baud_rate = UART_BAUD_9600};
+    uart_conf_t uart_conf = {.tx = PL_UART_TX, .af = GPIO_AF7, .uart = PL_UART, .baud_rate = UART_BAUD_9600};
     hal_uart_init(&uart_conf);
 #elif defined(RTT_LOGGER)
     SEGGER_RTT_Init();
@@ -146,7 +145,7 @@ static int str_format(char *msg, int msg_len, const char *fmt, ...)
     return str_len;
 }
 
-static void print(const char *msg, int msg_len)
+void bw_print_s(const char *msg, int msg_len)
 {
     if (msg_len <= 0)
         return;
@@ -182,7 +181,7 @@ void bw_log(const char *file, int line, const char *fmt, ...)
     msg_len += str_formatv(g_msg + msg_len, sizeof(g_msg) - msg_len, fmt, args);
     va_end(args);
 
-    print(g_msg, msg_len);
+    bw_print_s(g_msg, msg_len);
 }
 
 void bw_print(const char *fmt, ...)
@@ -192,7 +191,7 @@ void bw_print(const char *fmt, ...)
     int msg_len = str_formatv(g_msg, sizeof(g_msg), fmt, args);
     va_end(args);
 
-    print(g_msg, msg_len);
+    bw_print_s(g_msg, msg_len);
 }
 
 #endif

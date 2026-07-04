@@ -1,8 +1,8 @@
 #include "exti.h"
 #include "gpio/gpio.h"
-#include "utils/assert.h"
 #include "stm32wb55xx.h"
-#include "reg.h"
+#include "utils.h"
+#include "utils/assert.h"
 
 #define NULL ((void *)0)
 #define MAX_EXTI_LINES 50
@@ -18,18 +18,18 @@ void hal_exti_init(exti_conf_t *conf, exti_handle_t *handle)
     // Enable rising or falling edge
     if ((conf->edge & EXTI_EDGE_RISING) != 0)
     {
-        reg_set_bit(&EXTI->RTSR1, conf->im);
+        SET_BIT(EXTI->RTSR1, conf->im);
     }
 
     if ((conf->edge & EXTI_EDGE_FALLING) != 0)
     {
-        reg_set_bit(&EXTI->FTSR1, conf->im);
+        SET_BIT(EXTI->FTSR1, conf->im);
     }
 
     EXTI->PR1 = (1U << conf->im);
 
     // Unmask interrupt line
-    reg_set_bit(&EXTI->IMR1, conf->im);
+    hal_exti_enable_line(conf->im);
 
     handle->im = conf->im;
     handle->irq = conf->irq;
@@ -42,6 +42,20 @@ void hal_exti_init(exti_conf_t *conf, exti_handle_t *handle)
     NVIC_SetPriority(conf->irq, conf->irq_priority);
 }
 
+void hal_exti_enable_line(uint8_t im)
+{
+    BW_ASSERT(im < 48, "Invalid exti line %d (Expected range 0-47)", im);
+
+    if (im < 32)
+    {
+        SET_BIT(EXTI->IMR1, im);
+    }
+    else
+    {
+        SET_BIT(EXTI->IMR2, im - 32);
+    }
+}
+
 void hal_exti_gpio_init(exti_conf_t *conf, exti_handle_t *handle)
 {
     // Configure as input pin
@@ -52,7 +66,7 @@ void hal_exti_gpio_init(exti_conf_t *conf, exti_handle_t *handle)
     uint8_t pin = conf->gpio.pin;
 
     // Set the port in the EXTICR
-    reg_set_field(&SYSCFG->EXTICR[pin / 4], (pin % 4) * 4, 3, port);
+    MODIFY_FIELD_W(SYSCFG->EXTICR[pin / 4], 3, (pin % 4) * 4, port);
 
     hal_exti_init(conf, handle);
     handle->gpio = conf->gpio;
@@ -72,14 +86,14 @@ void hal_exti_isr(uint8_t im)
 void hal_exti_deinit(exti_handle_t *handle)
 {
     // Mask the interrupt line
-    reg_clear_bit(&EXTI->IMR1, handle->im);
+    CLEAR_BIT(EXTI->IMR1, handle->im);
 
     // Disable edge triggers
-    reg_clear_bit(&EXTI->FTSR1, handle->im);
-    reg_clear_bit(&EXTI->RTSR1, handle->im);
+    CLEAR_BIT(EXTI->FTSR1, handle->im);
+    CLEAR_BIT(EXTI->RTSR1, handle->im);
 
     // Clear any pending interrupt
-    reg_set_bit(&EXTI->PR1, handle->im);
+    SET_BIT(EXTI->PR1, handle->im);
 
     // Clear callback
     g_exti_handles[handle->im]->callback = NULL;
@@ -93,7 +107,7 @@ void hal_exti_gpio_deinit(exti_handle_t *handle)
     uint8_t pin = handle->gpio.pin;
 
     // Clear SYSCFG EXTICR
-    reg_set_field(&SYSCFG->EXTICR[pin / 4], (pin % 4) * 4, 3, 0);
+    MODIFY_FIELD_W(SYSCFG->EXTICR[pin / 4], 3, (pin % 4) * 4, 0);
 
     hal_exti_deinit(handle);
     hal_gpio_deinit(handle->gpio);

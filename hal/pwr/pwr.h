@@ -1,14 +1,14 @@
 #ifndef HAL_PWR_H
 #define HAL_PWR_H
 
-typedef enum 
+typedef enum
 {
     PWR_STOP_MODE_STOP0,
     PWR_STOP_MODE_STOP1,
     PWR_STOP_MODE_STOP2,
 } pwr_stop_mode_t;
 
-typedef enum 
+typedef enum
 {
     PWR_WKUP1,
     PWR_WKUP2,
@@ -17,7 +17,7 @@ typedef enum
     PWR_WKUP5,
 } pwr_wkup_t;
 
-typedef enum 
+typedef enum
 {
     PWR_WKUP_EDGE_RISING,
     PWR_WKUP_EDGE_FALLING,

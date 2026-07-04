@@ -1,0 +1,446 @@
+#ifndef BLE_HCI_H
+#define BLE_HCI_H
+
+#include "subsys/ble/ble_types.h"
+#include "subsys/ble/tl/tl.h"
+
+/* HCI parameters length */
+#define HCI_COMMAND_MAX_PARAM_LEN 255
+#define HCI_EVENT_MAX_PARAM_LEN 255
+
+typedef struct
+{
+    uint16_t ogf;
+    uint16_t ocf;
+    int event;
+    void *cmd_param;
+    int cmd_len;
+    void *ret_param;
+    int ret_len;
+} hci_request_t;
+
+typedef __PACKED_STRUCT
+{
+    uint16_t connection_handle;
+    uint8_t reason;
+}
+hci_disconnect_cp0;
+
+typedef __PACKED_STRUCT
+{
+    uint16_t connection_handle;
+}
+hci_read_remote_version_information_cp0;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t event_mask[8];
+}
+hci_set_event_mask_cp0;
+
+typedef __PACKED_STRUCT
+{
+    uint16_t connection_handle;
+    uint8_t type;
+}
+hci_read_transmit_power_level_cp0;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t status;
+    uint16_t connection_handle;
+    uint8_t transmit_power_level;
+}
+hci_read_transmit_power_level_rp0;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t flow_control_enable;
+}
+hci_set_controller_to_host_flow_control_cp0;
+
+typedef __PACKED_STRUCT
+{
+    uint16_t host_acl_data_packet_length;
+    uint8_t host_synchronous_data_packet_length;
+    uint16_t host_total_num_acl_data_packets;
+    uint16_t host_total_num_synchronous_data_packets;
+}
+hci_host_buffer_size_cp0;
+
+typedef __PACKED_STRUCT
+{
+    /**
+     * Connection_Handle[i].
+     * Values:
+     * - 0x0000 ... 0x0EFF
+     */
+    uint16_t connection_handle;
+    /**
+     * The number of HCI Data Packets [i] that have been completed for the
+     * associated Connection_Handle since the previous time the event was
+     * returned.
+     * Values:
+     * - 0x0000 ... 0xFFFF
+     */
+    uint16_t host_num_of_completed_packets;
+}
+host_nb_of_completed_pkt_pair_t;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t number_of_handles;
+    host_nb_of_completed_pkt_pair_t host_nb_of_completed_pkt_pair[(HCI_COMMAND_MAX_PARAM_LEN - 1)
+                                                                  / sizeof(host_nb_of_completed_pkt_pair_t)];
+}
+hci_host_number_of_completed_packets_cp0;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t status;
+    uint8_t hci_version;
+    uint16_t hci_subversion;
+    uint8_t lmp_version;
+    uint16_t company_identifier;
+    uint16_t lmp_subversion;
+}
+hci_read_local_version_information_rp0;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t status;
+    uint8_t supported_commands[64];
+}
+hci_read_local_supported_commands_rp0;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t status;
+    uint8_t lmp_features[8];
+}
+hci_read_local_supported_features_rp0;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t status;
+    uint8_t bd_addr[6];
+}
+hci_read_bd_addr_rp0;
+
+typedef __PACKED_STRUCT
+{
+    uint16_t connection_handle;
+}
+hci_read_rssi_cp0;
+
+typedef __PACKED_STRUCT
+{
+    uint8_t status;
+    uint16_t connection_handle;
+    uint8_t rssi;
+}
+hci_read_rssi_rp0;
+
+void hci_init(evt_callback_t evt_callback);
+bw_status_t hci_send_req(hci_request_t *p_cmd);
+
+/**
+ * @brief HCI_DISCONNECT
+ * The HCI_DISCONNECT is used to terminate an existing connection. The
+ * Connection_Handle command parameter indicates which connection is to be
+ * disconnected. The Reason command parameter indicates the reason for ending
+ * the connection. The remote Controller will receive the Reason command
+ * parameter in the HCI_DISCONNECTION_COMPLETE_EVENT event. All synchronous
+ * connections on a physical link should be disconnected before the ACL
+ * connection on the same physical connection is disconnected.
+ * See Core Specification [Vol 4, Part E, 7.1.6].
+ *
+ * @param Connection_Handle Connection handle for which the command applies.
+ *        Values:
+ *        - 0x0000 ... 0x0EFF
+ * @param Reason The reason for ending the connection.
+ *        Values:
+ *        - 0x05: Authentication Failure
+ *        - 0x13: Remote User Terminated Connection
+ *        - 0x14: Remote Device Terminated Connection due to Low Resources
+ *        - 0x15: Remote Device Terminated Connection due to Power Off
+ *        - 0x1A: Unsupported Remote Feature
+ *        - 0x3B: Unacceptable Connection Parameters
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_disconnect(uint16_t connection_handle, uint8_t reason);
+
+/**
+ * @brief HCI_READ_REMOTE_VERSION_INFORMATION
+ * This command will obtain the values for the version information for the
+ * remote device identified by the Connection_Handle parameter. The
+ * Connection_Handle must be a Connection_Handle for an ACL or LE connection.
+ * See Core Specification [Vol 4, Part E, 7.1.23].
+ *
+ * @param Connection_Handle Connection handle for which the command applies.
+ *        Values:
+ *        - 0x0000 ... 0x0EFF
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_read_remote_version_information(uint16_t connection_handle);
+
+/**
+ * @brief HCI_SET_EVENT_MASK
+ * The Set_Event_Mask command is used to control which events are generated by
+ * the HCI for the Host. If the bit in the Event_Mask is set to a one, then the
+ * event associated with that bit will be enabled. For an LE Controller, the LE
+ * Meta Event bit in the Event_Mask shall enable or disable all LE events in
+ * the LE Meta Event. The Host has to deal with each event that occurs. The
+ * event mask allows the Host to control how much it is interrupted.
+ * See Core Specification [Vol 4, Part E, 7.3.1].
+ *
+ * @param Event_Mask Event mask. Default: 0x2000FFFFFFFFFFFF
+ *        Flags:
+ *        - 0x0000000000000000: No events specified
+ *        - 0x0000000000000010: Disconnection Complete Event
+ *        - 0x0000000000000080: Encryption Change Event
+ *        - 0x0000000000000800: Read Remote Version Information Complete Event
+ *        - 0x0000000000008000: Hardware Error Event
+ *        - 0x0000800000000000: Encryption Key Refresh Complete Event
+ *        - 0x2000000000000000: LE Meta-Event
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_set_event_mask(const uint8_t *event_mask);
+
+/**
+ * @brief HCI_RESET
+ * The Reset command resets the Link Layer on an LE Controller. The Reset
+ * command shall not affect the used HCI transport layer since the HCI
+ * transport layers may have reset mechanisms of their own. After the reset is
+ * completed, the current operational state is lost, the Controller enters
+ * standby mode and the Controller automatically reverts to the default values
+ * for the parameters for which default values are defined in the
+ * specification.
+ * Note: The Reset command does not necessarily perform a hardware reset. This
+ * is implementation defined.
+ * The Host shall not send additional HCI commands before the Command Complete
+ * event related to the Reset command has been received.
+ * See Core Specification [Vol 4, Part E, 7.3.2].
+ *
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_reset(void);
+
+/**
+ * @brief HCI_READ_TRANSMIT_POWER_LEVEL
+ * This command reads the values for the Transmit_Power_Level parameter for the
+ * specified Connection_Handle. The Connection_Handle shall be a
+ * Connection_Handle for an ACL connection.
+ * See Core Specification [Vol 4, Part E, 7.3.35].
+ *
+ * @param Connection_Handle Connection handle for which the command applies.
+ *        Values:
+ *        - 0x0000 ... 0x0EFF
+ * @param Type Current or maximum transmit power level.
+ *        Values:
+ *        - 0x00: Read Current Transmit Power Level.
+ *        - 0x01: Read Maximum Transmit Power Level.
+ * @param[out] Transmit_Power_Level Size: 1 Octet (signed integer).
+ *        Units: dBm.
+ *        Values:
+ *        - -30 ... 20
+ * @return Value indicating success or error code.
+ */
+ble_status_t
+hci_read_transmit_power_level(uint16_t connection_handle, uint8_t type, uint8_t *transmit_power_level);
+
+/**
+ * @brief HCI_SET_CONTROLLER_TO_HOST_FLOW_CONTROL
+ * This command is used by the Host to turn flow control on or off for ACL data
+ * sent in the direction from the Controller to the Host.
+ * The Flow_Control_Enable parameter shall only be changed if no connections
+ * exist.
+ * See Core Specification [Vol 4, Part E, 7.3.38].
+ *
+ * @param Flow_Control_Enable Enable/Disable the Flow Control
+ *        Values:
+ *        - 0x00: Flow control off in direction from Controller to Host.
+ *          Default.
+ *        - 0x01: Flow control on for HCI ACL Data Packets and off for HCI
+ *          synchronous.Data Packets in direction from Controller to Host.
+ *        - 0x02: Flow control off for HCI ACL Data Packets and on for HCI
+ *          synchronous.Data Packets in direction from Controller to Host. Not
+ *          supported.
+ *        - 0x03: Flow control on both for HCI ACL Data Packets and HCI
+ *          synchronous.Data Packets in direction from Controller to Host. Not
+ *          supported.
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_set_controller_to_host_flow_control(uint8_t flow_control_enable);
+
+/**
+ * @brief HCI_HOST_BUFFER_SIZE
+ * This command notifies the Controller about the total number of HCI ACL Data
+ * Packets that can be stored in the data buffers of the Host. If flow control
+ * from the Controller to the Host is turned off, and this command has not been
+ * issued by the Host, it is assumed that the data buffer sizes of the Host are
+ * unlimited. If flow control from the Controller to the Host is turned on,
+ * this command shall after a power-on or a reset always be sent by the Host
+ * before the first HCI_HOST_NUMBER_OF_COMPLETED_PACKETS command is sent.
+ * The HCI_SET_CONTROLLER_TO_HOST_FLOW_CONTROL command is used to turn flow
+ * control on or off.
+ * The Host_ACL_Data_Packet_Length parameter will be used to determine the size
+ * of the L2CAP segments contained in ACL Data Packets, which are transferred
+ * from the Controller to the Host. Both the Host and the Controller shall
+ * support command and event packets, where the data portion (excluding header)
+ * contained in the packets is 255 octets in size.
+ * The Host_Total_Num_ACL_Data_Packets parameter contains the total number of
+ * HCI ACL Data Packets that can be stored in the data buffers of the Host. The
+ * Controller will determine how the buffers are to be divided between
+ * different Connection_Handles.
+ * The Host_Synchronous_Data_Packet_Length and
+ * Host_Total_Num_Synchronous_Data_Packets parameters are not used.
+ * Note: The Host_ACL_Data_Packet_Length parameter does not include the length
+ * of the HCI Data Packet header.
+ * See Core Specification [Vol 4, Part E, 7.3.39].
+ *
+ * @param Host_ACL_Data_Packet_Length Maximum length (in octets) of the data
+ *        portion of each HCI ACL Data Packet that the Host is able to accept.
+ *        Values:
+ *        - 251 ... 65535
+ * @param Host_Synchronous_Data_Packet_Length Maximum length (in octets) of the
+ *        data portion of each HCI synchronous Data Packet that the Host is
+ *        able to accept. Not used.
+ * @param Host_Total_Num_ACL_Data_Packets Total number of HCI ACL Data Packets
+ *        that can be stored in the data buffers of the Host.
+ *        Values:
+ *        - 1 ... 65535
+ * @param Host_Total_Num_Synchronous_Data_Packets Total number of HCI
+ *        synchronous Data Packets that can be stored in the data buffers of
+ *        the Host. Not used.
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_host_buffer_size(uint16_t host_acl_data_packet_length,
+                                  uint8_t host_synchronous_data_packet_length,
+                                  uint16_t host_total_num_acl_data_packets,
+                                  uint16_t Host_Total_Num_Synchronous_Data_Packets);
+
+/**
+ * @brief HCI_HOST_NUMBER_OF_COMPLETED_PACKETS
+ * This command is used by the Host to indicate to the Controller the number of
+ * HCI Data Packets that have been completed for each Connection_Handle since
+ * the previous HCI_HOST_NUMBER_OF_COMPLETED_PACKETS command was sent to the
+ * Controller. This means that the corresponding buffer space has been freed in
+ * the Host. Based on this information, and the Host_Total_Num_ACL_Data_Packets
+ * parameter of the HCI_HOST_BUFFER_SIZE command, the Controller can determine
+ * for which Connection_Handles the following HCI Data Packets should be sent
+ * to the Host. The command should only be issued by the Host if flow control
+ * in the direction from the Controller to the Host is on and there is at least
+ * one connection. Otherwise, the command will be ignored by the Controller.
+ * When the Host has completed one or more HCI Data Packet(s) it shall send a
+ * HCI_HOST_NUMBER_OF_COMPLETED_PACKETS command to the Controller, until it
+ * finally reports that all pending HCI Data Packets have been completed. The
+ * frequency at which this command is sent is manufacturer specific.
+ * Note: This command is a special command in the sense that no event is
+ * normally generated after the command has completed. The command may be sent
+ * at any time by the Host independent of other commands. The normal flow
+ * control for commands is not used for this command.
+ * See Core Specification [Vol 4, Part E, 7.3.40].
+ *
+ * @param Number_Of_Handles The number of Connection_Handles and
+ *        Host_Num_Of_Completed_Packets parameters pairs contained in this
+ *        command.
+ *        Values:
+ *        - 0 ... 63
+ * @param Host_Nb_Of_Completed_Pkt_Pair See @ref
+ *        Host_Nb_Of_Completed_Pkt_Pair_t
+ * @return Value indicating success or error code.
+ */
+ble_status_t
+hci_host_number_of_completed_packets(uint8_t number_of_handles,
+                                     const host_nb_of_completed_pkt_pair_t *host_nb_of_completed_pkt_pair);
+
+/**
+ * @brief HCI_READ_LOCAL_VERSION_INFORMATION
+ * This command reads the values for the version information for the local
+ * Controller.
+ * See Core Specification [Vol 4, Part E, 7.4.1].
+ *
+ * @param[out] HCI_Version Version of the HCI Specification supported by the
+ *        Controller. See Bluetooth Assigned Numbers.
+ * @param[out] HCI_Subversion Revision of the HCI implementation in the
+ *        Controller. This value is vendor-specific.
+ *        This parameter gives the BLE stack reduced version number.
+ * @param[out] LMP_Version Version of the Current LMP supported by the
+ *        Controller. See Bluetooth Assigned Numbers.
+ * @param[out] Company_Identifier Company identifier for the manufacturer of
+ *        the Controller. See Bluetooth Assigned Numbers.
+ *        Values:
+ *        - 0x0030: STMicroelectronics
+ * @param[out] LMP_Subversion Subversion of the Current LMP in the Controller.
+ *        This value is vendor-specific.
+ *        The most significant byte gives the HW version.
+ *        The least significant byte gives the FW version.
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_read_local_version_information(uint8_t *hci_version,
+                                                uint16_t *hci_subversion,
+                                                uint8_t *lmp_version,
+                                                uint16_t *company_identifier,
+                                                uint16_t *lmp_subversion);
+
+/**
+ * @brief HCI_READ_LOCAL_SUPPORTED_COMMANDS
+ * This command reads the list of HCI commands supported for the local
+ * Controller. This command shall return the Supported_Commands configuration
+ * parameter. It is implied that if a command is listed as supported, the
+ * feature underlying that command is also supported.
+ * See Core Specification [Vol 4, Part E, 7.4.2].
+ *
+ * @param[out] Supported_Commands Bit mask for each HCI Command. If a bit is 1,
+ *        the Controller supports the corresponding command and the features
+ *        required for the command.
+ *        Unsupported or undefined commands shall be set to 0.
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_read_local_supported_commands(uint8_t *supported_commands);
+
+/**
+ * @brief HCI_READ_LOCAL_SUPPORTED_FEATURES
+ * This command requests a list of the supported features for the local
+ * Controller. This command will return a list of the LMP features. For details
+ * see Part C, Link Manager Protocol Specification.
+ * See Core Specification [Vol 4, Part E, 7.4.3].
+ *
+ * @param[out] LMP_Features Bit Mask List of LMP features.
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_read_local_supported_features(uint8_t *lmp_features);
+
+/**
+ * @brief HCI_READ_BD_ADDR
+ * On an LE Controller, this command shall read the Public Device Address.
+ * See Core Specification [Vol 4, Part E, 7.4.6].
+ *
+ * @param[out] BD_ADDR BD_ADDR (Bluetooth Device Address) of the device.
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_read_bd_addr(uint8_t *bd_addr);
+
+/**
+ * @brief HCI_READ_RSSI
+ * This command reads the Received Signal Strength Indication (RSSI) value from
+ * a Controller. For an LE transport, a Connection_Handle is used as the Handle
+ * command parameter and return parameter. The meaning of the RSSI metric is an
+ * absolute receiver signal strength value in dBm to +/- 6 dB accuracy. If the
+ * RSSI cannot be read, the RSSI metric shall be set to 127.
+ * See Core Specification [Vol 4, Part E, 7.5.4].
+ *
+ * @param Connection_Handle Connection handle for which the command applies.
+ *        Values:
+ *        - 0x0000 ... 0x0EFF
+ * @param[out] RSSI RSSI (signed integer).
+ *        Units: dBm.
+ *        Values:
+ *        - 127: RSSI not available
+ *        - -127 ... 20
+ * @return Value indicating success or error code.
+ */
+ble_status_t hci_read_rssi(uint16_t connection_handle, uint8_t *rssi);
+
+#endif

@@ -1,9 +1,9 @@
-#include "rtc.h"
 #include "assert.h"
 #include "clock/clock_srcs.h"
 #include "exti/exti.h"
+#include "rtc.h"
 #include "stm32wb55xx.h"
-#include "reg.h"
+#include "utils.h"
 #include <stdbool.h>
 
 #define NULL ((void *)0)
@@ -16,7 +16,7 @@ static alrm_callback_t g_alrm_callback = NULL;
 static void rtc_unlock()
 {
     // Disable the write protection for RTC
-    reg_set_mask(&PWR->CR1, PWR_CR1_DBP_Msk);
+    SET_FIELD(PWR->CR1, PWR_CR1_DBP_Msk);
 
     // Unlock the write protections by writing keys
     RTC->WPR = 0xCA;
@@ -26,10 +26,10 @@ static void rtc_unlock()
 static void rtc_lock()
 {
     // Lock the RTC
-    reg_set_field(&RTC->WPR, RTC_WPR_KEY_Pos, 8, 0x00);
+    MODIFY_FIELD(RTC->WPR, RTC_WPR_KEY_Msk, RTC_WPR_KEY_Pos, 0x00);
 
     // Enable write protection
-    reg_clear_mask(&PWR->CR1, PWR_CR1_DBP_Msk);
+    CLEAR_FIELD(PWR->CR1, PWR_CR1_DBP_Msk);
 }
 
 static void rtc_clock_init()
@@ -37,11 +37,11 @@ static void rtc_clock_init()
     rtc_unlock();
 
     // Enable LSE clock
-    hal_clock_enable_lse(); 
+    hal_clock_enable_lse();
 
-    reg_set_field(&RCC->BDCR, RCC_BDCR_RTCSEL_Pos, 2, 0x01);  // Use LSE clock
-    reg_set_mask(&RCC->BDCR, RCC_BDCR_RTCEN_Msk);
-    reg_set_mask(&RCC->APB1ENR1, RCC_APB1ENR1_RTCAPBEN_Msk);
+    MODIFY_FIELD(RCC->BDCR, RCC_BDCR_RTCSEL_Msk, RCC_BDCR_RTCSEL_Pos, 0x01); // Use LSE clock
+    SET_FIELD(RCC->BDCR, RCC_BDCR_RTCEN_Msk);
+    SET_FIELD(RCC->APB1ENR1, RCC_APB1ENR1_RTCAPBEN_Msk);
 }
 
 static void rtc_enable_init()
@@ -49,14 +49,14 @@ static void rtc_enable_init()
     rtc_unlock();
 
     // Calendar intialization
-    reg_set_mask(&RTC->ISR, RTC_ISR_INIT_Msk);
-    while (reg_get_bit(&RTC->ISR, RTC_ISR_INITF_Pos) != 1);
+    SET_FIELD(RTC->ISR, RTC_ISR_INIT_Msk);
+    while (!(RTC->ISR & RTC_ISR_INITF_Msk));
 }
 
 static void rtc_disable_init()
 {
     // Exit initalization
-    reg_clear_mask(&RTC->ISR, RTC_ISR_INIT_Msk);
+    CLEAR_FIELD(RTC->ISR, RTC_ISR_INIT_Msk);
 
     rtc_lock();
 }
@@ -72,17 +72,17 @@ void hal_rtc_init()
     rtc_enable_init();
     // prescalers are default values
     // Set to 00:00 1st Jan 2026
-    reg_set_field(&RTC->CR, RTC_CR_FMT_Pos, 1, RTC_HR_FMT_24);
-    RTC->TR = 0x0;  // from 00:00 midnight
+    MODIFY_BIT(RTC->CR, RTC_CR_FMT_Pos, RTC_HR_FMT_24);
+    RTC->TR = 0x0; // from 00:00 midnight
 
     uint32_t dr = 0x0UL;
-    reg_set_field(&dr, RTC_DR_YT_Pos, 4, 0x2);
-    reg_set_field(&dr, RTC_DR_YU_Pos, 4, 0x6);
-    reg_set_field(&dr, RTC_DR_MT_Pos, 1, 0x0);
-    reg_set_field(&dr, RTC_DR_MU_Pos, 4, 0x1);
-    reg_set_field(&dr, RTC_DR_WDU_Pos, 3, 0x6);  // Saturday
-    reg_set_field(&dr, RTC_DR_DT_Pos, 2, 0x0);
-    reg_set_field(&dr, RTC_DR_DU_Pos, 4, 0x1);
+    MODIFY_FIELD(dr, RTC_DR_YT_Msk, RTC_DR_YT_Pos, 0x2);
+    MODIFY_FIELD(dr, RTC_DR_YU_Msk, RTC_DR_YU_Pos, 0x6);
+    MODIFY_FIELD(dr, RTC_DR_MT_Msk, RTC_DR_MT_Pos, 0x0);
+    MODIFY_FIELD(dr, RTC_DR_MU_Msk, RTC_DR_MU_Pos, 0x1);
+    MODIFY_FIELD(dr, RTC_DR_WDU_Msk, RTC_DR_WDU_Pos, 0x6); // Saturday
+    MODIFY_FIELD(dr, RTC_DR_DT_Msk, RTC_DR_DT_Pos, 0x0);
+    MODIFY_FIELD(dr, RTC_DR_DU_Msk, RTC_DR_DU_Pos, 0x1);
 
     RTC->DR = dr;
 
@@ -92,40 +92,40 @@ void hal_rtc_init()
 void hal_rtc_set_hr_format(rtc_hr_fmt_t hr_fmt)
 {
     rtc_enable_init();
-    reg_set_field(&RTC->CR, RTC_CR_FMT_Pos, 1, hr_fmt);
+    MODIFY_BIT(RTC->CR, RTC_CR_FMT_Pos, hr_fmt);
     rtc_disable_init();
 }
 
 void hal_rtc_get_time(uint8_t *hr, uint8_t *min, uint8_t *sec, bool *pm)
 {
     // clear RSF then wait for shadow registers to sync
-    reg_clear_mask(&RTC->ISR, RTC_ISR_RSF_Msk);
-    while (reg_get_bit(&RTC->ISR, RTC_ISR_RSF_Pos) != 1);
+    CLEAR_FIELD(RTC->ISR, RTC_ISR_RSF_Msk);
+    while (!(RTC->ISR & RTC_ISR_RSF_Msk));
 
     *pm = 0;
-    if (reg_get_bit(&RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12)
+    if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12)
     {
-        *pm = reg_get_bit(&RTC->TR, RTC_TR_PM_Pos);
+        *pm = (RTC->TR & RTC_TR_PM_Msk);
     }
 
     if (hr)
     {
-        uint8_t ht = reg_get_field(&RTC->TR, RTC_TR_HT_Pos, 2);
-        uint8_t hu = reg_get_field(&RTC->TR, RTC_TR_HU_Pos, 4);
+        uint8_t ht = READ_FIELD(RTC->TR, RTC_TR_HT_Msk, RTC_TR_HT_Pos);
+        uint8_t hu = READ_FIELD(RTC->TR, RTC_TR_HU_Msk, RTC_TR_HU_Pos);
         *hr = ht * 10 + hu;
     }
 
     if (min)
     {
-        uint8_t mt = reg_get_field(&RTC->TR, RTC_TR_MNT_Pos, 3);
-        uint8_t mu = reg_get_field(&RTC->TR, RTC_TR_MNU_Pos, 4);
+        uint8_t mt = READ_FIELD(RTC->TR, RTC_TR_MNT_Msk, RTC_TR_MNT_Pos);
+        uint8_t mu = READ_FIELD(RTC->TR, RTC_TR_MNU_Msk, RTC_TR_MNU_Pos);
         *min = mt * 10 + mu;
     }
 
     if (sec)
     {
-        uint8_t st = reg_get_field(&RTC->TR, RTC_TR_ST_Pos, 3);
-        uint8_t su = reg_get_field(&RTC->TR, RTC_TR_SU_Pos, 4);
+        uint8_t st = READ_FIELD(RTC->TR, RTC_TR_ST_Msk, RTC_TR_ST_Pos);
+        uint8_t su = READ_FIELD(RTC->TR, RTC_TR_SU_Msk, RTC_TR_SU_Pos);
         *sec = st * 10 + su;
     }
 }
@@ -136,10 +136,10 @@ void hal_rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
     BW_ASSERT(sec < 60, "Invalid second %d (Expected 0-59)", sec);
     rtc_enable_init();
 
-    if (reg_get_bit(&RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12)
+    if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12)
     {
         BW_ASSERT(hr < 12, "Invalid hour %d (Expected 0-11)", hr);
-        reg_set_field(&RTC->TR, RTC_TR_PM_Pos, 1, pm);
+        MODIFY_BIT(RTC->TR, RTC_TR_PM_Pos, pm);
     }
     else
     {
@@ -147,12 +147,12 @@ void hal_rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
     }
 
     uint32_t tr = 0x0UL;
-    reg_set_field(&tr, RTC_TR_HT_Pos, 2, (hr / 10) % 10);
-    reg_set_field(&tr, RTC_TR_HU_Pos, 4, hr % 10);
-    reg_set_field(&tr, RTC_TR_MNT_Pos, 3, (min / 10) % 10);
-    reg_set_field(&tr, RTC_TR_MNU_Pos, 4, min % 10);
-    reg_set_field(&tr, RTC_TR_ST_Pos, 3, (sec / 10) % 10);
-    reg_set_field(&tr, RTC_TR_SU_Pos, 4, sec % 10);
+    MODIFY_FIELD(tr, RTC_TR_HT_Msk, RTC_TR_HT_Pos, (hr / 10) % 10);
+    MODIFY_FIELD(tr, RTC_TR_HU_Msk, RTC_TR_HU_Pos, hr % 10);
+    MODIFY_FIELD(tr, RTC_TR_MNT_Msk, RTC_TR_MNT_Pos, (min / 10) % 10);
+    MODIFY_FIELD(tr, RTC_TR_MNU_Msk, RTC_TR_MNU_Pos, min % 10);
+    MODIFY_FIELD(tr, RTC_TR_ST_Msk, RTC_TR_ST_Pos, (sec / 10) % 10);
+    MODIFY_FIELD(tr, RTC_TR_SU_Msk, RTC_TR_SU_Pos, sec % 10);
 
     RTC->TR = tr;
 
@@ -162,32 +162,32 @@ void hal_rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
 void hal_rtc_get_date(uint8_t *yr, uint8_t *mth, uint8_t *dte, uint8_t *wd)
 {
     // clear RSF then wait for shadow registers to sync
-    reg_clear_mask(&RTC->ISR, RTC_ISR_RSF_Msk);
-    while (reg_get_bit(&RTC->ISR, RTC_ISR_RSF_Pos) != 1);
+    CLEAR_FIELD(RTC->ISR, RTC_ISR_RSF_Msk);
+    while (!(RTC->ISR & RTC_ISR_RSF_Msk));
 
     if (yr)
     {
-        uint8_t yt = reg_get_field(&RTC->DR, RTC_DR_YT_Pos, 4);
-        uint8_t yu = reg_get_field(&RTC->DR, RTC_DR_YU_Pos, 4);
+        uint8_t yt = READ_FIELD(RTC->DR, RTC_DR_YT_Msk, RTC_DR_YT_Pos);
+        uint8_t yu = READ_FIELD(RTC->DR, RTC_DR_YU_Msk, RTC_DR_YU_Pos);
         *yr = yt * 10 + yu;
     }
 
     if (wd)
     {
-        *wd = reg_get_field(&RTC->DR, RTC_DR_WDU_Pos, 4);
+        *wd = READ_FIELD(RTC->DR, RTC_DR_WDU_Msk, RTC_DR_WDU_Pos);
     }
 
     if (mth)
     {
-        uint8_t mt = reg_get_field(&RTC->DR, RTC_DR_MT_Pos, 1);
-        uint8_t mu = reg_get_field(&RTC->DR, RTC_DR_MU_Pos, 4);
+        uint8_t mt = READ_FIELD(RTC->DR, RTC_DR_MT_Msk, RTC_DR_MT_Pos);
+        uint8_t mu = READ_FIELD(RTC->DR, RTC_DR_MU_Msk, RTC_DR_MU_Pos);
         *mth = mt * 10 + mu;
     }
 
     if (dte)
     {
-        uint8_t dt = reg_get_field(&RTC->DR, RTC_DR_DT_Pos, 2);
-        uint8_t du = reg_get_field(&RTC->DR, RTC_DR_DU_Pos, 4);
+        uint8_t dt = READ_FIELD(RTC->DR, RTC_DR_DT_Msk, RTC_DR_DT_Pos);
+        uint8_t du = READ_FIELD(RTC->DR, RTC_DR_DU_Msk, RTC_DR_DU_Pos);
         *dte = dt * 10 + du;
     }
 }
@@ -201,13 +201,13 @@ void hal_rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd)
     rtc_enable_init();
 
     uint32_t dr = 0x0UL;
-    reg_set_field(&dr, RTC_DR_YT_Pos, 4, (yr / 10) % 10);
-    reg_set_field(&dr, RTC_DR_YU_Pos, 4, yr % 10);
-    reg_set_field(&dr, RTC_DR_WDU_Pos, 4, wd % 10);
-    reg_set_field(&dr, RTC_DR_MT_Pos, 1, (mth / 10) % 10);
-    reg_set_field(&dr, RTC_DR_MU_Pos, 4, mth % 10);
-    reg_set_field(&dr, RTC_DR_DT_Pos, 2, (dte / 10) % 10);
-    reg_set_field(&dr, RTC_DR_DU_Pos, 4, dte % 10);
+    MODIFY_FIELD(dr, RTC_DR_YT_Msk, RTC_DR_YT_Pos, (yr / 10) % 10);
+    MODIFY_FIELD(dr, RTC_DR_YU_Msk, RTC_DR_YU_Pos, yr % 10);
+    MODIFY_FIELD(dr, RTC_DR_WDU_Msk, RTC_DR_WDU_Pos, wd % 10);
+    MODIFY_FIELD(dr, RTC_DR_MT_Msk, RTC_DR_MT_Pos, (mth / 10) % 10);
+    MODIFY_FIELD(dr, RTC_DR_MU_Msk, RTC_DR_MU_Pos, mth % 10);
+    MODIFY_FIELD(dr, RTC_DR_DT_Msk, RTC_DR_DT_Pos, (dte / 10) % 10);
+    MODIFY_FIELD(dr, RTC_DR_DU_Msk, RTC_DR_DU_Pos, dte % 10);
     RTC->DR = dr;
 
     rtc_disable_init();
@@ -217,7 +217,7 @@ static void hal_rtc_wkup_isr(void *user_data)
 {
     (void)user_data;
     rtc_unlock();
-    reg_clear_mask(&RTC->ISR, RTC_ISR_WUTF_Msk);
+    CLEAR_FIELD(RTC->ISR, RTC_ISR_WUTF_Msk);
     rtc_lock();
 
     if (g_wkup_callback != NULL)
@@ -231,15 +231,15 @@ void hal_rtc_enable_wut(uint8_t delay_s, wkup_callback_t callback, uint8_t irq_p
     rtc_unlock();
 
     // Disable wake-up timer
-    reg_clear_mask(&RTC->CR, RTC_CR_WUTE_Msk);
-    while (reg_get_bit(&RTC->ISR, RTC_ISR_WUTWF_Pos) != 1);
+    CLEAR_FIELD(RTC->CR, RTC_CR_WUTE_Msk);
+    while (!(RTC->ISR & RTC_ISR_WUTWF_Msk));
 
     // Configure the value
     RTC->WUTR = delay_s - 1;
-    reg_set_field(&RTC->CR, RTC_CR_WUCKSEL_Pos, 3, 0x4);
+    MODIFY_FIELD(RTC->CR, RTC_CR_WUCKSEL_Msk, RTC_CR_WUCKSEL_Pos, 0x4);
 
     // Enable wake-up timer interrupt
-    reg_set_mask(&RTC->CR, RTC_CR_WUTIE_Msk);
+    SET_FIELD(RTC->CR, RTC_CR_WUTIE_Msk);
 
     exti_conf_t exti_conf = {.im = WKUP_IM,
                              .edge = EXTI_EDGE_RISING,
@@ -250,7 +250,7 @@ void hal_rtc_enable_wut(uint8_t delay_s, wkup_callback_t callback, uint8_t irq_p
     hal_exti_init(&exti_conf, &g_wkup_exti_h);
 
     // Enable wake-up timer
-    reg_set_mask(&RTC->CR, RTC_CR_WUTE_Msk);
+    SET_FIELD(RTC->CR, RTC_CR_WUTE_Msk);
     g_wkup_callback = callback;
 
     rtc_lock();
@@ -260,12 +260,12 @@ void hal_rtc_disable_wut()
 {
     rtc_unlock();
     hal_exti_deinit(&g_wkup_exti_h);
-    reg_clear_mask(&RTC->ISR, RTC_ISR_WUTF_Msk);
-    reg_clear_mask(&RTC->CR, RTC_CR_WUTIE_Msk);
+    CLEAR_FIELD(RTC->ISR, RTC_ISR_WUTF_Msk);
+    CLEAR_FIELD(RTC->CR, RTC_CR_WUTIE_Msk);
 
     // disable wake-up timer
-    reg_clear_mask(&RTC->CR, RTC_CR_WUTE_Msk);
-    while (reg_get_bit(&RTC->ISR, RTC_ISR_WUTWF_Pos) != 1);
+    CLEAR_FIELD(RTC->CR, RTC_CR_WUTE_Msk);
+    while (!(RTC->ISR & RTC_ISR_WUTWF_Msk));
 
     rtc_lock();
 }
@@ -274,7 +274,7 @@ static void hal_rtc_alrm_isr(void *user_data)
 {
     (void)user_data;
     rtc_unlock();
-    reg_clear_mask(&RTC->ISR, RTC_ISR_ALRAF_Msk);
+    CLEAR_FIELD(RTC->ISR, RTC_ISR_ALRAF_Msk);
     rtc_lock();
 
     if (g_alrm_callback != NULL)
@@ -283,7 +283,11 @@ static void hal_rtc_alrm_isr(void *user_data)
     }
 }
 
-void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_callback_t callback,
+void hal_rtc_enable_alarm(uint8_t hr,
+                          uint8_t min,
+                          uint8_t sec,
+                          bool pm,
+                          alrm_callback_t callback,
                           uint8_t irq_priority)
 {
     rtc_unlock();
@@ -291,31 +295,31 @@ void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_ca
     BW_ASSERT(min < 60, "Invalid minute %d (Expected 0-59)", min);
     BW_ASSERT(sec < 60, "Invalid second %d (Expected 0-59)", sec);
 
-    reg_clear_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
-    while (reg_get_bit(&RTC->ISR, RTC_ISR_ALRAWF_Pos) != 1);
+    CLEAR_FIELD(RTC->CR, RTC_CR_ALRAE_Msk);
+    while (!(RTC->ISR & RTC_ISR_ALRAWF_Msk));
 
     uint32_t alrmar = 0x0UL;
-    reg_set_mask(&alrmar, RTC_ALRMAR_MSK4_Msk);  // Don't care date/day
-    if (reg_get_bit(&RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12)
+    SET_FIELD(alrmar, RTC_ALRMAR_MSK4_Msk); // Don't care date/day
+    if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12)
     {
         BW_ASSERT(hr < 12, "Invalid hour %d (Expected 0-11)", hr);
-        reg_set_field(&alrmar, RTC_ALRMAR_PM_Pos, 1, pm);
+        MODIFY_BIT(alrmar, RTC_ALRMAR_PM_Pos, pm);
     }
     else
     {
         BW_ASSERT(hr < 24, "Invalid hour %d (Expected 0-23)", hr);
-        reg_clear_mask(&alrmar, RTC_ALRMAR_PM_Msk);
+        CLEAR_FIELD(alrmar, RTC_ALRMAR_PM_Msk);
     }
 
-    reg_set_field(&alrmar, RTC_ALRMAR_HT_Pos, 2, (hr / 10) % 10);
-    reg_set_field(&alrmar, RTC_ALRMAR_HU_Pos, 4, hr % 10);
-    reg_set_field(&alrmar, RTC_ALRMAR_MNT_Pos, 3, (min / 10) % 10);
-    reg_set_field(&alrmar, RTC_ALRMAR_MNU_Pos, 4, min % 10);
-    reg_set_field(&alrmar, RTC_ALRMAR_ST_Pos, 3, (sec / 10) % 10);
-    reg_set_field(&alrmar, RTC_ALRMAR_SU_Pos, 4, sec % 10);
+    MODIFY_FIELD(alrmar, RTC_ALRMAR_HT_Msk, RTC_ALRMAR_HT_Pos, (hr / 10) % 10);
+    MODIFY_FIELD(alrmar, RTC_ALRMAR_HU_Msk, RTC_ALRMAR_HU_Pos, hr % 10);
+    MODIFY_FIELD(alrmar, RTC_ALRMAR_MNT_Msk, RTC_ALRMAR_MNT_Pos, (min / 10) % 10);
+    MODIFY_FIELD(alrmar, RTC_ALRMAR_MNU_Msk, RTC_ALRMAR_MNU_Pos, min % 10);
+    MODIFY_FIELD(alrmar, RTC_ALRMAR_ST_Msk, RTC_ALRMAR_ST_Pos, (sec / 10) % 10);
+    MODIFY_FIELD(alrmar, RTC_ALRMAR_SU_Msk, RTC_ALRMAR_SU_Pos, sec % 10);
     RTC->ALRMAR = alrmar;
 
-    reg_set_mask(&RTC->CR, RTC_CR_ALRAIE_Msk);
+    SET_FIELD(RTC->CR, RTC_CR_ALRAIE_Msk);
 
     exti_conf_t exti_conf = {.im = ALRM_IM,
                              .edge = EXTI_EDGE_RISING,
@@ -325,7 +329,7 @@ void hal_rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_ca
                              .user_data = NULL};
     hal_exti_init(&exti_conf, &g_alrm_exti_h);
 
-    reg_set_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
+    SET_FIELD(RTC->CR, RTC_CR_ALRAE_Msk);
     g_alrm_callback = callback;
 
     rtc_lock();
@@ -335,8 +339,8 @@ void hal_rtc_disable_alarm()
 {
     rtc_unlock();
     hal_exti_deinit(&g_alrm_exti_h);
-    reg_clear_mask(&RTC->ISR, RTC_ISR_ALRAF_Msk);
-    reg_clear_mask(&RTC->CR, RTC_CR_ALRAIE_Msk);
-    reg_clear_mask(&RTC->CR, RTC_CR_ALRAE_Msk);
+    CLEAR_FIELD(RTC->ISR, RTC_ISR_ALRAF_Msk);
+    CLEAR_FIELD(RTC->CR, RTC_CR_ALRAIE_Msk);
+    CLEAR_FIELD(RTC->CR, RTC_CR_ALRAE_Msk);
     rtc_lock();
 }

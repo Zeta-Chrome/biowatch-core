@@ -1,0 +1,184 @@
+#ifndef BLE_H
+#define BLE_H
+
+#include <stdbool.h>
+#include <stdint.h>
+typedef enum
+{
+    /* Generic Category Definitions */
+    BLE_APPEARANCE_UNKNOWN = 0x0000,
+
+    /* Generic Computer (Category 1) */
+    BLE_APPEARANCE_GENERIC_COMPUTER = 0x0040,
+
+    /* Generic Phone (Category 2) */
+    BLE_APPEARANCE_GENERIC_PHONE = 0x0080,
+    BLE_APPEARANCE_PHONE_SMARTPHONE = 0x0081,
+
+    /* Generic Watch (Category 3) */
+    BLE_APPEARANCE_GENERIC_WATCH = 0x00C0,
+    BLE_APPEARANCE_WATCH_SPORTS = 0x00C1,
+
+    /* Generic Clock (Category 4) */
+    BLE_APPEARANCE_GENERIC_CLOCK = 0x0100,
+
+    /* Generic Display (Category 5) */
+    BLE_APPEARANCE_GENERIC_DISPLAY = 0x0140,
+
+    /* Generic Remote Control (Category 6) */
+    BLE_APPEARANCE_GENERIC_REMOTE_CONTROL = 0x0180,
+
+    /* Generic Eye-glasses (Category 7) */
+    BLE_APPEARANCE_GENERIC_EYE_GLASSES = 0x01C0,
+
+    /* Generic Tag (Category 8) */
+    BLE_APPEARANCE_GENERIC_TAG = 0x0200,
+
+    /* Generic Keyring (Category 9) */
+    BLE_APPEARANCE_GENERIC_KEYRING = 0x0240,
+
+    /* Generic Media Player (Category 10) */
+    BLE_APPEARANCE_GENERIC_MEDIA_PLAYER = 0x0280,
+
+    /* Generic Barcode Scanner (Category 11) */
+    BLE_APPEARANCE_GENERIC_BARCODE_SCANNER = 0x02C0,
+
+    /* Generic Thermometer (Category 12) */
+    BLE_APPEARANCE_GENERIC_THERMOMETER = 0x0300,
+    BLE_APPEARANCE_THERMOMETER_EAR = 0x0301,
+
+    /* Generic Heart Rate Sensor (Category 13) */
+    BLE_APPEARANCE_GENERIC_HEART_RATE_SENSOR = 0x0340,
+    BLE_APPEARANCE_HEART_RATE_BELT = 0x0341,
+
+    /* Generic Blood Pressure (Category 14) */
+    BLE_APPEARANCE_GENERIC_BLOOD_PRESSURE = 0x0380,
+    BLE_APPEARANCE_BLOOD_PRESSURE_ARM = 0x0381,
+    BLE_APPEARANCE_BLOOD_PRESSURE_WRIST = 0x0382,
+
+    /* Human Interface Device - HID (Category 15) */
+    BLE_APPEARANCE_GENERIC_HID = 0x03C0,
+    BLE_APPEARANCE_HID_KEYBOARD = 0x03C1,
+    BLE_APPEARANCE_HID_MOUSE = 0x03C2,
+    BLE_APPEARANCE_HID_JOYSTICK = 0x03C3,
+    BLE_APPEARANCE_HID_GAMEPAD = 0x03C4,
+    BLE_APPEARANCE_HID_DIGITIZER_TABLET = 0x03C5,
+    BLE_APPEARANCE_HID_CARD_READER = 0x03C6,
+    BLE_APPEARANCE_HID_DIGITAL_PEN = 0x03C7,
+    BLE_APPEARANCE_HID_BARCODE_SCANNER = 0x03C8,
+
+    /* Generic Glucose Meter (Category 16) */
+    BLE_APPEARANCE_GENERIC_GLUCOSE_METER = 0x0400,
+
+    /* Generic Running/Walking Sensor (Category 17) */
+    BLE_APPEARANCE_GENERIC_RUNNING_WALKING_SENSOR = 0x0440,
+    BLE_APPEARANCE_RUNNING_WALKING_IN_SHOE = 0x0441,
+    BLE_APPEARANCE_RUNNING_WALKING_ON_SHOE = 0x0442,
+    BLE_APPEARANCE_RUNNING_WALKING_ON_HIP = 0x0443,
+
+    /* Generic Cycling (Category 18) */
+    BLE_APPEARANCE_GENERIC_CYCLING = 0x0480,
+    BLE_APPEARANCE_CYCLING_COMPUTER = 0x0481,
+    BLE_APPEARANCE_CYCLING_SPEED_SENSOR = 0x0482,
+    BLE_APPEARANCE_CYCLING_CADENCE_SENSOR = 0x0483,
+    BLE_APPEARANCE_CYCLING_POWER_SENSOR = 0x0484,
+    BLE_APPEARANCE_CYCLING_SPEED_CADENCE_SENSOR = 0x0485,
+
+    /* Generic Control Device (Category 19) */
+    BLE_APPEARANCE_GENERIC_CONTROL_DEVICE = 0x04C0,
+    BLE_APPEARANCE_CONTROL_DEVICE_SWITCH = 0x04C1,
+    BLE_APPEARANCE_CONTROL_DEVICE_MULTI_SWITCH = 0x04C2,
+    BLE_APPEARANCE_CONTROL_DEVICE_BUTTON = 0x04C3,
+    BLE_APPEARANCE_CONTROL_DEVICE_SLIDER = 0x04C4,
+    BLE_APPEARANCE_CONTROL_DEVICE_ROTARY_DIAL = 0x04C5,
+    BLE_APPEARANCE_CONTROL_DEVICE_TOUCH_PANEL = 0x04C6,
+
+    /* Generic Network Device (Category 20) */
+    BLE_APPEARANCE_GENERIC_NETWORK_DEVICE = 0x0500,
+    BLE_APPEARANCE_NETWORK_DEVICE_ACCESS_POINT = 0x0501,
+
+    /* Generic Sensor (Category 21) */
+    BLE_APPEARANCE_GENERIC_SENSOR = 0x0540,
+    BLE_APPEARANCE_SENSOR_MOTION = 0x0541,
+    BLE_APPEARANCE_SENSOR_AIR_QUALITY = 0x0542,
+    BLE_APPEARANCE_SENSOR_TEMPERATURE = 0x0543,
+    BLE_APPEARANCE_SENSOR_HUMIDITY = 0x0544,
+
+    /* Generic Audio Device (Category 22) */
+    BLE_APPEARANCE_GENERIC_AUDIO_DEVICE = 0x0580,
+    BLE_APPEARANCE_AUDIO_DEVICE_HEADSET = 0x0581,
+    BLE_APPEARANCE_AUDIO_DEVICE_HEADPHONES = 0x0582,
+    BLE_APPEARANCE_AUDIO_DEVICE_SPEAKER = 0x0583,
+    BLE_APPEARANCE_AUDIO_DEVICE_MICROPHONE = 0x0584,
+
+    /* Generic Medical Device (Category 23) */
+    BLE_APPEARANCE_GENERIC_MEDICAL_DEVICE = 0x05C0,
+
+    /* Pulse Oximeter (Category 48) -> (48 << 6) = 0x0C00 */
+    BLE_APPEARANCE_GENERIC_PULSE_OXIMETER = 0x0C00,
+    BLE_APPEARANCE_PULSE_OXIMETER_FINGERTIP = 0x0C01,
+    BLE_APPEARANCE_PULSE_OXIMETER_WRIST = 0x0C02,
+
+    /* Weight Scale (Category 49) -> (49 << 6) = 0x0C40 */
+    BLE_APPEARANCE_GENERIC_WEIGHT_SCALE = 0x0C40,
+
+    /* Personal Mobility Device (Category 50) */
+    BLE_APPEARANCE_GENERIC_PERSONAL_MOBILITY_DEVICE = 0x0C80,
+
+    /* Continuous Glucose Monitor (Category 51) */
+    BLE_APPEARANCE_GENERIC_CONTINUOUS_GLUCOSE_MONITOR = 0x0CC0,
+
+    /* Insulin Pump (Category 52) */
+    BLE_APPEARANCE_GENERIC_INSULIN_PUMP = 0x0D00,
+
+    /* Medication Delivery (Category 53) */
+    BLE_APPEARANCE_GENERIC_MEDICATION_DELIVERY = 0x0D40,
+
+    /* Outdoor Sports Activity (Category 88) -> (88 << 6) = 0x1600 */
+    BLE_APPEARANCE_GENERIC_OUTDOOR_SPORTS_ACT = 0x1600,
+    BLE_APPEARANCE_OUTDOOR_SPORTS_ACT_LOCATION_DISP = 0x1601,
+    BLE_APPEARANCE_OUTDOOR_SPORTS_ACT_LOCATION_NAV = 0x1602,
+    BLE_APPEARANCE_OUTDOOR_SPORTS_ACT_LOCATION_POD = 0x1603,
+    BLE_APPEARANCE_OUTDOOR_SPORTS_ACT_LOCATION_NAV_POD = 0x1604
+} ble_appearance_t;
+
+typedef enum
+{
+    BLE_IO_CAPABILITY_DISPLAY_ONLY = 0x00,
+    BLE_IO_CAPABILITY_DISPLAY_YES_NO = 0x01,
+    BLE_IO_CAPABILITY_KEYBOARD_ONLY = 0x02,
+    BLE_IO_CAPABILITY_NO_INPUT_NO_OUTPUT = 0x03,
+    BLE_IO_CAPABILITY_KEYBOARD_DISPLAY = 0x04
+} ble_io_capability_t;
+
+typedef enum
+{
+    BLE_MITM_PROTECTION_NOT_REQUIRED = 0x00,
+    BLE_MITM_PROTECTION_REQUIRED = 0x01
+} ble_mitm_protection_t;
+
+typedef enum
+{
+    BLE_SECURE_NOT_SUPPORTED = 0x00,
+    BLE_SECURE_OPTIONAL = 0x01,
+    BLE_SECURE_MANDATORY = 0x02
+} ble_secure_support_t;
+
+typedef enum
+{
+    BLE_KEYPRESS_NOT_SUPPORTED = 0x00,
+    BLE_KEYPRESS_SUPPORTED = 0x01
+} ble_keypress_support_t;
+
+void ble_sys_init();
+void ble_init(uint8_t num_gatt_attr,
+              uint8_t num_gatt_srv,
+              uint8_t num_link,
+              const char *name,
+              ble_appearance_t appearance,
+              ble_io_capability_t io_capability,
+              ble_mitm_protection_t mitm_protection,
+              ble_secure_support_t secure_support,
+              bool bonding_mode);
+
+#endif
