@@ -13,18 +13,8 @@ uint32_t HCLK4_FREQ;
 uint32_t PCLK1_FREQ;
 uint32_t PCLK2_FREQ;
 
-static uint32_t g_msi_rmap[CLOCK_MSI_RANGE_48M + 1] = {100000,
-                                                       200000,
-                                                       400000,
-                                                       800000,
-                                                       1000000,
-                                                       2000000,
-                                                       4000000,
-                                                       8000000,
-                                                       16000000,
-                                                       24000000,
-                                                       32000000,
-                                                       48000000};
+static uint32_t g_msi_rmap[CLOCK_MSI_RANGE_48M + 1] = {100000,  200000,  400000,   800000,   1000000,  2000000,
+                                                       4000000, 8000000, 16000000, 24000000, 32000000, 48000000};
 static uint16_t g_hpre_map[CLOCK_HPRE_512 + 1] = {1, 3, 5, 6, 10, 32, 2, 4, 8, 16, 64, 128, 256, 512};
 
 static bw_status_t hal_clock_configure_pll(clock_conf_t *conf)
@@ -123,6 +113,8 @@ bw_status_t hal_clock_configure(clock_conf_t *conf)
         }
         clk_src = 3;
         break;
+    default:
+        return STATUS_ERR;
     }
 
     // hclk2 and hclk4 have sysclk frequencies
