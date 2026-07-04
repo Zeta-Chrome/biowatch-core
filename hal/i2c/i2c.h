@@ -2,8 +2,8 @@
 #define HAL_I2C_H
 
 #include "hal/gpio/gpio_types.h"
-#include "utils/status.h"
 #include "stm32wb55xx.h"
+#include "utils/status.h"
 #include <stdbool.h>
 
 typedef void (*i2c_callback_t)(bw_status_t, void *);
@@ -36,7 +36,7 @@ typedef struct
     gpio_af_t af;
     I2C_TypeDef *i2c;
     i2c_speed_t speed;
-    uint8_t dnf;  // 0->15
+    uint8_t dnf; // 0->15
     uint8_t irq_priority;
 } i2c_conf_t;
 
@@ -65,6 +65,5 @@ void hal_i2c_transmit(i2c_handle_t *handle);
 void hal_i2c_transmit_dma(i2c_handle_t *handle);
 void hal_i2c_deinit(i2c_handle_t *handle);
 void hal_i2c_deinit_dma(i2c_handle_t *handle);
-
 
 #endif
