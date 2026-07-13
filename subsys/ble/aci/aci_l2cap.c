@@ -1,18 +1,14 @@
 #include "aci_l2cap.h"
-#include "status.h"
 #include "subsys/ble/ble_types.h"
 #include "subsys/ble/hci/hci.h"
 
-ble_status_t aci_l2cap_connection_parameter_update_req(uint16_t connection_handle,
-                                                       uint16_t conn_interval_min,
-                                                       uint16_t conn_interval_max,
-                                                       uint16_t latency,
+ble_status_t aci_l2cap_connection_parameter_update_req(uint16_t connection_handle, uint16_t conn_interval_min,
+                                                       uint16_t conn_interval_max, uint16_t latency,
                                                        uint16_t timeout_multiplier)
 {
     hci_request_t rq;
     uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
-    aci_l2cap_connection_parameter_update_req_cp0 *cp0 =
-        (aci_l2cap_connection_parameter_update_req_cp0 *)(cmd_buffer);
+    aci_l2cap_connection_parameter_update_req_cp0 *cp0 = (aci_l2cap_connection_parameter_update_req_cp0 *)(cmd_buffer);
     ble_status_t status = 0;
     int index_input = 0;
 
@@ -43,20 +39,14 @@ ble_status_t aci_l2cap_connection_parameter_update_req(uint16_t connection_handl
     return status;
 }
 
-ble_status_t aci_l2cap_connection_parameter_update_resp(uint16_t connection_handle,
-                                                        uint16_t conn_interval_min,
-                                                        uint16_t conn_interval_max,
-                                                        uint16_t latency,
-                                                        uint16_t timeout_multiplier,
-                                                        uint16_t minimum_ce_length,
-                                                        uint16_t maximum_ce_length,
-                                                        uint8_t identifier,
-                                                        uint8_t accept)
+ble_status_t aci_l2cap_connection_parameter_update_resp(uint16_t connection_handle, uint16_t conn_interval_min,
+                                                        uint16_t conn_interval_max, uint16_t latency,
+                                                        uint16_t timeout_multiplier, uint16_t minimum_ce_length,
+                                                        uint16_t maximum_ce_length, uint8_t identifier, uint8_t accept)
 {
     hci_request_t rq;
     uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
-    aci_l2cap_connection_parameter_update_resp_cp0 *cp0 =
-        (aci_l2cap_connection_parameter_update_resp_cp0 *)(cmd_buffer);
+    aci_l2cap_connection_parameter_update_resp_cp0 *cp0 = (aci_l2cap_connection_parameter_update_resp_cp0 *)(cmd_buffer);
     ble_status_t status = 0;
     int index_input = 0;
 
@@ -95,12 +85,8 @@ ble_status_t aci_l2cap_connection_parameter_update_resp(uint16_t connection_hand
     return status;
 }
 
-ble_status_t aci_l2cap_coc_connect(uint16_t connection_handle,
-                                   uint16_t spsm,
-                                   uint16_t mtu,
-                                   uint16_t mps,
-                                   uint16_t initial_credits,
-                                   uint8_t channel_number)
+ble_status_t aci_l2cap_coc_connect(uint16_t connection_handle, uint16_t spsm, uint16_t mtu, uint16_t mps,
+                                   uint16_t initial_credits, uint8_t channel_number)
 {
     hci_request_t rq;
     uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
@@ -137,13 +123,8 @@ ble_status_t aci_l2cap_coc_connect(uint16_t connection_handle,
     return status;
 }
 
-ble_status_t aci_l2cap_coc_connect_confirm(uint16_t connection_handle,
-                                           uint16_t mtu,
-                                           uint16_t mps,
-                                           uint16_t initial_credits,
-                                           uint16_t result,
-                                           uint8_t max_channel_number,
-                                           uint8_t *channel_number,
+ble_status_t aci_l2cap_coc_connect_confirm(uint16_t connection_handle, uint16_t mtu, uint16_t mps, uint16_t initial_credits,
+                                           uint16_t result, uint8_t max_channel_number, uint8_t *channel_number,
                                            uint8_t *channel_index_list)
 {
     hci_request_t rq;
@@ -188,10 +169,7 @@ ble_status_t aci_l2cap_coc_connect_confirm(uint16_t connection_handle,
     return BLE_STATUS_SUCCESS;
 }
 
-ble_status_t aci_l2cap_coc_reconf(uint16_t connection_handle,
-                                  uint16_t mtu,
-                                  uint16_t mps,
-                                  uint8_t channel_number,
+ble_status_t aci_l2cap_coc_reconf(uint16_t connection_handle, uint16_t mtu, uint16_t mps, uint8_t channel_number,
                                   const uint8_t *channel_index_list)
 {
     hci_request_t rq;

@@ -1,7 +1,7 @@
 #ifndef BLE_TL_H
 #define BLE_TL_H
 
-#include "utils.h"
+#include "lib/utils.h"
 
 #define TL_BLECMD_PKT_TYPE (0x01)
 #define TL_ACL_DATA_PKT_TYPE (0x02)

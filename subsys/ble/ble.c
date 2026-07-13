@@ -2,26 +2,26 @@
 #include "aci/aci_gatt.h"
 #include "aci/aci_hal.h"
 #include "ble.h"
-#include "containers/stm_clist.h"
 #include "hci/hci_le.h"
-#include "status.h"
+#include "kernel/sync/event.h"
+#include "kernel/task/task.h"
+#include "lib/containers/stm_clist.h"
+#include "lib/status.h"
+#include "lib/utils.h"
 #include "subsys/ble/ble_cfg.h"
 #include "subsys/ble/ble_types.h"
 #include "subsys/ble/hci/hci.h"
 #include "subsys/ble/shci/shci.h"
 #include "subsys/ble/tl/tl.h"
-#include "sync/event.h"
-#include "task/task.h"
-#include "utils.h"
 
 #define DEVICE_ID_BASE 0x1FFF7590UL
 #define NBR_OF_TRACES_CONFIG_PARAMETERS 4
 #define NBR_OF_GENERAL_CONFIG_PARAMETERS 4
-#define BLE_POOL_SIZE \
-    (CFG_TLBLE_EVT_QUEUE_LENGTH * 4U * DIVC((sizeof(tl_packet_header_t) + TL_BLE_EVENT_FRAME_SIZE), 4U))
+#define BLE_POOL_SIZE (CFG_TLBLE_EVT_QUEUE_LENGTH * 4U * DIVC((sizeof(tl_packet_header_t) + TL_BLE_EVENT_FRAME_SIZE), 4U))
 #define BLE_SYS_INIT_EVT BIT(0)
 
-PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static uint8_t g_evt_pool[BLE_POOL_SIZE];
+PLACE_IN_SECTION("MB_MEM2")
+ALIGN(4) static uint8_t g_evt_pool[BLE_POOL_SIZE];
 PLACE_IN_SECTION("MB_MEM2")
 ALIGN(4) static uint8_t g_sys_spare_evt_buf[sizeof(tl_packet_header_t) + TL_EVT_HDR_SIZE + 255U];
 PLACE_IN_SECTION("MB_MEM2")
@@ -62,7 +62,7 @@ static void sys_evt_task(void *user_data);
 static void sys_evt_callback(tl_evt_packet_t *p_evt_pkt)
 {
     stm_list_insert_tail(&g_sys_evt_queue, (stm_list_node_t *)p_evt_pkt);
-    rtos_task_notify_from_isr(g_sys_evt_task_h, 1, NOTIFY_ACTION_NONE);
+    kernel_task_notify_from_isr(g_sys_evt_task_h, 1, NOTIFY_ACTION_NONE);
 }
 
 static void traces_evt_callback(tl_evt_packet_t *p_evt_pkt)
@@ -87,12 +87,9 @@ static bool sys_ready_evt_handler(tl_async_evt_t *p_sys_evt)
         BW_LOG("SHCI code ready: BLE running\n");
 
         shci_c2_debug_init_cmd_packet_t dbg_cmd_pkt = {{{0, 0, 0}}, /**< Does not need to be initialized */
-                                                       {NULL,
-                                                        (uint8_t *)&g_debug_traces_config,
-                                                        (uint8_t *)&g_debug_general_config,
-                                                        0,
-                                                        NBR_OF_TRACES_CONFIG_PARAMETERS,
-                                                        NBR_OF_GENERAL_CONFIG_PARAMETERS}};
+                                                       {NULL, (uint8_t *)&g_debug_traces_config,
+                                                        (uint8_t *)&g_debug_general_config, 0,
+                                                        NBR_OF_TRACES_CONFIG_PARAMETERS, NBR_OF_GENERAL_CONFIG_PARAMETERS}};
 
         tl_traces_conf_t tr_conf = {.evt_callback = traces_evt_callback};
         tl_traces_init(&tr_conf);
@@ -178,7 +175,7 @@ static void sys_evt_task(void *user_data)
 
     while (1)
     {
-        rtos_task_notify_wait(1, 0, NULL, MAX_TIMEOUT);
+        kernel_task_notify_wait(1, 0, NULL, MAX_TIMEOUT);
 
         while (!stm_list_is_empty(&g_sys_evt_queue))
         {
@@ -189,20 +186,16 @@ static void sys_evt_task(void *user_data)
             {
             case SHCI_SUB_EVT_CODE_READY:
                 shci_get_wireless_fw_info(&wireless_info);
-                BW_LOG("Wireless firmware version %d.%d.%d\n",
-                       wireless_info.version_major,
-                       wireless_info.version_minor,
+                BW_LOG("Wireless firmware version %d.%d.%d\n", wireless_info.version_major, wireless_info.version_minor,
                        wireless_info.version_sub);
                 BW_LOG("Wireless firmware build %d\n", wireless_info.version_release_type);
-                BW_LOG("FUS version %d.%d.%d\n",
-                       wireless_info.fus_version_major,
-                       wireless_info.fus_version_minor,
+                BW_LOG("FUS version %d.%d.%d\n", wireless_info.fus_version_major, wireless_info.fus_version_minor,
                        wireless_info.fus_version_sub);
                 if (sys_ready_evt_handler(p_sys_evt))
                 {
                     tl_mm_evt_done(p_sys_pkt);
                 }
-                rtos_event_set(&g_evt, BLE_SYS_INIT_EVT);
+                kernel_event_set(&g_evt, BLE_SYS_INIT_EVT);
                 break;
             case SHCI_SUB_EVT_ERROR_NOTIF:
                 BW_LOG("SHCI error event\n");
@@ -217,8 +210,7 @@ static void sys_evt_task(void *user_data)
 
             case SHCI_SUB_EVT_NVM_START_WRITE:
                 BW_LOG("BLE NVM start write\n");
-                BW_LOG("Number of words = %d\n",
-                       ((shci_c2_nvm_start_write_evt_t *)p_sys_evt->payload)->number_of_words);
+                BW_LOG("Number of words = %d\n", ((shci_c2_nvm_start_write_evt_t *)p_sys_evt->payload)->number_of_words);
                 break;
 
             case SHCI_SUB_EVT_NVM_END_WRITE:
@@ -245,7 +237,7 @@ static void sys_evt_task(void *user_data)
 static void ble_evt_callback(tl_evt_packet_t *p_evt_pkt)
 {
     stm_list_insert_tail(&g_ble_evt_queue, (stm_list_node_t *)p_evt_pkt);
-    rtos_task_notify_from_isr(g_ble_evt_task_h, 1, NOTIFY_ACTION_NONE);
+    kernel_task_notify_from_isr(g_ble_evt_task_h, 1, NOTIFY_ACTION_NONE);
 }
 
 static void ble_evt_task(void *user_data)
@@ -255,7 +247,7 @@ static void ble_evt_task(void *user_data)
     tl_evt_packet_t *p_evt_pkt;
     while (1)
     {
-        rtos_task_notify_wait(1, 0, NULL, MAX_TIMEOUT);
+        kernel_task_notify_wait(1, 0, NULL, MAX_TIMEOUT);
 
         while (!stm_list_is_empty(&g_ble_evt_queue))
         {
@@ -280,12 +272,8 @@ static const uint8_t *ble_get_bd_address()
     return g_bd_addr;
 }
 
-static void ble_gap_gatt_init(const char *name,
-                              ble_appearance_t appearance,
-                              ble_io_capability_t io_capability,
-                              ble_mitm_protection_t mitm_protection,
-                              ble_secure_support_t secure_support,
-                              bool bonding_mode)
+static void ble_gap_gatt_init(const char *name, ble_appearance_t appearance, ble_io_capability_t io_capability,
+                              ble_mitm_protection_t mitm_protection, ble_secure_support_t secure_support, bool bonding_mode)
 {
     ble_status_t ret = hci_reset();
     if (ret != BLE_STATUS_SUCCESS)
@@ -299,9 +287,7 @@ static void ble_gap_gatt_init(const char *name,
 
     // Write BLE address
     const uint8_t *p_bd_addr = ble_get_bd_address();
-    ret = aci_hal_write_config_data(CONFIG_DATA_PUBLIC_ADDRESS_OFFSET,
-                                    CONFIG_DATA_PUBLIC_ADDRESS_LEN,
-                                    (uint8_t *)p_bd_addr);
+    ret = aci_hal_write_config_data(CONFIG_DATA_PUBLIC_ADDRESS_OFFSET, CONFIG_DATA_PUBLIC_ADDRESS_LEN, (uint8_t *)p_bd_addr);
     if (ret != BLE_STATUS_SUCCESS)
     {
         BW_LOG("Fail: aci_hal_write_config_data command - CONFIG_DATA_PUBLIC_ADDRESS_OFFSET, "
@@ -311,13 +297,8 @@ static void ble_gap_gatt_init(const char *name,
     else
     {
         BW_LOG("Success: aci_hal_write_config_data command - CONFIG_DATA_PUBLIC_ADDRESS_OFFSET\n");
-        BW_LOG("Public Bluetooth Address: %x:%x:%x:%x:%x:%x\n",
-               p_bd_addr[5],
-               p_bd_addr[4],
-               p_bd_addr[3],
-               p_bd_addr[2],
-               p_bd_addr[1],
-               p_bd_addr[0]);
+        BW_LOG("Public Bluetooth Address: %x:%x:%x:%x:%x:%x\n", p_bd_addr[5], p_bd_addr[4], p_bd_addr[3], p_bd_addr[2],
+               p_bd_addr[1], p_bd_addr[0]);
     }
 
     /* BLE MAC in ADV Packet */
@@ -376,11 +357,7 @@ static void ble_gap_gatt_init(const char *name,
     uint8_t role = GAP_PERIPHERAL_ROLE;
     uint16_t gap_service_handle, gap_dev_name_char_handle, gap_appearance_char_handle;
 
-    ret = aci_gap_init(role,
-                       PRIVACY_DISABLED,
-                       strlen(name),
-                       &gap_service_handle,
-                       &gap_dev_name_char_handle,
+    ret = aci_gap_init(role, PRIVACY_DISABLED, strlen(name), &gap_service_handle, &gap_dev_name_char_handle,
                        &gap_appearance_char_handle);
 
     if (ret != BLE_STATUS_SUCCESS)
@@ -392,11 +369,7 @@ static void ble_gap_gatt_init(const char *name,
         BW_LOG("Success : aci_gap_init command\n");
     }
 
-    ret = aci_gatt_update_char_value(gap_service_handle,
-                                     gap_dev_name_char_handle,
-                                     0,
-                                     strlen(name),
-                                     (uint8_t *)name);
+    ret = aci_gatt_update_char_value(gap_service_handle, gap_dev_name_char_handle, 0, strlen(name), (uint8_t *)name);
     if (ret != BLE_STATUS_SUCCESS)
     {
         BW_LOG("Fail : aci_gatt_update_char_value - Device Name, result: %x\n", ret);
@@ -440,15 +413,9 @@ static void ble_gap_gatt_init(const char *name,
         BW_LOG("Success : aci_gap_set_io_capability command\n");
     }
 
-    ret = aci_gap_set_authentication_requirement(bonding_mode,
-                                                 mitm_protection,
-                                                 secure_support,
-                                                 0,
-                                                 CFG_ENCRYPTION_KEY_SIZE_MIN,
-                                                 CFG_ENCRYPTION_KEY_SIZE_MAX,
-                                                 USE_FIXED_PIN_FOR_PAIRING_FORBIDDEN,
-                                                 0,
-                                                 GAP_PUBLIC_ADDR);
+    ret = aci_gap_set_authentication_requirement(bonding_mode, mitm_protection, secure_support, 0,
+                                                 CFG_ENCRYPTION_KEY_SIZE_MIN, CFG_ENCRYPTION_KEY_SIZE_MAX,
+                                                 USE_FIXED_PIN_FOR_PAIRING_FORBIDDEN, 0, GAP_PUBLIC_ADDR);
     if (ret != BLE_STATUS_SUCCESS)
     {
         BW_LOG("Fail : aci_gap_set_authentication_requirement command, result: %x \n", ret);
@@ -478,7 +445,7 @@ void ble_sys_init()
     tl_init();
 
     stm_list_init(&g_sys_evt_queue);
-    rtos_task_create(sys_evt_task, "_BLE_SYS_TASK", 1, 256, NULL, &g_sys_evt_task_h);
+    kernel_task_create(sys_evt_task, "_BLE_SYS_TASK", 1, 256, NULL, &g_sys_evt_task_h);
     shci_init(sys_evt_callback);
 
     tl_mm_conf_t conf = {
@@ -491,24 +458,18 @@ void ble_sys_init()
     };
     tl_mm_init(&conf);
 
-    rtos_event_init(&g_evt);
+    kernel_event_init(&g_evt);
     tl_enable();
 
-    bw_status_t status = rtos_event_wait(&g_evt, BLE_SYS_INIT_EVT, NULL, true, true, 1000);
+    bw_status_t status = kernel_event_wait(&g_evt, BLE_SYS_INIT_EVT, NULL, true, true, 1000);
     if (status == STATUS_TIMEOUT)
     {
         BW_LOG("Timeout occured while waiting for ble sys init\n");
     }
 }
 
-void ble_init(uint8_t num_gatt_attr,
-              uint8_t num_gatt_srv,
-              uint8_t num_link,
-              const char *name,
-              ble_appearance_t appearance,
-              ble_io_capability_t io_capability,
-              ble_mitm_protection_t mitm_protection,
-              ble_secure_support_t secure_support,
+void ble_init(uint8_t num_gatt_attr, uint8_t num_gatt_srv, uint8_t num_link, const char *name, ble_appearance_t appearance,
+              ble_io_capability_t io_capability, ble_mitm_protection_t mitm_protection, ble_secure_support_t secure_support,
               bool bonding_mode)
 {
     BW_ASSERT(num_link >= 1 && num_link <= 8, "Invalid num links: %d (Expected range 1-8)", num_link);
@@ -546,7 +507,7 @@ void ble_init(uint8_t num_gatt_attr,
                                                        NULL,
                                                        0}};
 
-    rtos_task_create(ble_evt_task, "_BLE_TASK", 1, 256, NULL, &g_ble_evt_task_h);
+    kernel_task_create(ble_evt_task, "_BLE_TASK", 1, 256, NULL, &g_ble_evt_task_h);
     stm_list_init(&g_ble_evt_queue);
     hci_init(ble_evt_callback);
 

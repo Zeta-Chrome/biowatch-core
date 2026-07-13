@@ -1,7 +1,7 @@
 #ifndef BLE_TL_DEFS_H
 #define BLE_TL_DEFS_H
 
-#include "utils/utils.h"
+#include "lib/utils.h"
 
 typedef PACKED_STRUCT
 {

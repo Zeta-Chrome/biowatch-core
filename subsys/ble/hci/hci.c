@@ -1,11 +1,11 @@
-#include "containers/stm_clist.h"
 #include "hci.h"
-#include "status.h"
+#include "kernel/sync/mutex.h"
+#include "kernel/sync/semaphore.h"
+#include "kernel/task/task.h"
+#include "lib/containers/stm_clist.h"
+#include "lib/status.h"
+#include "lib/utils.h"
 #include "subsys/ble/tl/tl.h"
-#include "sync/mutex.h"
-#include "sync/semaphore.h"
-#include "task/task.h"
-#include "utils.h"
 #include <string.h>
 
 PLACE_IN_SECTION("MB_MEM1") ALIGN(4) static tl_cmd_packet_t g_ble_cmd_buffer;
@@ -22,7 +22,7 @@ static void ble_evt_callback(tl_evt_packet_t *p_evt_pkt)
         || p_evt_pkt->evt_serial.evt.evt_code == TL_BLEEVT_CS_OPCODE)
     {
         stm_list_insert_tail(&g_cmd_evt_queue, (stm_list_node_t *)p_evt_pkt);
-        rtos_semaphore_give_from_isr(&g_cmd_rx_sem);
+        kernel_semaphore_give_from_isr(&g_cmd_rx_sem);
     }
     else
     {
@@ -33,10 +33,10 @@ static void ble_evt_callback(tl_evt_packet_t *p_evt_pkt)
 void hci_init(evt_callback_t evt_callback)
 {
     g_evt_callback = evt_callback;
-    rtos_mutex_init(&g_cmd_mutex);
+    kernel_mutex_init(&g_cmd_mutex);
     stm_list_init(&g_cmd_evt_queue);
-    rtos_semaphore_binary_init(&g_cmd_rx_sem);
-    rtos_semaphore_take(&g_cmd_rx_sem, MAX_TIMEOUT);
+    kernel_semaphore_binary_init(&g_cmd_rx_sem);
+    kernel_semaphore_take(&g_cmd_rx_sem, MAX_TIMEOUT);
 
     g_ble_conf.p_cmd_buffer = &g_ble_cmd_buffer;
     g_ble_conf.p_hci_acl_data_buffer = NULL;
@@ -52,7 +52,7 @@ bw_status_t hci_send_req(hci_request_t *p_cmd)
     tl_evt_packet_t *p_evt_pkt;
     uint16_t opcode = ((p_cmd->ocf) & 0x03ff) | ((p_cmd->ogf) << 10);
 
-    rtos_mutex_lock(&g_cmd_mutex, MAX_TIMEOUT);
+    kernel_mutex_lock(&g_cmd_mutex, MAX_TIMEOUT);
 
     g_ble_cmd_buffer.cmd_serial.cmd.cmd_code = opcode;
     g_ble_cmd_buffer.cmd_serial.cmd.payload_len = p_cmd->cmd_len;
@@ -63,11 +63,11 @@ bw_status_t hci_send_req(hci_request_t *p_cmd)
     bool busy = true;
     while (busy)
     {
-        bw_status_t status = rtos_semaphore_take(&g_cmd_rx_sem, 5000);
+        bw_status_t status = kernel_semaphore_take(&g_cmd_rx_sem, 5000);
         if (status == STATUS_TIMEOUT)
         {
             BW_LOG("Timeout occured while waiting for hci request response\n");
-            rtos_mutex_unlock(&g_cmd_mutex);
+            kernel_mutex_unlock(&g_cmd_mutex);
             return status;
         }
 
@@ -94,8 +94,7 @@ bw_status_t hci_send_req(hci_request_t *p_cmd)
 
                 if (p_cmd_complete_evt->cmd_code == opcode)
                 {
-                    p_cmd->ret_len =
-                        MIN(p_evt_pkt->evt_serial.evt.payload_len - TL_EVT_HDR_SIZE, p_cmd->ret_len);
+                    p_cmd->ret_len = MIN(p_evt_pkt->evt_serial.evt.payload_len - TL_EVT_HDR_SIZE, p_cmd->ret_len);
                     memcpy(p_cmd->ret_param, p_cmd_complete_evt->payload, p_cmd->ret_len);
                 }
 
@@ -106,7 +105,7 @@ bw_status_t hci_send_req(hci_request_t *p_cmd)
             }
         }
     }
-    rtos_mutex_unlock(&g_cmd_mutex);
+    kernel_mutex_unlock(&g_cmd_mutex);
 
     return STATUS_OK;
 }
@@ -208,8 +207,7 @@ ble_status_t hci_reset(void)
     return status;
 }
 
-ble_status_t
-hci_read_transmit_power_level(uint16_t connection_handle, uint8_t type, uint8_t *transmit_power_level)
+ble_status_t hci_read_transmit_power_level(uint16_t connection_handle, uint8_t type, uint8_t *transmit_power_level)
 {
     hci_request_t rq;
     uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
@@ -244,8 +242,7 @@ ble_status_t hci_set_controller_to_host_flow_control(uint8_t flow_control_enable
 {
     hci_request_t rq;
     uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
-    hci_set_controller_to_host_flow_control_cp0 *cp0 =
-        (hci_set_controller_to_host_flow_control_cp0 *)(cmd_buffer);
+    hci_set_controller_to_host_flow_control_cp0 *cp0 = (hci_set_controller_to_host_flow_control_cp0 *)(cmd_buffer);
     ble_status_t status = 0;
     int index_input = 0;
     cp0->flow_control_enable = flow_control_enable;
@@ -266,10 +263,8 @@ ble_status_t hci_set_controller_to_host_flow_control(uint8_t flow_control_enable
     return status;
 }
 
-ble_status_t hci_host_buffer_size(uint16_t host_acl_data_packet_length,
-                                  uint8_t host_synchronous_data_packet_length,
-                                  uint16_t host_total_num_acl_data_packets,
-                                  uint16_t host_total_num_synchronous_data_packets)
+ble_status_t hci_host_buffer_size(uint16_t host_acl_data_packet_length, uint8_t host_synchronous_data_packet_length,
+                                  uint16_t host_total_num_acl_data_packets, uint16_t host_total_num_synchronous_data_packets)
 {
     hci_request_t rq;
     uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
@@ -300,9 +295,8 @@ ble_status_t hci_host_buffer_size(uint16_t host_acl_data_packet_length,
     return status;
 }
 
-ble_status_t
-hci_host_number_of_completed_packets(uint8_t number_of_handles,
-                                     const host_nb_of_completed_pkt_pair_t *host_nb_of_completed_pkt_pair)
+ble_status_t hci_host_number_of_completed_packets(uint8_t number_of_handles,
+                                                  const host_nb_of_completed_pkt_pair_t *host_nb_of_completed_pkt_pair)
 {
     hci_request_t rq;
     uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
@@ -311,8 +305,7 @@ hci_host_number_of_completed_packets(uint8_t number_of_handles,
     int index_input = 0;
     cp0->number_of_handles = number_of_handles;
     index_input += 1;
-    memcpy((void *)&cp0->host_nb_of_completed_pkt_pair,
-           (const void *)host_nb_of_completed_pkt_pair,
+    memcpy((void *)&cp0->host_nb_of_completed_pkt_pair, (const void *)host_nb_of_completed_pkt_pair,
            number_of_handles * (sizeof(host_nb_of_completed_pkt_pair_t)));
     index_input += number_of_handles * (sizeof(host_nb_of_completed_pkt_pair_t));
     memset(&rq, 0, sizeof(rq));
@@ -331,11 +324,8 @@ hci_host_number_of_completed_packets(uint8_t number_of_handles,
     return status;
 }
 
-ble_status_t hci_read_local_version_information(uint8_t *hci_version,
-                                                uint16_t *hci_subversion,
-                                                uint8_t *lmp_version,
-                                                uint16_t *company_identifier,
-                                                uint16_t *lmp_subversion)
+ble_status_t hci_read_local_version_information(uint8_t *hci_version, uint16_t *hci_subversion, uint8_t *lmp_version,
+                                                uint16_t *company_identifier, uint16_t *lmp_subversion)
 {
     hci_request_t rq;
     hci_read_local_version_information_rp0 resp;
