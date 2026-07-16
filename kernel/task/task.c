@@ -22,8 +22,8 @@ static struct
 } g_task_manager;
 static tcb_t g_task_table[MAX_TASKS];
 static prio_msk_t g_priority_mask = 0;
-static tcb_t *g_current_task = NULL;
-static tcb_t *g_next_task = NULL;
+tcb_t *g_current_task = NULL;
+tcb_t *g_next_task = NULL;
 
 void task_stack_init(uint32_t **sp, uint32_t *pc, uint32_t *p_usr_data);
 

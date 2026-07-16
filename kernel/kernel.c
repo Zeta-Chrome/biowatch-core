@@ -1,7 +1,7 @@
 #include "critical.h"
+#include "kernel.h"
 #include "lib/logger.h"
 #include "lib/utils.h"
-#include "kernel.h"
 #include "stm32wb55xx.h"
 #include "task/task.h"
 
@@ -52,7 +52,7 @@ void kernel_init(kernel_conf_t *conf)
 #endif
 }
 
-void kernel_run()
+void kernel_start()
 {
     NVIC_EnableIRQ(PendSV_IRQn);
     kernel_scheduler_tick();

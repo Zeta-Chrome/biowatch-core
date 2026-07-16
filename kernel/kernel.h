@@ -1,12 +1,12 @@
 #ifndef KERNEL_KERNEL_H
 #define KERNEL_KERNEL_H
 
-#include "kernel/sync/event.h"
-#include "kernel/sync/mqueue.h"
-#include "kernel/sync/mutex.h"
-#include "kernel/sync/semaphore.h"
+#include "kernel/sync/event.h"     // IWYU pragma: export
+#include "kernel/sync/mqueue.h"    // IWYU pragma: export
+#include "kernel/sync/mutex.h"     // IWYU pragma: export
+#include "kernel/sync/semaphore.h" // IWYU pragma: export
 #include "kernel/task/mem.h"
-#include "kernel/task/task.h"
+#include "kernel/task/task.h" // IWYU pragma: export
 
 typedef void (*kernel_idle_hook_t)(void *);
 
@@ -18,6 +18,6 @@ typedef struct
 } kernel_conf_t;
 
 void kernel_init(kernel_conf_t *conf);
-void kernel_run();
+void kernel_start();
 
 #endif

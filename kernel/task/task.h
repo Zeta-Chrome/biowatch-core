@@ -55,9 +55,9 @@ typedef struct
 
 void kernel_task_init();
 void kernel_task_create(task_func_t task_ptr, const char *name, uint8_t priority, uint32_t stack_depth, void *p_user_data,
-                      task_handle_t *handle);
+                        task_handle_t *handle);
 bw_status_t kernel_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear_exit_mask, uint32_t *p_notification,
-                                  uint32_t timeout_ms);
+                                    uint32_t timeout_ms);
 void kernel_task_notify(task_handle_t handle, uint32_t value, notify_action_t action);
 void kernel_task_notify_from_isr(task_handle_t handle, uint32_t value, notify_action_t action);
 bool kernel_task_notify_clear(task_handle_t handle);
