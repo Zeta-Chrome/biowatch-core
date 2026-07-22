@@ -3,5 +3,5 @@
 
 void bw_assert_handler()
 {
-    bw_error_handler();
+	bw_error_handler();
 }

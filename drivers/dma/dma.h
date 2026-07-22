@@ -6,79 +6,57 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef void (*dma_callback_t)(bw_status_t, void *);
+typedef void (*dma_callback_t)(enum bw_status, void *);
 
-typedef enum
-{
-    DMA_PL_LOW,
-    DMA_PL_MEDIUM,
-    DMA_PL_HIGH,
-    DMA_PL_VERY_HIGH
-} dma_pl_t;
+enum dma_pl { DMA_PL_LOW, DMA_PL_MEDIUM, DMA_PL_HIGH, DMA_PL_VERY_HIGH };
 
-typedef enum
-{
-    DMA_SZ_8,
-    DMA_SZ_16,
-    DMA_SZ_32
-} dma_sz_t;
+enum dma_sz { DMA_SZ_8, DMA_SZ_16, DMA_SZ_32 };
 
-typedef enum
-{
-    DMA_MODE_PERI_TO_MEM,
-    DMA_MODE_MEM_TO_PERI,
-} dma_mode_t;
+enum dma_mode {
+	DMA_MODE_PERI_TO_MEM,
+	DMA_MODE_MEM_TO_PERI,
+};
 
-typedef enum
-{
-    DMAMUX_SPOL_NONE,
-    DMAMUX_SPOL_RISING,
-    DMAMUX_SPOL_FALLING,
-    DMAMUX_SPOL_BOTH
-} dmamux_spol_t;
+enum dmamux_spol { DMAMUX_SPOL_NONE, DMAMUX_SPOL_RISING, DMAMUX_SPOL_FALLING, DMAMUX_SPOL_BOTH };
 
-typedef struct
-{
-    uint8_t dmareq_id;
-    bool sync_en;
-    uint8_t sync_id;
-    dmamux_spol_t sync_pol;
-    uint8_t num_req;
-} dmamux_conf_t;
+struct dmamux_conf {
+	uint8_t dmareq_id;
+	bool sync_en;
+	uint8_t sync_id;
+	enum dmamux_spol sync_pol;
+	uint8_t num_req;
+};
 
-typedef struct
-{
-    DMA_TypeDef *dma;
-    uint8_t ch_no;
-    dma_pl_t priority;
-    dmamux_conf_t dmamux;
-    uint8_t irq_priority;
-} dma_conf_t;
+struct dma_conf {
+	DMA_TypeDef *dma;
+	uint8_t ch_no;
+	enum dma_pl priority;
+	struct dmamux_conf dmamux;
+	uint8_t irq_priority;
+};
 
-typedef struct
-{
-    uint16_t data_count;
-    dma_mode_t mode;
-    uint32_t per_addr;
-    dma_sz_t per_sz;
-    bool per_incr;
-    uint32_t mem_addr;
-    dma_sz_t mem_sz;
-    bool mem_incr;
-    bool circular;
-    bool htc_trig;
-} dma_transfer_t;
+struct dma_transfer {
+	uint16_t data_count;
+	enum dma_mode mode;
+	uint32_t per_addr;
+	enum dma_sz per_sz;
+	bool per_incr;
+	uint32_t mem_addr;
+	enum dma_sz mem_sz;
+	bool mem_incr;
+	bool circular;
+	bool htc_trig;
+};
 
-typedef struct
-{
-    DMA_TypeDef *dma;
-    uint8_t ch_no;
-    void *user_data;
-    dma_callback_t callback;
-} dma_handle_t;
+struct dma_handle {
+	DMA_TypeDef *dma;
+	uint8_t ch_no;
+	void *user_data;
+	dma_callback_t callback;
+};
 
-void dma_init(dma_conf_t *conf, dma_handle_t *handle);
-void dma_start(dma_handle_t *handle, dma_transfer_t *trnf);
-void dma_denit(dma_handle_t *handle);
+void dma_init(struct dma_conf *conf, struct dma_handle *handle);
+void dma_start(struct dma_handle *handle, struct dma_transfer *trnf);
+void dma_denit(struct dma_handle *handle);
 
 #endif

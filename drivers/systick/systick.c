@@ -12,55 +12,55 @@ static volatile uint32_t g_tick_ms = 0;
 
 void systick_init(uint8_t priority)
 {
-    BW_ASSERT(priority < 16, "Invalid priority %d (Expected Range 0-15)", priority);
-    g_tick_ms = 0;
-    SysTick->CTRL = 0;
-    SysTick->LOAD = SYSTICK_LOAD;
-    SysTick->VAL = 0;
-    SysTick->CTRL = (SYSTICK_CLKSOURCE << SysTick_CTRL_CLKSOURCE_Pos) | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
+	BW_ASSERT(priority < 16, "Invalid priority %d (Expected Range 0-15)", priority);
+	g_tick_ms = 0;
+	SysTick->CTRL = 0;
+	SysTick->LOAD = SYSTICK_LOAD;
+	SysTick->VAL = 0;
+	SysTick->CTRL = (SYSTICK_CLKSOURCE << SysTick_CTRL_CLKSOURCE_Pos) | SysTick_CTRL_TICKINT_Msk |
+					SysTick_CTRL_ENABLE_Msk;
 
-    NVIC_SetPriority(SysTick_IRQn, priority);
-    NVIC_EnableIRQ(SysTick_IRQn);
+	NVIC_SetPriority(SysTick_IRQn, priority);
+	NVIC_EnableIRQ(SysTick_IRQn);
 }
 
 void systick_tick()
 {
-    g_tick_ms++;
+	g_tick_ms++;
 }
 
 uint32_t systick_millis()
 {
-    return g_tick_ms;
+	return g_tick_ms;
 }
 
-uint32_t systick_micros()
+uint64_t systick_micros()
 {
-    uint32_t ms, val;
-    do
-    {
-        ms = g_tick_ms;
-        val = (SysTick->VAL & 0x00FFFFFFU);
-    } while (ms != g_tick_ms); // race condition
+	uint32_t ms, val;
+	do {
+		ms = g_tick_ms;
+		val = (SysTick->VAL & 0x00FFFFFFU);
+	} while (ms != g_tick_ms); // race condition
 
-    return ms * 1000 + (SYSTICK_LOAD - val) / CYCLES_PER_US;
+	return (uint64_t)ms * 1000 + (SYSTICK_LOAD - val) / CYCLES_PER_US;
 }
 
 void systick_delay_ms(uint32_t ms)
 {
-    if (ms == 0)
-    {
-        return;
-    }
-    uint32_t start = systick_millis();
-    while (systick_millis() - start < ms);
+	if (ms == 0)
+		return;
+
+	uint32_t start = systick_millis();
+	while (systick_millis() - start < ms)
+		;
 }
 
 void systick_delay_us(uint32_t us)
 {
-    if (us == 0)
-    {
-        return;
-    }
-    uint32_t start = systick_micros();
-    while (systick_micros() - start < us);
+	if (us == 0)
+		return;
+
+	uint32_t start = systick_micros();
+	while (systick_micros() - start < us)
+		;
 }

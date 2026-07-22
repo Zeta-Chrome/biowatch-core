@@ -6,7 +6,7 @@
 void systick_init(uint8_t priority);
 
 uint32_t systick_millis();
-uint32_t systick_micros();
+uint64_t systick_micros();
 
 void systick_delay_ms(uint32_t ms);
 void systick_delay_us(uint32_t ms);

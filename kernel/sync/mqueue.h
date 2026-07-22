@@ -6,17 +6,16 @@
 #include "lib/status.h"
 #include <stddef.h>
 
-typedef struct
-{
-    queue_t container;
-    list_t swait_queue; // send wait queue
-    list_t rwait_queue; // receive wait queue
-} mqueue_t;
+struct mqueue {
+	queue_t container;
+	struct list swait_queue; // send wait queue
+	struct list rwait_queue; // receive wait queue
+};
 
-void kernel_mqueue_init(mqueue_t *mqueue, void *buf, uint16_t length, uint16_t element_size);
-void kernel_mqueue_peek(mqueue_t *mqueue, void **data);
-bw_status_t kernel_mqueue_send(mqueue_t *mqueue, void *data, uint32_t timeout_ms);
-bw_status_t kernel_mqueue_receive(mqueue_t *mqueue, void *data, uint32_t timeout_ms);
-void kernel_mqueue_overwrite(mqueue_t *mqueue, void *data);
+void kernel_mqueue_init(struct mqueue *mqueue, void *buf, uint16_t length, uint16_t element_size);
+void kernel_mqueue_peek(struct mqueue *mqueue, void **data);
+enum bw_status kernel_mqueue_send(struct mqueue *mqueue, void *data, uint32_t timeout_ms);
+enum bw_status kernel_mqueue_receive(struct mqueue *mqueue, void *data, uint32_t timeout_ms);
+void kernel_mqueue_overwrite(struct mqueue *mqueue, void *data);
 
 #endif

@@ -8,141 +8,141 @@
 #define HCI_COMMAND_MAX_PARAM_LEN 255
 #define HCI_EVENT_MAX_PARAM_LEN 255
 
-typedef struct
-{
-    uint16_t ogf;
-    uint16_t ocf;
-    int event;
-    void *cmd_param;
-    int cmd_len;
-    void *ret_param;
-    int ret_len;
-} hci_request_t;
+struct hci_request {
+	uint16_t ogf;
+	uint16_t ocf;
+	int event;
+	void *cmd_param;
+	int cmd_len;
+	void *ret_param;
+	int ret_len;
+};
 
 typedef __PACKED_STRUCT
 {
-    uint16_t connection_handle;
-    uint8_t reason;
+	uint16_t connection_handle;
+	uint8_t reason;
 }
 hci_disconnect_cp0;
 
 typedef __PACKED_STRUCT
 {
-    uint16_t connection_handle;
+	uint16_t connection_handle;
 }
 hci_read_remote_version_information_cp0;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t event_mask[8];
+	uint8_t event_mask[8];
 }
 hci_set_event_mask_cp0;
 
 typedef __PACKED_STRUCT
 {
-    uint16_t connection_handle;
-    uint8_t type;
+	uint16_t connection_handle;
+	uint8_t type;
 }
 hci_read_transmit_power_level_cp0;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t status;
-    uint16_t connection_handle;
-    uint8_t transmit_power_level;
+	uint8_t status;
+	uint16_t connection_handle;
+	uint8_t transmit_power_level;
 }
 hci_read_transmit_power_level_rp0;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t flow_control_enable;
+	uint8_t flow_control_enable;
 }
 hci_set_controller_to_host_flow_control_cp0;
 
 typedef __PACKED_STRUCT
 {
-    uint16_t host_acl_data_packet_length;
-    uint8_t host_synchronous_data_packet_length;
-    uint16_t host_total_num_acl_data_packets;
-    uint16_t host_total_num_synchronous_data_packets;
+	uint16_t host_acl_data_packet_length;
+	uint8_t host_synchronous_data_packet_length;
+	uint16_t host_total_num_acl_data_packets;
+	uint16_t host_total_num_synchronous_data_packets;
 }
 hci_host_buffer_size_cp0;
 
 typedef __PACKED_STRUCT
 {
-    /**
+	/**
      * Connection_Handle[i].
      * Values:
      * - 0x0000 ... 0x0EFF
      */
-    uint16_t connection_handle;
-    /**
+	uint16_t connection_handle;
+	/**
      * The number of HCI Data Packets [i] that have been completed for the
      * associated Connection_Handle since the previous time the event was
      * returned.
      * Values:
      * - 0x0000 ... 0xFFFF
      */
-    uint16_t host_num_of_completed_packets;
+	uint16_t host_num_of_completed_packets;
 }
 host_nb_of_completed_pkt_pair_t;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t number_of_handles;
-    host_nb_of_completed_pkt_pair_t host_nb_of_completed_pkt_pair[(HCI_COMMAND_MAX_PARAM_LEN - 1)
-                                                                  / sizeof(host_nb_of_completed_pkt_pair_t)];
+	uint8_t number_of_handles;
+	host_nb_of_completed_pkt_pair_t
+		host_nb_of_completed_pkt_pair[(HCI_COMMAND_MAX_PARAM_LEN - 1) /
+									  sizeof(host_nb_of_completed_pkt_pair_t)];
 }
 hci_host_number_of_completed_packets_cp0;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t status;
-    uint8_t hci_version;
-    uint16_t hci_subversion;
-    uint8_t lmp_version;
-    uint16_t company_identifier;
-    uint16_t lmp_subversion;
+	uint8_t status;
+	uint8_t hci_version;
+	uint16_t hci_subversion;
+	uint8_t lmp_version;
+	uint16_t company_identifier;
+	uint16_t lmp_subversion;
 }
 hci_read_local_version_information_rp0;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t status;
-    uint8_t supported_commands[64];
+	uint8_t status;
+	uint8_t supported_commands[64];
 }
 hci_read_local_supported_commands_rp0;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t status;
-    uint8_t lmp_features[8];
+	uint8_t status;
+	uint8_t lmp_features[8];
 }
 hci_read_local_supported_features_rp0;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t status;
-    uint8_t bd_addr[6];
+	uint8_t status;
+	uint8_t bd_addr[6];
 }
 hci_read_bd_addr_rp0;
 
 typedef __PACKED_STRUCT
 {
-    uint16_t connection_handle;
+	uint16_t connection_handle;
 }
 hci_read_rssi_cp0;
 
 typedef __PACKED_STRUCT
 {
-    uint8_t status;
-    uint16_t connection_handle;
-    uint8_t rssi;
+	uint8_t status;
+	uint16_t connection_handle;
+	uint8_t rssi;
 }
 hci_read_rssi_rp0;
 
 void hci_init(evt_callback_t evt_callback);
-bw_status_t hci_send_req(hci_request_t *p_cmd);
+enum bw_status hci_send_req(struct hci_request *p_cmd);
 
 /**
  * @brief HCI_DISCONNECT
@@ -168,7 +168,7 @@ bw_status_t hci_send_req(hci_request_t *p_cmd);
  *        - 0x3B: Unacceptable Connection Parameters
  * @return Value indicating success or error code.
  */
-ble_status_t hci_disconnect(uint16_t connection_handle, uint8_t reason);
+enum ble_status hci_disconnect(uint16_t connection_handle, uint8_t reason);
 
 /**
  * @brief HCI_READ_REMOTE_VERSION_INFORMATION
@@ -182,7 +182,7 @@ ble_status_t hci_disconnect(uint16_t connection_handle, uint8_t reason);
  *        - 0x0000 ... 0x0EFF
  * @return Value indicating success or error code.
  */
-ble_status_t hci_read_remote_version_information(uint16_t connection_handle);
+enum ble_status hci_read_remote_version_information(uint16_t connection_handle);
 
 /**
  * @brief HCI_SET_EVENT_MASK
@@ -205,7 +205,7 @@ ble_status_t hci_read_remote_version_information(uint16_t connection_handle);
  *        - 0x2000000000000000: LE Meta-Event
  * @return Value indicating success or error code.
  */
-ble_status_t hci_set_event_mask(const uint8_t *event_mask);
+enum ble_status hci_set_event_mask(const uint8_t *event_mask);
 
 /**
  * @brief HCI_RESET
@@ -224,7 +224,7 @@ ble_status_t hci_set_event_mask(const uint8_t *event_mask);
  *
  * @return Value indicating success or error code.
  */
-ble_status_t hci_reset(void);
+enum ble_status hci_reset(void);
 
 /**
  * @brief HCI_READ_TRANSMIT_POWER_LEVEL
@@ -246,8 +246,8 @@ ble_status_t hci_reset(void);
  *        - -30 ... 20
  * @return Value indicating success or error code.
  */
-ble_status_t
-hci_read_transmit_power_level(uint16_t connection_handle, uint8_t type, uint8_t *transmit_power_level);
+enum ble_status hci_read_transmit_power_level(uint16_t connection_handle, uint8_t type,
+											  uint8_t *transmit_power_level);
 
 /**
  * @brief HCI_SET_CONTROLLER_TO_HOST_FLOW_CONTROL
@@ -271,7 +271,7 @@ hci_read_transmit_power_level(uint16_t connection_handle, uint8_t type, uint8_t 
  *          supported.
  * @return Value indicating success or error code.
  */
-ble_status_t hci_set_controller_to_host_flow_control(uint8_t flow_control_enable);
+enum ble_status hci_set_controller_to_host_flow_control(uint8_t flow_control_enable);
 
 /**
  * @brief HCI_HOST_BUFFER_SIZE
@@ -315,10 +315,10 @@ ble_status_t hci_set_controller_to_host_flow_control(uint8_t flow_control_enable
  *        the Host. Not used.
  * @return Value indicating success or error code.
  */
-ble_status_t hci_host_buffer_size(uint16_t host_acl_data_packet_length,
-                                  uint8_t host_synchronous_data_packet_length,
-                                  uint16_t host_total_num_acl_data_packets,
-                                  uint16_t Host_Total_Num_Synchronous_Data_Packets);
+enum ble_status hci_host_buffer_size(uint16_t host_acl_data_packet_length,
+									 uint8_t host_synchronous_data_packet_length,
+									 uint16_t host_total_num_acl_data_packets,
+									 uint16_t Host_Total_Num_Synchronous_Data_Packets);
 
 /**
  * @brief HCI_HOST_NUMBER_OF_COMPLETED_PACKETS
@@ -351,9 +351,9 @@ ble_status_t hci_host_buffer_size(uint16_t host_acl_data_packet_length,
  *        Host_Nb_Of_Completed_Pkt_Pair_t
  * @return Value indicating success or error code.
  */
-ble_status_t
-hci_host_number_of_completed_packets(uint8_t number_of_handles,
-                                     const host_nb_of_completed_pkt_pair_t *host_nb_of_completed_pkt_pair);
+enum ble_status hci_host_number_of_completed_packets(
+	uint8_t number_of_handles,
+	const host_nb_of_completed_pkt_pair_t *host_nb_of_completed_pkt_pair);
 
 /**
  * @brief HCI_READ_LOCAL_VERSION_INFORMATION
@@ -378,11 +378,10 @@ hci_host_number_of_completed_packets(uint8_t number_of_handles,
  *        The least significant byte gives the FW version.
  * @return Value indicating success or error code.
  */
-ble_status_t hci_read_local_version_information(uint8_t *hci_version,
-                                                uint16_t *hci_subversion,
-                                                uint8_t *lmp_version,
-                                                uint16_t *company_identifier,
-                                                uint16_t *lmp_subversion);
+enum ble_status hci_read_local_version_information(uint8_t *hci_version, uint16_t *hci_subversion,
+												   uint8_t *lmp_version,
+												   uint16_t *company_identifier,
+												   uint16_t *lmp_subversion);
 
 /**
  * @brief HCI_READ_LOCAL_SUPPORTED_COMMANDS
@@ -398,7 +397,7 @@ ble_status_t hci_read_local_version_information(uint8_t *hci_version,
  *        Unsupported or undefined commands shall be set to 0.
  * @return Value indicating success or error code.
  */
-ble_status_t hci_read_local_supported_commands(uint8_t *supported_commands);
+enum ble_status hci_read_local_supported_commands(uint8_t *supported_commands);
 
 /**
  * @brief HCI_READ_LOCAL_SUPPORTED_FEATURES
@@ -410,7 +409,7 @@ ble_status_t hci_read_local_supported_commands(uint8_t *supported_commands);
  * @param[out] LMP_Features Bit Mask List of LMP features.
  * @return Value indicating success or error code.
  */
-ble_status_t hci_read_local_supported_features(uint8_t *lmp_features);
+enum ble_status hci_read_local_supported_features(uint8_t *lmp_features);
 
 /**
  * @brief HCI_READ_BD_ADDR
@@ -420,7 +419,7 @@ ble_status_t hci_read_local_supported_features(uint8_t *lmp_features);
  * @param[out] BD_ADDR BD_ADDR (Bluetooth Device Address) of the device.
  * @return Value indicating success or error code.
  */
-ble_status_t hci_read_bd_addr(uint8_t *bd_addr);
+enum ble_status hci_read_bd_addr(uint8_t *bd_addr);
 
 /**
  * @brief HCI_READ_RSSI
@@ -441,6 +440,6 @@ ble_status_t hci_read_bd_addr(uint8_t *bd_addr);
  *        - -127 ... 20
  * @return Value indicating success or error code.
  */
-ble_status_t hci_read_rssi(uint16_t connection_handle, uint8_t *rssi);
+enum ble_status hci_read_rssi(uint16_t connection_handle, uint8_t *rssi);
 
 #endif

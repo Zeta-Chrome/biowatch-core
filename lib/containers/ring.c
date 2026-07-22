@@ -1,76 +1,65 @@
 #include "ring.h"
 #include <string.h>
 
-void ring_init(ring_t *ring, void *data, uint16_t element_size, uint16_t capacity)
+void ring_init(struct ring *ring, void *data, uint16_t element_size, uint16_t capacity)
 {
-    ring->data = data;
-    ring->element_size = element_size;
-    ring->capacity = capacity;
-    ring->head = 0;
-    ring->tail = 0;
-    ring->count = 0;
+	ring->data = data;
+	ring->element_size = element_size;
+	ring->capacity = capacity;
+	ring->head = 0;
+	ring->tail = 0;
+	ring->count = 0;
 }
 
-bool ring_peek(ring_t *ring, void **data)
+bool ring_peek(struct ring *ring, void **data)
 {
-    if (is_ring_empty(ring))
-    {
-        return false;
-    }
+	if (is_ring_empty(ring))
+		return false;
 
-    *data = ring->data + ring->head * ring->element_size;
+	*data = ring->data + ring->head * ring->element_size;
 
-    return true;
+	return true;
 }
 
-void ring_back(ring_t *ring, void **data)
+void ring_back(struct ring *ring, void **data)
 {
-    *data = ring->data + ring->tail * ring->element_size;
+	*data = ring->data + ring->tail * ring->element_size;
 }
 
-void ring_push(ring_t *ring, void *data)
+void ring_push(struct ring *ring, void *data)
 {
-    if (data != NULL)
-    {
-        void *dest = ring->data + ring->tail * ring->element_size;
-        memcpy(dest, data, ring->element_size);
-    }
+	if (data != NULL) {
+		void *dest = ring->data + ring->tail * ring->element_size;
+		memcpy(dest, data, ring->element_size);
+	}
 
-    ring->tail = (ring->tail + 1) % ring->capacity;
-    if (ring->count >= ring->capacity)
-    {
-        ring->head = (ring->head + 1) % ring->capacity;  // overwrite old data
-    }
-    else
-    {
-        ring->count++;
-    }
+	ring->tail = (ring->tail + 1) % ring->capacity;
+	if (ring->count >= ring->capacity)
+		ring->head = (ring->head + 1) % ring->capacity; // overwrite old data
+	else
+		ring->count++;
 }
 
-bool ring_pop(ring_t *ring, void *out)
+bool ring_pop(struct ring *ring, void *out)
 {
-    if (is_ring_empty(ring))
-    {
-        return false;
-    }
+	if (is_ring_empty(ring))
+		return false;
 
-    if (out != NULL)
-    {
-        void *src = ring->data + ring->head * ring->element_size;
-        memcpy(out, src, ring->element_size);
-    }
+	if (out != NULL) {
+		void *src = ring->data + ring->head * ring->element_size;
+		memcpy(out, src, ring->element_size);
+	}
 
-    ring->head = (ring->head + 1) % ring->capacity;
-    ring->count--;
+	ring->head = (ring->head + 1) % ring->capacity;
+	ring->count--;
 
-    return true;
+	return true;
 }
 
-bool is_ring_empty(ring_t *ring)
+bool is_ring_empty(struct ring *ring)
 {
-    if (ring->head == ring->tail)
-    {
-        return true;
-    }
-    return false;
+	if (ring->head == ring->tail)
+		return true;
+
+	return false;
 }

@@ -13,53 +13,45 @@
 typedef uint8_t *task_handle_t;
 typedef void (*task_func_t)(void *user_data);
 
-typedef enum
-{
-    TASK_STATE_FREE,
-    TASK_STATE_READY,
-    TASK_STATE_BLOCKED,
-    TASK_STATE_SUSPENDED
-} task_state_t;
+enum task_state { TASK_STATE_FREE, TASK_STATE_READY, TASK_STATE_BLOCKED, TASK_STATE_SUSPENDED };
 
-typedef enum
-{
-    NOTIFY_ACTION_NONE,
-    NOTIFY_ACTION_SET_BITS,
-    NOTIFY_ACTION_INCREMENT,
-    NOTIFY_ACTION_OVERWRITE
-} notify_action_t;
+enum notify_action {
+	NOTIFY_ACTION_NONE,
+	NOTIFY_ACTION_SET_BITS,
+	NOTIFY_ACTION_INCREMENT,
+	NOTIFY_ACTION_OVERWRITE
+};
 
-typedef struct
-{
-    task_stack_t stack;
-    char name[TASK_NAME_LEN];
-    uint8_t idx;
-    task_state_t state;
-    uint8_t priority; // 0 - 15
-    list_t *p_state_queue;
-    list_t *p_delay_queue;
-    list_node_t state_node; // in ready queue, free queue or some wait queue
-    list_node_t delay_node; // in delay queue
-    uint32_t delay_ticks;
-    uint32_t event_flags;
-    bool event_clear_exit;
-    bool event_wait_all;
-    uint32_t events_received;
-    uint32_t notification_value;
-    bool wait_on_notify;
-    bool is_notified;
-    void *p_msg_data;
-    void *p_usr_data;
-    bw_status_t exit_status;
-} tcb_t;
+struct tcb {
+	struct task_stack stack;
+	char name[TASK_NAME_LEN];
+	uint8_t idx;
+	enum task_state state;
+	uint8_t priority; // 0 - 15
+	struct list *p_state_queue;
+	struct list *p_delay_queue;
+	struct list_node state_node; // in ready queue, free queue or some wait queue
+	struct list_node delay_node; // in delay queue
+	uint32_t delay_ticks;
+	uint32_t event_flags;
+	bool event_clear_exit;
+	bool event_wait_all;
+	uint32_t events_received;
+	uint32_t notification_value;
+	bool wait_on_notify;
+	bool is_notified;
+	void *p_msg_data;
+	void *p_usr_data;
+	enum bw_status exit_status;
+};
 
 void kernel_task_init();
-void kernel_task_create(task_func_t task_ptr, const char *name, uint8_t priority, uint32_t stack_depth, void *p_user_data,
-                        task_handle_t *handle);
-bw_status_t kernel_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear_exit_mask, uint32_t *p_notification,
-                                    uint32_t timeout_ms);
-void kernel_task_notify(task_handle_t handle, uint32_t value, notify_action_t action);
-void kernel_task_notify_from_isr(task_handle_t handle, uint32_t value, notify_action_t action);
+void kernel_task_create(task_func_t task_ptr, const char *name, uint8_t priority,
+						uint32_t stack_depth, void *p_user_data, task_handle_t *handle);
+enum bw_status kernel_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear_exit_mask,
+									   uint32_t *p_notification, uint32_t timeout_ms);
+void kernel_task_notify(task_handle_t handle, uint32_t value, enum notify_action action);
+void kernel_task_notify_from_isr(task_handle_t handle, uint32_t value, enum notify_action action);
 bool kernel_task_notify_clear(task_handle_t handle);
 bool kernel_task_notify_clear_from_isr(task_handle_t handle);
 void kernel_task_delay(uint32_t ms);

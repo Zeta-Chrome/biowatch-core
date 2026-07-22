@@ -4,29 +4,27 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct list_node
-{
-    void *data;
-    struct list_node *next;
-    struct list_node *prev;
-} list_node_t;
+struct list_node {
+	void *data;
+	struct list_node *next;
+	struct list_node *prev;
+};
 
-typedef struct
-{
-    list_node_t *head;
-    list_node_t *tail;
-    uint16_t count;
-} list_t;
+struct list {
+	struct list_node *head;
+	struct list_node *tail;
+	uint16_t count;
+};
 
-void list_init(list_t *list);
-void list_push_back(list_t *list, list_node_t *back);
-void list_push_front(list_t *list, list_node_t *front);
-void list_pop_front(list_t *list, list_node_t **front);
-void list_pop_back(list_t *list, list_node_t **back);
-void list_insert_after(list_t *list, list_node_t *node, list_node_t *new_node);
-void list_insert_before(list_t *list, list_node_t *node, list_node_t *new_node);
-void list_delete_node(list_t *list, list_node_t *node);
-bool list_is_empty(list_t *list);
-void list_clear(list_t *list);
+void list_init(struct list *list);
+void list_push_back(struct list *list, struct list_node *back);
+void list_push_front(struct list *list, struct list_node *front);
+void list_pop_front(struct list *list, struct list_node **front);
+void list_pop_back(struct list *list, struct list_node **back);
+void list_insert_after(struct list *list, struct list_node *node, struct list_node *new_node);
+void list_insert_before(struct list *list, struct list_node *node, struct list_node *new_node);
+void list_delete_node(struct list *list, struct list_node *node);
+bool list_is_empty(struct list *list);
+void list_clear(struct list *list);
 
 #endif

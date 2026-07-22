@@ -5,17 +5,17 @@
 #include "lib/status.h"
 #include <stdint.h>
 
-typedef struct
-{
-    uint32_t max_count;
-    uint32_t count;
-    list_t wait_queue; // take wait queue
-} semaphore_t;
+struct semaphore {
+	uint32_t max_count;
+	uint32_t count;
+	struct list wait_queue; // take wait queue
+};
 
-void kernel_semaphore_binary_init(semaphore_t *semaphore);                       // binary semaphore
-void kernel_semaphore_counting_init(semaphore_t *semaphore, uint32_t max_count); // counting semaphore
-bw_status_t kernel_semaphore_take(semaphore_t *semaphore, uint32_t timeout_ms);
-void kernel_semaphore_give(semaphore_t *semaphore);
-void kernel_semaphore_give_from_isr(semaphore_t *semaphore);
+void kernel_semaphore_binary_init(struct semaphore *semaphore); // binary semaphore
+void kernel_semaphore_counting_init(struct semaphore *semaphore,
+									uint32_t max_count); // counting semaphore
+enum bw_status kernel_semaphore_take(struct semaphore *semaphore, uint32_t timeout_ms);
+void kernel_semaphore_give(struct semaphore *semaphore);
+void kernel_semaphore_give_from_isr(struct semaphore *semaphore);
 
 #endif

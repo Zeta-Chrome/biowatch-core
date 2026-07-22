@@ -6,92 +6,63 @@
 #include "stm32wb55xx.h"
 #include <stdbool.h>
 
-typedef void (*spi_callback_t)(bw_status_t, void *);
+typedef void (*spi_callback_t)(enum bw_status, void *);
 
-typedef enum
-{
-    SPI_CLOCK_POLARITY_LOW,
-    SPI_CLOCK_POLARITY_HIGH
-} spi_cpol_t;
+enum spi_cpol { SPI_CLOCK_POLARITY_LOW, SPI_CLOCK_POLARITY_HIGH };
 
-typedef enum
-{
-    SPI_CLOCK_PHASE_LEADING,
-    SPI_CLOCK_PHASE_TRAILING
-} spi_cpha_t;
+enum spi_cpha { SPI_CLOCK_PHASE_LEADING, SPI_CLOCK_PHASE_TRAILING };
 
-typedef enum
-{
-    SPI_BAUD_RATE_DIV_2,
-    SPI_BAUD_RATE_DIV_4,
-    SPI_BAUD_RATE_DIV_8,
-    SPI_BAUD_RATE_DIV_16,
-    SPI_BAUD_RATE_DIV_32,
-    SPI_BAUD_RATE_DIV_64,
-    SPI_BAUD_RATE_DIV_128,
-    SPI_BAUD_RATE_DIV_256
-} spi_br_t;
+enum spi_br {
+	SPI_BAUD_RATE_DIV_2,
+	SPI_BAUD_RATE_DIV_4,
+	SPI_BAUD_RATE_DIV_8,
+	SPI_BAUD_RATE_DIV_16,
+	SPI_BAUD_RATE_DIV_32,
+	SPI_BAUD_RATE_DIV_64,
+	SPI_BAUD_RATE_DIV_128,
+	SPI_BAUD_RATE_DIV_256
+};
 
-typedef enum
-{
-    SPI_MODE_FULL_DUPLEX,
-    SPI_MODE_HALF_DUPLEX,
-    SPI_MODE_SIMPLEX
-} spi_mode_t;
+enum spi_mode { SPI_MODE_FULL_DUPLEX, SPI_MODE_HALF_DUPLEX, SPI_MODE_SIMPLEX };
 
-typedef enum
-{
-    SPI_BIDIOE_RECEIVE_ONLY,
-    SPI_BIDIOE_TRANSMIT_ONLY
-} spi_bidioe_t;
+enum spi_bidioe { SPI_BIDIOE_RECEIVE_ONLY, SPI_BIDIOE_TRANSMIT_ONLY };
 
-typedef enum
-{
-    SPI_FRAME_FORMAT_MSBFIRST,
-    SPI_FRAME_FORMAT_LSBFIRST
-} spi_format_t;
+enum spi_format { SPI_FRAME_FORMAT_MSBFIRST, SPI_FRAME_FORMAT_LSBFIRST };
 
-typedef enum
-{
-    SPI_PERIPH_1,
-    SPI_PERIPH_2,
-    MAX_SPI_PERIPHERALS
-} spi_perip_t;
+enum spi_perip { SPI_PERIPH_1, SPI_PERIPH_2, MAX_SPI_PERIPHERALS };
 
-typedef struct
-{
-    SPI_TypeDef *spi;
-    gpio_t mosi;
-    gpio_t miso;
-    gpio_t sck;
-    spi_br_t baud_rate;
-    spi_cpol_t cpol;
-    spi_cpha_t cpha;
-    spi_mode_t mode;
-    spi_bidioe_t bidioe;
-    spi_format_t frame_format;
-    uint8_t irq_priority; // 0 - 15
-} spi_conf_t;
+struct spi_conf {
+	SPI_TypeDef *spi;
+	struct gpio mosi;
+	struct gpio miso;
+	struct gpio sck;
+	enum spi_br baud_rate;
+	enum spi_cpol cpol;
+	enum spi_cpha cpha;
+	enum spi_mode mode;
+	enum spi_bidioe bidioe;
+	enum spi_format frame_format;
+	uint8_t irq_priority; // 0 - 15
+};
 
-typedef struct
-{
-    SPI_TypeDef *spi;
-    spi_perip_t perip;
-    uint8_t data_sz; // 4-16
-    uint8_t *rx_buf;
-    uint8_t rx_count;
-    uint8_t *tx_buf;
-    uint16_t tx_count;
-    uint16_t len; // total bytes to be transacted
-    void *user_data;
-    spi_callback_t callback;
-} spi_handle_t;
+struct spi_handle {
+	SPI_TypeDef *spi;
+	enum spi_perip perip;
+	uint8_t data_sz; // 4-16
+	uint8_t *rx_buf;
+	uint8_t rx_count;
+	uint8_t *tx_buf;
+	uint16_t tx_count;
+	uint16_t len; // total bytes to be transacted
+	void *user_data;
+	spi_callback_t callback;
+};
 
-void spi_init(spi_conf_t *conf, spi_handle_t *handle);
-void spi_init_dma(spi_conf_t *conf, spi_handle_t *handle);
-void spi_transact(spi_handle_t *handle);
-void spi_transact_dma(spi_handle_t *handle);
-void spi_deinit(spi_handle_t *handle);
-void spi_deinit_dma(spi_handle_t *handle);
+void spi_init(struct spi_conf *conf, struct spi_handle *handle);
+void spi_init_dma(struct spi_conf *conf, struct spi_handle *handle);
+void spi_transact(struct spi_handle *handle);
+void spi_transact_dma(struct spi_handle *handle);
+void spi_deinit(struct spi_handle *handle);
+void spi_deinit_dma(struct spi_handle *handle);
 
 #endif

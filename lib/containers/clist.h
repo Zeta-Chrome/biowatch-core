@@ -3,8 +3,8 @@
 
 #include "list.h"
 
-typedef list_node_t clist_node_t;
-typedef list_t clist_t;
+typedef struct list_node clist_node_t;
+typedef struct list clist_t;
 
 void clist_init(clist_t *clist);
 void clist_cycle(clist_t *clist, clist_node_t **head);

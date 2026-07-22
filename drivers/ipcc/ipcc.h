@@ -6,18 +6,17 @@
 
 typedef void (*ipcc_callback_t)(void *);
 
-typedef struct
-{
-    ipcc_callback_t callback;
-    void *user_data;
-} ipcc_handle_t;
+struct ipcc_handle {
+	ipcc_callback_t callback;
+	void *user_data;
+};
 
 void ipcc_init(uint8_t tx_prio, uint8_t rx_prio);
 bool ipcc_is_tx_channel_occupied(uint8_t channel);
-void ipcc_tx(uint8_t channel, ipcc_handle_t *tx_handle);
-void ipcc_tx_masked(uint8_t channel, ipcc_handle_t *tx_handle);
+void ipcc_tx(uint8_t channel, struct ipcc_handle *tx_handle);
+void ipcc_tx_masked(uint8_t channel, struct ipcc_handle *tx_handle);
 bool ipcc_is_rx_channel_occupied(uint8_t channel);
-void ipcc_rx(uint8_t channel, ipcc_handle_t *rx_handle);
+void ipcc_rx(uint8_t channel, struct ipcc_handle *rx_handle);
 void ipcc_deinit();
 
 #endif

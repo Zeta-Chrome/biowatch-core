@@ -3,8 +3,8 @@
 
 #include "drivers/spi/spi.h"
 
-void spi_bus_init(spi_perip_t perip);
-void spi_bus_lock(spi_perip_t perip);
-void spi_bus_unlock(spi_perip_t perip);
+void spi_bus_init(enum spi_perip perip);
+void spi_bus_lock(enum spi_perip perip);
+void spi_bus_unlock(enum spi_perip perip);
 
 #endif

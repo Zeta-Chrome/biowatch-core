@@ -1,12 +1,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "assert.h"
-#include "logger.h"
-#include "status.h"
+#include "assert.h" // IWYU pragma: export
+#include "logger.h" // IWYU pragma: export
+#include "status.h" // IWYU pragma: export
 #include "stm32wb55xx.h"
 
-#define NULL ((void *)0)
 #define BIT(n) (1UL << (n))
 #define MASK(w, p) (((1UL << (w)) - 1UL) << (p))
 
@@ -42,19 +41,22 @@
 
 static inline void bw_error_handler()
 {
-    __disable_irq();
-    __asm volatile("bkpt #0");
-    while (1);
+	__disable_irq();
+	__asm volatile("bkpt #0");
+	while (1)
+		;
 }
 
 static inline uint32_t dbg_mcu_get_device_id(void)
 {
-    return (uint32_t)(READ_FIELD(DBGMCU->IDCODE, DBGMCU_IDCODE_DEV_ID_Msk, DBGMCU_IDCODE_DEV_ID_Pos));
+	return (
+		uint32_t)(READ_FIELD(DBGMCU->IDCODE, DBGMCU_IDCODE_DEV_ID_Msk, DBGMCU_IDCODE_DEV_ID_Pos));
 }
 
 static inline uint32_t dbg_mcu_get_revision_id()
 {
-    return (uint32_t)(READ_FIELD(DBGMCU->IDCODE, DBGMCU_IDCODE_REV_ID_Msk, DBGMCU_IDCODE_REV_ID_Pos));
+	return (
+		uint32_t)(READ_FIELD(DBGMCU->IDCODE, DBGMCU_IDCODE_REV_ID_Msk, DBGMCU_IDCODE_REV_ID_Pos));
 }
 
 #endif

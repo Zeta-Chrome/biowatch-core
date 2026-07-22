@@ -6,8 +6,8 @@
 
 typedef PACKED_STRUCT stm_list_node
 {
-    struct stm_list_node *next;
-    struct stm_list_node *prev;
+	struct stm_list_node *next;
+	struct stm_list_node *prev;
 }
 stm_list_node_t;
 

@@ -4,11 +4,13 @@
 #include "subsys/ble/tl/tl.h"
 
 #define CFG_TLBLE_EVT_QUEUE_LENGTH 10
-#define CFG_TLBLE_MOST_EVENT_PAYLOAD_SIZE 255 /**< Set to 255 with the memory manager and the mailbox */
+#define CFG_TLBLE_MOST_EVENT_PAYLOAD_SIZE \
+	255 /**< Set to 255 with the memory manager and the mailbox */
 #define TL_BLE_EVENT_FRAME_SIZE (TL_EVT_HDR_SIZE + CFG_TLBLE_MOST_EVENT_PAYLOAD_SIZE)
 
 #define CFG_TLTRACES_EVT_QUEUE_LENGTH 5
-#define CFG_TLTRACES_MOST_EVENT_PAYLOAD_SIZE 255 /**< Set to 255 with the memory manager and the mailbox */
+#define CFG_TLTRACES_MOST_EVENT_PAYLOAD_SIZE \
+	255 /**< Set to 255 with the memory manager and the mailbox */
 #define TL_TRACES_EVENT_FRAME_SIZE (TL_EVT_HDR_SIZE + CFG_TLTRACES_MOST_EVENT_PAYLOAD_SIZE)
 
 #define CFG_BLE_MAX_ATT_MTU (156)
@@ -24,12 +26,12 @@
 #define BLE_MEM_BLOCK_X_TX(mtu) (DIVC((mtu) + 4U, BLE_MEM_BLOCK_SIZE) + 1)
 #define BLE_MEM_BLOCK_X_RX(mtu, n_link) ((DIVC((mtu) + 4U, BLE_MEM_BLOCK_SIZE) + 2U) * (n_link) + 1)
 #define BLE_MEM_BLOCK_X_MTU(mtu, n_link) \
-    (BLE_MEM_BLOCK_X_TX(mtu) + BLE_MEM_BLOCK_X_PTX(n_link) + BLE_MEM_BLOCK_X_RX(mtu, n_link))
+	(BLE_MEM_BLOCK_X_TX(mtu) + BLE_MEM_BLOCK_X_PTX(n_link) + BLE_MEM_BLOCK_X_RX(mtu, n_link))
 #define BLE_MBLOCKS_SECURE_CONNECTIONS 4
 #define BLE_MBLOCKS_CALC(pw, mtu, n_link) \
-    ((pw) + MAX(BLE_MEM_BLOCK_X_MTU(mtu, n_link), BLE_MBLOCKS_SECURE_CONNECTIONS))
+	((pw) + MAX(BLE_MEM_BLOCK_X_MTU(mtu, n_link), BLE_MBLOCKS_SECURE_CONNECTIONS))
 #define CFG_BLE_MBLOCK_COUNT(num_link) \
-    (BLE_MBLOCKS_CALC(CFG_BLE_PREPARE_WRITE_LIST_SIZE, CFG_BLE_MAX_ATT_MTU, num_link))
+	(BLE_MBLOCKS_CALC(CFG_BLE_PREPARE_WRITE_LIST_SIZE, CFG_BLE_MAX_ATT_MTU, num_link))
 
 #define CFG_BLE_DATA_LENGTH_EXTENSION 1
 
@@ -37,9 +39,9 @@
 
 #define CFG_BLE_CENTRAL_SCA 0
 
-#define CFG_BLE_LS_SOURCE                                                        \
-    (SHCI_C2_BLE_INIT_CFG_BLE_LS_NOCALIB | SHCI_C2_BLE_INIT_CFG_BLE_LS_OTHER_DEV \
-     | SHCI_C2_BLE_INIT_CFG_BLE_LS_CLK_LSE)
+#define CFG_BLE_LS_SOURCE                                                          \
+	(SHCI_C2_BLE_INIT_CFG_BLE_LS_NOCALIB | SHCI_C2_BLE_INIT_CFG_BLE_LS_OTHER_DEV | \
+	 SHCI_C2_BLE_INIT_CFG_BLE_LS_CLK_LSE)
 
 #define CFG_BLE_HSE_STARTUP_TIME 0x148
 
@@ -47,14 +49,15 @@
 
 #define CFG_BLE_VITERBI_MODE 1
 
-#define CFG_BLE_OPTIONS                                                                \
-    (SHCI_C2_BLE_INIT_OPTIONS_LL_HOST | SHCI_C2_BLE_INIT_OPTIONS_WITH_SVC_CHANGE_DESC  \
-     | SHCI_C2_BLE_INIT_OPTIONS_DEVICE_NAME_RW | SHCI_C2_BLE_INIT_OPTIONS_NO_EXT_ADV   \
-     | SHCI_C2_BLE_INIT_OPTIONS_NO_CS_ALGO2 | SHCI_C2_BLE_INIT_OPTIONS_FULL_GATTDB_NVM \
-     | SHCI_C2_BLE_INIT_OPTIONS_GATT_CACHING_NOTUSED | SHCI_C2_BLE_INIT_OPTIONS_POWER_CLASS_2_3)
+#define CFG_BLE_OPTIONS                                                                 \
+	(SHCI_C2_BLE_INIT_OPTIONS_LL_HOST | SHCI_C2_BLE_INIT_OPTIONS_WITH_SVC_CHANGE_DESC | \
+	 SHCI_C2_BLE_INIT_OPTIONS_DEVICE_NAME_RW | SHCI_C2_BLE_INIT_OPTIONS_NO_EXT_ADV |    \
+	 SHCI_C2_BLE_INIT_OPTIONS_NO_CS_ALGO2 | SHCI_C2_BLE_INIT_OPTIONS_FULL_GATTDB_NVM |  \
+	 SHCI_C2_BLE_INIT_OPTIONS_GATT_CACHING_NOTUSED | SHCI_C2_BLE_INIT_OPTIONS_POWER_CLASS_2_3)
 
-#define CFG_BLE_OPTIONS_EXT \
-    (SHCI_C2_BLE_INIT_OPTIONS_APPEARANCE_READONLY | SHCI_C2_BLE_INIT_OPTIONS_ENHANCED_ATT_NOTSUPPORTED)
+#define CFG_BLE_OPTIONS_EXT                         \
+	(SHCI_C2_BLE_INIT_OPTIONS_APPEARANCE_READONLY | \
+	 SHCI_C2_BLE_INIT_OPTIONS_ENHANCED_ATT_NOTSUPPORTED)
 
 #define CFG_BLE_MAX_COC_INITIATOR_NBR (32)
 
@@ -113,14 +116,20 @@
 /**
  *   Identity root key used to derive IRK and DHK(Legacy)
  */
-#define CFG_BLE_IR \
-    {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0}
+#define CFG_BLE_IR                                      \
+	{                                                   \
+		0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, \
+		0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0  \
+	}
 
 /**
  * Encryption root key used to derive LTK(Legacy) and CSRK
  */
-#define CFG_BLE_ER \
-    {0xFE, 0xDC, 0xBA, 0x09, 0x87, 0x65, 0x43, 0x21, 0xFE, 0xDC, 0xBA, 0x09, 0x87, 0x65, 0x43, 0x21}
+#define CFG_BLE_ER                                      \
+	{                                                   \
+		0xFE, 0xDC, 0xBA, 0x09, 0x87, 0x65, 0x43, 0x21, \
+		0xFE, 0xDC, 0xBA, 0x09, 0x87, 0x65, 0x43, 0x21  \
+	}
 
 #define PRIVACY_DISABLED 0x00
 #define PRIVACY_ENABLED 0x02

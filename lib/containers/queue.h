@@ -4,7 +4,7 @@
 #include "lib/containers/ring.h"
 #include <stdbool.h>
 
-typedef ring_t queue_t;
+typedef struct ring queue_t;
 
 void queue_init(queue_t *queue, void *data, uint16_t element_size, uint16_t capacity);
 bool queue_peek(queue_t *queue, void **data);

@@ -5,14 +5,13 @@
 
 typedef void (*lptim_callback_t)(void *);
 
-typedef struct
-{
-    uint8_t priority;
-    lptim_callback_t callback;
-    void *user_data;
-} lptim_conf_t;
+struct lptim_conf {
+	uint8_t priority;
+	lptim_callback_t callback;
+	void *user_data;
+};
 
-void lptim_init(lptim_conf_t *conf);
+void lptim_init(struct lptim_conf *conf);
 void lptim_trigger_period(uint16_t ms);
 void lptim_trigger_once(uint16_t ms);
 void lptim_deinit();
