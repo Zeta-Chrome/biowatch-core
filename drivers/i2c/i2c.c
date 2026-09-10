@@ -192,6 +192,8 @@ static void i2c_configure_reload(volatile uint32_t *reg, struct i2c_handle *hand
 
 static void i2c_prepare_transaction(struct i2c_handle *handle)
 {
+	while (READ_FIELD(handle->i2c->ISR, I2C_ISR_BUSY_Msk, 0))
+		;
 	CLEAR_FIELD(handle->i2c->CR1, I2C_CR1_RXIE_Msk | I2C_CR1_TXIE_Msk | I2C_CR1_TCIE_Msk |
 									  I2C_CR1_RXDMAEN_Msk | I2C_CR1_TXDMAEN_Msk);
 

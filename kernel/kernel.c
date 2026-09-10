@@ -1,5 +1,6 @@
 #include "critical.h"
 #include "kernel.h"
+#include "timer.h"
 #include "lib/logger.h"
 #include "lib/utils.h"
 #include "stm32wb55xx.h"
@@ -13,7 +14,8 @@
 
 static kernel_idle_hook_t g_idle_hook;
 
-void kernel_scheduler_tick();
+void kernel_task_tick();
+void kernel_timer_tick();
 
 static void idle_task(void *user_data)
 {
@@ -39,7 +41,9 @@ void kernel_init(struct kernel_conf *conf)
 	g_idle_hook = conf->idle_hook;
 
 	kernel_task_init();
-	kernel_task_create(idle_task, "_SLEEP_TASK", MAX_TASK_PRIORITY, 32, conf->idle_data, NULL);
+	kernel_task_create(idle_task, "_SLEEP_TASK", MAX_TASK_PRIORITY, conf->idle_task_size,
+					   conf->idle_data, NULL);
+	kernel_timer_init();
 
 #ifdef DEBUG
 	systick_init(HIGHEST_IRQ_PRIO); // Systick timer is halted when breakpoint is hit
@@ -50,6 +54,12 @@ void kernel_init(struct kernel_conf *conf)
 	lptim_init(&lptim_conf);
 	lptim_trigger_period(1);
 #endif
+}
+
+void kernel_scheduler_tick()
+{
+	kernel_task_tick();
+	kernel_timer_tick();
 }
 
 void kernel_start()

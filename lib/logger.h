@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+int bw_str_format(char *msg, int msg_len, const char *fmt, ...);
+
 #ifdef DEBUG
 void bw_logger_init();
 void bw_print_s(const char *msg, int msg_len);

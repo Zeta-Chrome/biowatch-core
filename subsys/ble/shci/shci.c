@@ -1,101 +1,239 @@
-#include "kernel/sync/mutex.h"
-#include "kernel/sync/semaphore.h"
-#include "kernel/task/task.h"
-#include "lib/status.h"
 #include "shci.h"
+#include "subsys/ble/tl/shci_tl.h"
 #include "subsys/ble/tl/tl.h"
-#include "subsys/ble/tl/tl_defs.h"
 #include <string.h>
 
-PLACE_IN_SECTION("MB_MEM2") ALIGN(4) static tl_cmd_packet_t g_sys_cmd_buffer;
-
-static struct tl_sys_conf g_sys_conf;
-static struct mutex g_cmd_mutex;
-static struct semaphore g_cmd_rx_sem;
-
-static void shci_cmd_callback();
-
-void shci_init(evt_callback_t evt_callback)
+/**
+ *  C2 COMMAND
+ *  These commands are sent to the CPU2
+ */
+uint8_t shci_c2_fus_get_state(enum shci_fus_getstate_error_code *p_error_code)
 {
-	kernel_mutex_init(&g_cmd_mutex);
-	kernel_semaphore_binary_init(&g_cmd_rx_sem);
-	kernel_semaphore_take(&g_cmd_rx_sem, MAX_TIMEOUT);
+	/**
+   * Buffer is large enough to hold command complete with payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE + 1];
+	tl_evt_packet_t *p_rsp;
 
-	g_sys_conf.p_cmd_buffer = &g_sys_cmd_buffer;
-	g_sys_conf.cmd_callback = shci_cmd_callback;
-	g_sys_conf.evt_callback = evt_callback;
-	tl_sys_init(&g_sys_conf);
-}
+	p_rsp = (tl_evt_packet_t *)local_buffer;
 
-enum bw_status shci_send(uint16_t cmd_code, uint8_t cmd_pl_len, uint8_t *p_cmd_pl,
-						 tl_evt_packet_t *p_rsp)
-{
-	kernel_mutex_lock(&g_cmd_mutex, MAX_TIMEOUT);
+	shci_send(SHCI_OPCODE_C2_FUS_GET_STATE, 0, 0, p_rsp);
 
-	g_sys_cmd_buffer.cmd_serial.cmd.cmd_code = cmd_code;
-	g_sys_cmd_buffer.cmd_serial.cmd.payload_len = cmd_pl_len;
-	memcpy(g_sys_cmd_buffer.cmd_serial.cmd.payload, p_cmd_pl, cmd_pl_len);
-
-	tl_sys_send_cmd();
-	enum bw_status status = kernel_semaphore_take(&g_cmd_rx_sem, 1000);
-	if (status == STATUS_TIMEOUT) {
-		BW_LOG("Timeout occured in shci_send\n");
-		kernel_mutex_unlock(&g_cmd_mutex);
-		return status;
+	if (p_error_code != 0) {
+		*p_error_code = (enum shci_fus_getstate_error_code)(
+			((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[1]);
 	}
 
-	memcpy(&(p_rsp->evt_serial), &g_sys_cmd_buffer,
-		   ((tl_evt_serial_t *)&g_sys_cmd_buffer)->evt.payload_len + TL_EVT_HDR_SIZE);
-
-	kernel_mutex_unlock(&g_cmd_mutex);
-	return status;
+	return (((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
 }
 
-static void shci_cmd_callback()
+enum shci_cmd_status shci_c2_fus_fw_upgrade(uint32_t fw_src_add, uint32_t fw_dest_add)
 {
-	kernel_semaphore_give_from_isr(&g_cmd_rx_sem);
-}
-
-enum shci_cmd_status shci_c2_config(shci_c2_config_cmd_param_t *p_cmd_packet)
-{
+	/**
+   * TL_BLEEVT_CC_BUFFER_SIZE is 16 bytes so it is large enough to hold the 8 bytes of command parameters
+   * Buffer is large enough to hold command complete without payload
+   */
 	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
 	tl_evt_packet_t *p_rsp;
+	uint32_t *p_cmd;
+	uint8_t cmd_length;
+
+	p_cmd = (uint32_t *)local_buffer;
+	cmd_length = 0;
+
+	if (fw_src_add != 0) {
+		*p_cmd = fw_src_add;
+		cmd_length += 4;
+	}
+
+	if (fw_dest_add != 0) {
+		*(p_cmd + 1) = fw_dest_add;
+		cmd_length += 4;
+	}
 
 	p_rsp = (tl_evt_packet_t *)local_buffer;
 
-	shci_send(SHCI_OPCODE_C2_CONFIG, sizeof(shci_c2_config_cmd_param_t), (uint8_t *)p_cmd_packet,
-			  p_rsp);
+	shci_send(SHCI_OPCODE_C2_FUS_FW_UPGRADE, cmd_length, local_buffer, p_rsp);
 
 	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
 }
 
-enum shci_cmd_status shci_c2_reinit(void)
+enum shci_cmd_status shci_c2_fus_fw_delete(void)
 {
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
 	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
 	tl_evt_packet_t *p_rsp;
 
 	p_rsp = (tl_evt_packet_t *)local_buffer;
 
-	shci_send(SHCI_OPCODE_C2_REINIT, 0, 0, p_rsp);
+	shci_send(SHCI_OPCODE_C2_FUS_FW_DELETE, 0, 0, p_rsp);
 
 	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
 }
 
-enum shci_cmd_status shci_c2_debug_init(shci_c2_debug_init_cmd_packet_t *p_cmd_packet)
+enum shci_cmd_status shci_c2_fus_fw_purge(void)
 {
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
 	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
 	tl_evt_packet_t *p_rsp;
 
 	p_rsp = (tl_evt_packet_t *)local_buffer;
 
-	shci_send(SHCI_OPCODE_C2_DEBUG_INIT, sizeof(shci_c2_debug_init_cmd_param_t),
-			  (uint8_t *)&p_cmd_packet->param, p_rsp);
+	shci_send(SHCI_OPCODE_C2_FUS_FW_PURGE, 0, 0, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_fus_update_auth_key(shci_c2_fus_update_auth_key_cmd_param_t *p_param)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	shci_send(SHCI_OPCODE_C2_FUS_UPDATE_AUTH_KEY, sizeof(shci_c2_fus_update_auth_key_cmd_param_t),
+			  (uint8_t *)p_param, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_fus_lock_auth_key(void)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	shci_send(SHCI_OPCODE_C2_FUS_LOCK_AUTH_KEY, 0, 0, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_fus_store_usr_key(shci_c2_fus_store_usr_key_cmd_param_t *p_param,
+											   uint8_t *p_key_index)
+{
+	/**
+   * Buffer is large enough to hold command complete with payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE + 1];
+	tl_evt_packet_t *p_rsp;
+	uint8_t local_payload_len;
+
+	if (p_param->key_type == KEYTYPE_ENCRYPTED) {
+		/**
+     * When the key is encrypted, the 12 bytes IV Key is included in the payload as well
+     * The IV key is always 12 bytes
+     */
+		local_payload_len = p_param->key_size + 2 + 12;
+	} else {
+		local_payload_len = p_param->key_size + 2;
+	}
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	shci_send(SHCI_OPCODE_C2_FUS_STORE_USR_KEY, local_payload_len, (uint8_t *)p_param, p_rsp);
+
+	*p_key_index = (((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[1]);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_fus_load_usr_key(uint8_t key_index)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = key_index;
+
+	shci_send(SHCI_OPCODE_C2_FUS_LOAD_USR_KEY, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_fus_start_ws(void)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	shci_send(SHCI_OPCODE_C2_FUS_START_WS, 0, 0, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_fus_lock_usr_key(uint8_t key_index)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = key_index;
+
+	shci_send(SHCI_OPCODE_C2_FUS_LOCK_USR_KEY, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_fus_unload_usr_key(uint8_t key_index)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = key_index;
+
+	shci_send(SHCI_OPCODE_C2_FUS_UNLOAD_USR_KEY, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_fus_activate_anti_rollback(void)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	shci_send(SHCI_OPCODE_C2_FUS_ACTIVATE_ANTIROLLBACK, 0, 0, p_rsp);
 
 	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
 }
 
 enum shci_cmd_status shci_c2_ble_init(shci_c2_ble_init_cmd_packet_t *p_cmd_packet)
 {
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
 	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
 	tl_evt_packet_t *p_rsp;
 
@@ -107,20 +245,222 @@ enum shci_cmd_status shci_c2_ble_init(shci_c2_ble_init_cmd_packet_t *p_cmd_packe
 	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
 }
 
-enum shci_cmd_status shci_c2_ble_allow_lp(uint8_t flag_radio_lp_on)
+enum shci_cmd_status shci_c2_debug_init(shci_c2_debug_init_cmd_packet_t *p_cmd_packet)
 {
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
 	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
 	tl_evt_packet_t *p_rsp;
 
 	p_rsp = (tl_evt_packet_t *)local_buffer;
 
-	local_buffer[0] = 0;
-	local_buffer[1] = flag_radio_lp_on;
+	shci_send(SHCI_OPCODE_C2_DEBUG_INIT, sizeof(shci_c2_debug_init_cmd_param_t),
+			  (uint8_t *)&p_cmd_packet->Param, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_flash_erase_activity(enum shci_erase_activity erase_activity)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = erase_activity;
+
+	shci_send(SHCI_OPCODE_C2_FLASH_ERASE_ACTIVITY, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_concurrent_set_mode(enum shci_c2_concurrent_mode_param mode)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = mode;
+
+	shci_send(SHCI_OPCODE_C2_CONCURRENT_SET_MODE, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status
+shci_c2_concurrent_get_next_ble_evt_time(shci_c2_concurrent_get_next_ble_evt_time_param_t *p_param)
+{
+	/**
+   * Buffer is large enough to hold command complete with payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE + 4];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	shci_send(SHCI_OPCODE_C2_CONCURRENT_GET_NEXT_BLE_EVT_TIME, 0, 0, p_rsp);
+
+	memcpy((void *)&(p_param->relative_time),
+		   (void *)&((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[1],
+		   sizeof(p_param->relative_time));
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_flash_store_data(enum shci_c2_flash_ip ip)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = ip;
+
+	shci_send(SHCI_OPCODE_C2_FLASH_STORE_DATA, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_flash_erase_data(enum shci_c2_flash_ip ip)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = ip;
+
+	shci_send(SHCI_OPCODE_C2_FLASH_ERASE_DATA, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_radio_allow_low_power(enum shci_c2_flash_ip ip,
+												   uint8_t flag_radio_low_power_on)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = ip;
+	local_buffer[1] = flag_radio_low_power_on;
 
 	shci_send(SHCI_OPCODE_C2_RADIO_ALLOW_LOW_POWER, 2, local_buffer, p_rsp);
 
 	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
 }
+
+enum shci_cmd_status shci_c2_reinit(void)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	shci_send(SHCI_OPCODE_C2_REINIT, 0, 0, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_ext_pa_config(uint32_t gpio_port, uint16_t gpio_pin_number,
+										   uint8_t gpio_polarity, uint8_t gpio_status)
+{
+	/**
+   * TL_BLEEVT_CC_BUFFER_SIZE is 16 bytes so it is large enough to hold the 8 bytes of command parameters
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	((shci_c2_extpa_config_cmd_param_t *)local_buffer)->gpio_port = gpio_port;
+	((shci_c2_extpa_config_cmd_param_t *)local_buffer)->gpio_pin_number = gpio_pin_number;
+	((shci_c2_extpa_config_cmd_param_t *)local_buffer)->gpio_polarity = gpio_polarity;
+	((shci_c2_extpa_config_cmd_param_t *)local_buffer)->gpio_status = gpio_status;
+
+	shci_send(SHCI_OPCODE_C2_EXTPA_CONFIG, 8, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status
+shci_c2_set_flash_activity_control(enum shci_c2_set_flash_activity_control_source source)
+{
+	/**
+   * TL_BLEEVT_CC_BUFFER_SIZE is 16 bytes so it is large enough to hold the 1 byte of command parameter
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = (uint8_t)source;
+
+	shci_send(SHCI_OPCODE_C2_SET_FLASH_ACTIVITY_CONTROL, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_config(shci_c2_config_cmd_param_t *p_cmd_packet)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	shci_send(SHCI_OPCODE_C2_CONFIG, sizeof(shci_c2_config_cmd_param_t), (uint8_t *)p_cmd_packet,
+			  p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+enum shci_cmd_status shci_c2_set_system_clock(shci_c2_set_system_clock_cmd_param_t clock_sel)
+{
+	/**
+   * Buffer is large enough to hold command complete without payload
+   */
+	uint8_t local_buffer[TL_BLEEVT_CC_BUFFER_SIZE];
+	tl_evt_packet_t *p_rsp;
+
+	p_rsp = (tl_evt_packet_t *)local_buffer;
+
+	local_buffer[0] = (uint8_t)clock_sel;
+
+	shci_send(SHCI_OPCODE_C2_SET_SYSTEM_CLOCK, 1, local_buffer, p_rsp);
+
+	return (enum shci_cmd_status)(((tl_cc_evt_t *)(p_rsp->evt_serial.evt.payload))->payload[0]);
+}
+
+/**
+ *  Local System COMMAND
+ *  These commands are NOT sent to the CPU2
+ */
 
 enum shci_cmd_status shci_get_wireless_fw_info(struct wireless_fw_info *p_wireless_info)
 {

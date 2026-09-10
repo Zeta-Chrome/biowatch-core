@@ -110,6 +110,10 @@ void kernel_task_set_delay(uint32_t ms)
 	if (ms == MAX_TIMEOUT) {
 		g_current_task->delay_ticks = MAX_TIMEOUT;
 		return;
+	} else if (ms == 0) {
+		g_current_task->exit_status = STATUS_TIMEOUT;
+		kernel_task_add_to_ready(&g_current_task->state_node);
+		return;
 	}
 
 	struct tcb *tcb;
@@ -316,7 +320,7 @@ void kernel_task_delay(uint32_t ms)
 	kernel_task_yield();
 }
 
-void kernel_scheduler_tick(void *data)
+void kernel_task_tick(void *data)
 {
 	(void)data;
 	struct list_node *node = g_task_manager.delay_queue.head;

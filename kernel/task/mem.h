@@ -4,12 +4,11 @@
 #include "lib/status.h"
 #include <stdint.h>
 
-#define TASK_POOL_SIZE 0x4000 // 16kB
+#define TASK_POOL_SIZE 0x2000 // 8kB
 
 typedef uint32_t *stack_ptr_t;
 
 enum mem_block_sz {
-	MEM_BLOCK_SZ_128,
 	MEM_BLOCK_SZ_256,
 	MEM_BLOCK_SZ_512,
 	MEM_BLOCK_SZ_1024,

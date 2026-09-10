@@ -21,7 +21,8 @@ enum pwr_wkup_edge {
 };
 
 void pwr_enable_wkup(enum pwr_wkup wkup, enum pwr_wkup_edge edge);
-void pwr_boot_cpu2();
+void pwr_unlock_backup_domain();
+void pwr_lock_backup_domain();
 void pwr_enter_sleep();
 void pwr_enter_lp_sleep();
 void pwr_exit_lp_sleep();

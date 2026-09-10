@@ -1,33 +1,47 @@
-#include "aci_gap.h"
-#include "subsys/ble/ble_types.h"
-#include "subsys/ble/hci/hci.h"
+/*****************************************************************************
+ * @file    ble_gap_aci.c
+ * @brief   STM32WB BLE API (gap_aci)
+ *          Auto-generated file: do not edit!
+ *****************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2018-2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ *****************************************************************************
+ */
+
+#include "ble_gap_aci.h"
+#include "subsys/ble/tl/hci_tl.h"
+#include "subsys/ble/ble_defs.h"
 #include <string.h>
 
-enum ble_status aci_gap_set_non_discoverable(void)
+ble_status_t aci_gap_set_non_discoverable(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x081;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_set_limited_discoverable(
+ble_status_t aci_gap_set_limited_discoverable(
 	uint8_t advertising_type, uint16_t advertising_interval_min, uint16_t advertising_interval_max,
 	uint8_t own_address_type, uint8_t advertising_filter_policy, uint8_t local_name_length,
 	const uint8_t *local_name, uint8_t service_uuid_length, const uint8_t *service_uuid_list,
 	uint16_t conn_interval_min, uint16_t conn_interval_max)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_limited_discoverable_cp0 *cp0 =
 		(aci_gap_set_limited_discoverable_cp0 *)(cmd_buffer);
 	aci_gap_set_limited_discoverable_cp1 *cp1 =
@@ -37,7 +51,7 @@ enum ble_status aci_gap_set_limited_discoverable(
 		(aci_gap_set_limited_discoverable_cp2 *)(cmd_buffer + 1 + 2 + 2 + 1 + 1 + 1 +
 												 local_name_length * (sizeof(uint8_t)) + 1 +
 												 service_uuid_length * (sizeof(uint8_t)));
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_type = advertising_type;
 	index_input += 1;
@@ -51,6 +65,7 @@ enum ble_status aci_gap_set_limited_discoverable(
 	index_input += 1;
 	cp0->local_name_length = local_name_length;
 	index_input += 1;
+	/* var_len_data input */
 	{
 		memcpy((void *)&cp0->local_name, (const void *)local_name, local_name_length);
 		index_input += local_name_length;
@@ -73,27 +88,25 @@ enum ble_status aci_gap_set_limited_discoverable(
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x082;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_set_discoverable(
-	uint8_t advertising_type, uint16_t advertising_interval_min, uint16_t advertising_interval_max,
-	uint8_t own_address_type, uint8_t advertising_filter_policy, uint8_t local_name_length,
-	const uint8_t *local_name, uint8_t service_uuid_length, const uint8_t *service_uuid_list,
-	uint16_t conn_interval_min, uint16_t conn_interval_max)
+ble_status_t aci_gap_set_discoverable(uint8_t advertising_type, uint16_t advertising_interval_min,
+									  uint16_t advertising_interval_max, uint8_t own_address_type,
+									  uint8_t advertising_filter_policy, uint8_t local_name_length,
+									  const uint8_t *local_name, uint8_t service_uuid_length,
+									  const uint8_t *service_uuid_list, uint16_t conn_interval_min,
+									  uint16_t conn_interval_max)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_discoverable_cp0 *cp0 = (aci_gap_set_discoverable_cp0 *)(cmd_buffer);
 	aci_gap_set_discoverable_cp1 *cp1 =
 		(aci_gap_set_discoverable_cp1 *)(cmd_buffer + 1 + 2 + 2 + 1 + 1 + 1 +
@@ -102,7 +115,7 @@ enum ble_status aci_gap_set_discoverable(
 		(aci_gap_set_discoverable_cp2 *)(cmd_buffer + 1 + 2 + 2 + 1 + 1 + 1 +
 										 local_name_length * (sizeof(uint8_t)) + 1 +
 										 service_uuid_length * (sizeof(uint8_t)));
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_type = advertising_type;
 	index_input += 1;
@@ -116,6 +129,7 @@ enum ble_status aci_gap_set_discoverable(
 	index_input += 1;
 	cp0->local_name_length = local_name_length;
 	index_input += 1;
+	/* var_len_data input */
 	{
 		memcpy((void *)&cp0->local_name, (const void *)local_name, local_name_length);
 		index_input += local_name_length;
@@ -142,23 +156,20 @@ enum ble_status aci_gap_set_discoverable(
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status
+ble_status_t
 aci_gap_set_direct_connectable(uint8_t own_address_type, uint8_t directed_advertising_type,
 							   uint8_t direct_address_type, const uint8_t *direct_address,
 							   uint16_t advertising_interval_min, uint16_t advertising_interval_max)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_direct_connectable_cp0 *cp0 = (aci_gap_set_direct_connectable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->own_address_type = own_address_type;
 	index_input += 1;
@@ -179,20 +190,17 @@ aci_gap_set_direct_connectable(uint8_t own_address_type, uint8_t directed_advert
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_set_io_capability(uint8_t io_capability)
+ble_status_t aci_gap_set_io_capability(uint8_t io_capability)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_io_capability_cp0 *cp0 = (aci_gap_set_io_capability_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->io_capability = io_capability;
 	index_input += 1;
@@ -203,27 +211,24 @@ enum ble_status aci_gap_set_io_capability(uint8_t io_capability)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_set_authentication_requirement(uint8_t bonding_mode, uint8_t mitm_mode,
-													   uint8_t sc_support,
-													   uint8_t keypress_notification_support,
-													   uint8_t min_encryption_key_size,
-													   uint8_t max_encryption_key_size,
-													   uint8_t use_fixed_pin, uint32_t fixed_pin,
-													   uint8_t identity_address_type)
+ble_status_t aci_gap_set_authentication_requirement(uint8_t bonding_mode, uint8_t mitm_mode,
+													uint8_t sc_support,
+													uint8_t keypress_notification_support,
+													uint8_t min_encryption_key_size,
+													uint8_t max_encryption_key_size,
+													uint8_t use_fixed_pin, uint32_t fixed_pin,
+													uint8_t identity_address_type)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_authentication_requirement_cp0 *cp0 =
 		(aci_gap_set_authentication_requirement_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->bonding_mode = bonding_mode;
 	index_input += 1;
@@ -250,22 +255,19 @@ enum ble_status aci_gap_set_authentication_requirement(uint8_t bonding_mode, uin
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_set_authorization_requirement(uint16_t connection_handle,
-													  uint8_t authorization_enable)
+ble_status_t aci_gap_set_authorization_requirement(uint16_t connection_handle,
+												   uint8_t authorization_enable)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_authorization_requirement_cp0 *cp0 =
 		(aci_gap_set_authorization_requirement_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -278,20 +280,17 @@ enum ble_status aci_gap_set_authorization_requirement(uint16_t connection_handle
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_pass_key_resp(uint16_t connection_handle, uint32_t pass_key)
+ble_status_t aci_gap_pass_key_resp(uint16_t connection_handle, uint32_t pass_key)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_pass_key_resp_cp0 *cp0 = (aci_gap_pass_key_resp_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -304,20 +303,17 @@ enum ble_status aci_gap_pass_key_resp(uint16_t connection_handle, uint32_t pass_
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_authorization_resp(uint16_t connection_handle, uint8_t authorize)
+ble_status_t aci_gap_authorization_resp(uint16_t connection_handle, uint8_t authorize)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_authorization_resp_cp0 *cp0 = (aci_gap_authorization_resp_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -330,20 +326,17 @@ enum ble_status aci_gap_authorization_resp(uint16_t connection_handle, uint8_t a
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_init(uint8_t role, uint8_t privacy_enabled, uint8_t device_name_char_len,
-							 uint16_t *service_handle, uint16_t *dev_name_char_handle,
-							 uint16_t *appearance_char_handle)
+ble_status_t aci_gap_init(uint8_t role, uint8_t privacy_enabled, uint8_t device_name_char_len,
+						  uint16_t *service_handle, uint16_t *dev_name_char_handle,
+						  uint16_t *appearance_char_handle)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_init_cp0 *cp0 = (aci_gap_init_cp0 *)(cmd_buffer);
 	aci_gap_init_rp0 resp;
 	memset(&resp, 0, sizeof(resp));
@@ -361,11 +354,8 @@ enum ble_status aci_gap_init(uint8_t role, uint8_t privacy_enabled, uint8_t devi
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
 	*service_handle = resp.service_handle;
@@ -374,13 +364,12 @@ enum ble_status aci_gap_init(uint8_t role, uint8_t privacy_enabled, uint8_t devi
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status aci_gap_set_non_connectable(uint8_t advertising_event_type,
-											uint8_t own_address_type)
+ble_status_t aci_gap_set_non_connectable(uint8_t advertising_event_type, uint8_t own_address_type)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_non_connectable_cp0 *cp0 = (aci_gap_set_non_connectable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_event_type = advertising_event_type;
 	index_input += 1;
@@ -393,24 +382,20 @@ enum ble_status aci_gap_set_non_connectable(uint8_t advertising_event_type,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_set_undirected_connectable(uint16_t advertising_interval_min,
-												   uint16_t advertising_interval_max,
-												   uint8_t own_address_type,
-												   uint8_t adv_filter_policy)
+ble_status_t aci_gap_set_undirected_connectable(uint16_t advertising_interval_min,
+												uint16_t advertising_interval_max,
+												uint8_t own_address_type, uint8_t adv_filter_policy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_undirected_connectable_cp0 *cp0 =
 		(aci_gap_set_undirected_connectable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_interval_min = advertising_interval_min;
 	index_input += 2;
@@ -427,50 +412,44 @@ enum ble_status aci_gap_set_undirected_connectable(uint16_t advertising_interval
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_peripheral_security_req(uint16_t connection_handle)
+ble_status_t aci_gap_peripheral_security_req(uint16_t connection_handle)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_peripheral_security_req_cp0 *cp0 = (aci_gap_peripheral_security_req_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x08d;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_update_adv_data(uint8_t adv_data_len, const uint8_t *adv_data)
+ble_status_t aci_gap_update_adv_data(uint8_t advdatalen, const uint8_t *advdata)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_update_adv_data_cp0 *cp0 = (aci_gap_update_adv_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-	cp0->adv_data_len = adv_data_len;
+	cp0->advdatalen = advdatalen;
 	index_input += 1;
-	memcpy((void *)&cp0->adv_data, (const void *)adv_data, adv_data_len);
-	index_input += adv_data_len;
+	memcpy((void *)&cp0->advdata, (const void *)advdata, advdatalen);
+	index_input += advdatalen;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x08e;
@@ -478,22 +457,19 @@ enum ble_status aci_gap_update_adv_data(uint8_t adv_data_len, const uint8_t *adv
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_delete_ad_type(uint8_t ad_type)
+ble_status_t aci_gap_delete_ad_type(uint8_t adtype)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_delete_ad_type_cp0 *cp0 = (aci_gap_delete_ad_type_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-	cp0->ad_type = ad_type;
+	cp0->adtype = adtype;
 	index_input += 1;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
@@ -502,19 +478,16 @@ enum ble_status aci_gap_delete_ad_type(uint8_t ad_type)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_get_security_level(uint16_t connection_handle, uint8_t *security_mode,
-										   uint8_t *security_level)
+ble_status_t aci_gap_get_security_level(uint16_t connection_handle, uint8_t *security_mode,
+										uint8_t *security_level)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_get_security_level_cp0 *cp0 = (aci_gap_get_security_level_cp0 *)(cmd_buffer);
 	aci_gap_get_security_level_rp0 resp;
 	memset(&resp, 0, sizeof(resp));
@@ -528,11 +501,8 @@ enum ble_status aci_gap_get_security_level(uint16_t connection_handle, uint8_t *
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
 	*security_mode = resp.security_mode;
@@ -540,12 +510,12 @@ enum ble_status aci_gap_get_security_level(uint16_t connection_handle, uint8_t *
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status aci_gap_set_event_mask(uint16_t gap_evt_mask)
+ble_status_t aci_gap_set_event_mask(uint16_t gap_evt_mask)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_event_mask_cp0 *cp0 = (aci_gap_set_event_mask_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->gap_evt_mask = gap_evt_mask;
 	index_input += 2;
@@ -556,37 +526,31 @@ enum ble_status aci_gap_set_event_mask(uint16_t gap_evt_mask)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_configure_filter_accept_list(void)
+ble_status_t aci_gap_configure_filter_accept_list(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x092;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_terminate(uint16_t connection_handle, uint8_t reason)
+ble_status_t aci_gap_terminate(uint16_t connection_handle, uint8_t reason)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_terminate_cp0 *cp0 = (aci_gap_terminate_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -595,42 +559,36 @@ enum ble_status aci_gap_terminate(uint16_t connection_handle, uint8_t reason)
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x093;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_clear_security_db(void)
+ble_status_t aci_gap_clear_security_db(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x094;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_allow_rebond(uint16_t connection_handle)
+ble_status_t aci_gap_allow_rebond(uint16_t connection_handle)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_allow_rebond_cp0 *cp0 = (aci_gap_allow_rebond_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -641,24 +599,20 @@ enum ble_status aci_gap_allow_rebond(uint16_t connection_handle)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_start_limited_discovery_proc(uint16_t le_scan_interval,
-													 uint16_t le_scan_window,
-													 uint8_t own_address_type,
-													 uint8_t filter_duplicates)
+ble_status_t aci_gap_start_limited_discovery_proc(uint16_t le_scan_interval,
+												  uint16_t le_scan_window, uint8_t own_address_type,
+												  uint8_t filter_duplicates)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_start_limited_discovery_proc_cp0 *cp0 =
 		(aci_gap_start_limited_discovery_proc_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->le_scan_interval = le_scan_interval;
 	index_input += 2;
@@ -671,29 +625,25 @@ enum ble_status aci_gap_start_limited_discovery_proc(uint16_t le_scan_interval,
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x096;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_start_general_discovery_proc(uint16_t le_scan_interval,
-													 uint16_t le_scan_window,
-													 uint8_t own_address_type,
-													 uint8_t filter_duplicates)
+ble_status_t aci_gap_start_general_discovery_proc(uint16_t le_scan_interval,
+												  uint16_t le_scan_window, uint8_t own_address_type,
+												  uint8_t filter_duplicates)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_start_general_discovery_proc_cp0 *cp0 =
 		(aci_gap_start_general_discovery_proc_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->le_scan_interval = le_scan_interval;
 	index_input += 2;
@@ -706,30 +656,27 @@ enum ble_status aci_gap_start_general_discovery_proc(uint16_t le_scan_interval,
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x097;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_start_auto_connection_establish_proc(
+ble_status_t aci_gap_start_auto_connection_establish_proc(
 	uint16_t le_scan_interval, uint16_t le_scan_window, uint8_t own_address_type,
 	uint16_t conn_interval_min, uint16_t conn_interval_max, uint16_t conn_latency,
 	uint16_t supervision_timeout, uint16_t minimum_ce_length, uint16_t maximum_ce_length,
 	uint8_t num_of_peer_entries, const peer_entry_t *peer_entry)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_start_auto_connection_establish_proc_cp0 *cp0 =
 		(aci_gap_start_auto_connection_establish_proc_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->le_scan_interval = le_scan_interval;
 	index_input += 2;
@@ -757,28 +704,25 @@ enum ble_status aci_gap_start_auto_connection_establish_proc(
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x099;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_start_general_connection_establish_proc(
+ble_status_t aci_gap_start_general_connection_establish_proc(
 	uint8_t le_scan_type, uint16_t le_scan_interval, uint16_t le_scan_window,
 	uint8_t own_address_type, uint8_t scanning_filter_policy, uint8_t filter_duplicates)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_start_general_connection_establish_proc_cp0 *cp0 =
 		(aci_gap_start_general_connection_establish_proc_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->le_scan_type = le_scan_type;
 	index_input += 1;
@@ -795,29 +739,26 @@ enum ble_status aci_gap_start_general_connection_establish_proc(
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x09a;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_start_selective_connection_establish_proc(
+ble_status_t aci_gap_start_selective_connection_establish_proc(
 	uint8_t le_scan_type, uint16_t le_scan_interval, uint16_t le_scan_window,
 	uint8_t own_address_type, uint8_t scanning_filter_policy, uint8_t filter_duplicates,
 	uint8_t num_of_peer_entries, const peer_entry_t *peer_entry)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_start_selective_connection_establish_proc_cp0 *cp0 =
 		(aci_gap_start_selective_connection_establish_proc_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->le_scan_type = le_scan_type;
 	index_input += 1;
@@ -839,30 +780,27 @@ enum ble_status aci_gap_start_selective_connection_establish_proc(
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x09b;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_create_connection(uint16_t le_scan_interval, uint16_t le_scan_window,
-										  uint8_t peer_address_type, const uint8_t *peer_address,
-										  uint8_t own_address_type, uint16_t conn_interval_min,
-										  uint16_t conn_interval_max, uint16_t conn_latency,
-										  uint16_t supervision_timeout, uint16_t minimum_ce_length,
-										  uint16_t maximum_ce_length)
+ble_status_t aci_gap_create_connection(uint16_t le_scan_interval, uint16_t le_scan_window,
+									   uint8_t peer_address_type, const uint8_t *peer_address,
+									   uint8_t own_address_type, uint16_t conn_interval_min,
+									   uint16_t conn_interval_max, uint16_t conn_latency,
+									   uint16_t supervision_timeout, uint16_t minimum_ce_length,
+									   uint16_t maximum_ce_length)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_create_connection_cp0 *cp0 = (aci_gap_create_connection_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->le_scan_interval = le_scan_interval;
 	index_input += 2;
@@ -889,25 +827,22 @@ enum ble_status aci_gap_create_connection(uint16_t le_scan_interval, uint16_t le
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x09c;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_terminate_gap_proc(uint8_t procedure_code)
+ble_status_t aci_gap_terminate_gap_proc(uint8_t procedure_code)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_terminate_gap_proc_cp0 *cp0 = (aci_gap_terminate_gap_proc_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->procedure_code = procedure_code;
 	index_input += 1;
@@ -918,25 +853,20 @@ enum ble_status aci_gap_terminate_gap_proc(uint8_t procedure_code)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_start_connection_update(uint16_t connection_handle,
-												uint16_t conn_interval_min,
-												uint16_t conn_interval_max, uint16_t conn_latency,
-												uint16_t supervision_timeout,
-												uint16_t minimum_ce_length,
-												uint16_t maximum_ce_length)
+ble_status_t aci_gap_start_connection_update(uint16_t connection_handle, uint16_t conn_interval_min,
+											 uint16_t conn_interval_max, uint16_t conn_latency,
+											 uint16_t supervision_timeout,
+											 uint16_t minimum_ce_length, uint16_t maximum_ce_length)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_start_connection_update_cp0 *cp0 = (aci_gap_start_connection_update_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -955,25 +885,22 @@ enum ble_status aci_gap_start_connection_update(uint16_t connection_handle,
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x09e;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_send_pairing_req(uint16_t connection_handle, uint8_t force_rebond)
+ble_status_t aci_gap_send_pairing_req(uint16_t connection_handle, uint8_t force_rebond)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_send_pairing_req_cp0 *cp0 = (aci_gap_send_pairing_req_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -982,33 +909,29 @@ enum ble_status aci_gap_send_pairing_req(uint16_t connection_handle, uint8_t for
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x09f;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_set_broadcast_mode(uint16_t advertising_interval_min,
-										   uint16_t advertising_interval_max,
-										   uint8_t advertising_type, uint8_t own_address_type,
-										   uint8_t adv_data_length, const uint8_t *adv_data,
-										   uint8_t num_of_peer_entries,
-										   const peer_entry_t *peer_entry)
+ble_status_t aci_gap_set_broadcast_mode(uint16_t advertising_interval_min,
+										uint16_t advertising_interval_max, uint8_t advertising_type,
+										uint8_t own_address_type, uint8_t adv_data_length,
+										const uint8_t *adv_data, uint8_t num_of_peer_entries,
+										const peer_entry_t *peer_entry)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_broadcast_mode_cp0 *cp0 = (aci_gap_set_broadcast_mode_cp0 *)(cmd_buffer);
 	aci_gap_set_broadcast_mode_cp1 *cp1 =
 		(aci_gap_set_broadcast_mode_cp1 *)(cmd_buffer + 2 + 2 + 1 + 1 + 1 +
 										   adv_data_length * (sizeof(uint8_t)));
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_interval_min = advertising_interval_min;
 	index_input += 2;
@@ -1020,6 +943,7 @@ enum ble_status aci_gap_set_broadcast_mode(uint16_t advertising_interval_min,
 	index_input += 1;
 	cp0->adv_data_length = adv_data_length;
 	index_input += 1;
+	/* var_len_data input */
 	{
 		memcpy((void *)&cp0->adv_data, (const void *)adv_data, adv_data_length);
 		index_input += adv_data_length;
@@ -1038,23 +962,20 @@ enum ble_status aci_gap_set_broadcast_mode(uint16_t advertising_interval_min,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_start_observation_proc(uint16_t le_scan_interval, uint16_t le_scan_window,
-											   uint8_t le_scan_type, uint8_t own_address_type,
-											   uint8_t filter_duplicates,
-											   uint8_t scanning_filter_policy)
+ble_status_t aci_gap_start_observation_proc(uint16_t le_scan_interval, uint16_t le_scan_window,
+											uint8_t le_scan_type, uint8_t own_address_type,
+											uint8_t filter_duplicates,
+											uint8_t scanning_filter_policy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_start_observation_proc_cp0 *cp0 = (aci_gap_start_observation_proc_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->le_scan_interval = le_scan_interval;
 	index_input += 2;
@@ -1071,21 +992,18 @@ enum ble_status aci_gap_start_observation_proc(uint16_t le_scan_interval, uint16
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x0a2;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_get_bonded_devices(uint8_t *num_of_addresses,
-										   bonded_device_entry_t *bonded_device_entry)
+ble_status_t aci_gap_get_bonded_devices(uint8_t *num_of_addresses,
+										bonded_device_entry_t *bonded_device_entry)
 {
 	struct hci_request rq;
 	aci_gap_get_bonded_devices_rp0 resp;
@@ -1095,11 +1013,8 @@ enum ble_status aci_gap_get_bonded_devices(uint8_t *num_of_addresses,
 	rq.ocf = 0x0a3;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
 	*num_of_addresses = resp.num_of_addresses;
@@ -1108,11 +1023,11 @@ enum ble_status aci_gap_get_bonded_devices(uint8_t *num_of_addresses,
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status aci_gap_check_bonded_device(uint8_t peer_address_type, const uint8_t *peer_address,
-											uint8_t *id_address_type, uint8_t *id_address)
+ble_status_t aci_gap_check_bonded_device(uint8_t peer_address_type, const uint8_t *peer_address,
+										 uint8_t *id_address_type, uint8_t *id_address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_check_bonded_device_cp0 *cp0 = (aci_gap_check_bonded_device_cp0 *)(cmd_buffer);
 	aci_gap_check_bonded_device_rp0 resp;
 	memset(&resp, 0, sizeof(resp));
@@ -1128,11 +1043,8 @@ enum ble_status aci_gap_check_bonded_device(uint8_t peer_address_type, const uin
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
 	*id_address_type = resp.id_address_type;
@@ -1140,14 +1052,14 @@ enum ble_status aci_gap_check_bonded_device(uint8_t peer_address_type, const uin
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status aci_gap_numeric_comparison_value_confirm_yesno(uint16_t connection_handle,
-															   uint8_t confirm_yes_no)
+ble_status_t aci_gap_numeric_comparison_value_confirm_yesno(uint16_t connection_handle,
+															uint8_t confirm_yes_no)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_numeric_comparison_value_confirm_yesno_cp0 *cp0 =
 		(aci_gap_numeric_comparison_value_confirm_yesno_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -1160,20 +1072,17 @@ enum ble_status aci_gap_numeric_comparison_value_confirm_yesno(uint16_t connecti
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_passkey_input(uint16_t connection_handle, uint8_t input_type)
+ble_status_t aci_gap_passkey_input(uint16_t connection_handle, uint8_t input_type)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_passkey_input_cp0 *cp0 = (aci_gap_passkey_input_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -1186,19 +1095,16 @@ enum ble_status aci_gap_passkey_input(uint16_t connection_handle, uint8_t input_
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_get_oob_data(uint8_t oob_data_type, uint8_t *address_type, uint8_t *address,
-									 uint8_t *oob_data_len, uint8_t *oob_data)
+ble_status_t aci_gap_get_oob_data(uint8_t oob_data_type, uint8_t *address_type, uint8_t *address,
+								  uint8_t *oob_data_len, uint8_t *oob_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_get_oob_data_cp0 *cp0 = (aci_gap_get_oob_data_cp0 *)(cmd_buffer);
 	aci_gap_get_oob_data_rp0 resp;
 	memset(&resp, 0, sizeof(resp));
@@ -1212,11 +1118,8 @@ enum ble_status aci_gap_get_oob_data(uint8_t oob_data_type, uint8_t *address_typ
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
 	*address_type = resp.address_type;
@@ -1226,16 +1129,15 @@ enum ble_status aci_gap_get_oob_data(uint8_t oob_data_type, uint8_t *address_typ
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status aci_gap_set_oob_data(uint8_t device_type, uint8_t address_type,
-									 const uint8_t *address, uint8_t oob_data_type,
-									 uint8_t oob_data_len, const uint8_t *oob_data)
+ble_status_t aci_gap_set_oob_data(uint8_t device_type, uint8_t address_type, const uint8_t *address,
+								  uint8_t oob_data_type, uint8_t oob_data_len,
+								  const uint8_t *oob_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_set_oob_data_cp0 *cp0 = (aci_gap_set_oob_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-	device_type = device_type;
 	cp0->device_type = device_type;
 	index_input += 1;
 	cp0->address_type = address_type;
@@ -1255,21 +1157,18 @@ enum ble_status aci_gap_set_oob_data(uint8_t device_type, uint8_t address_type,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_remove_bonded_device(uint8_t peer_identity_address_type,
-											 const uint8_t *peer_identity_address)
+ble_status_t aci_gap_remove_bonded_device(uint8_t peer_identity_address_type,
+										  const uint8_t *peer_identity_address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_remove_bonded_device_cp0 *cp0 = (aci_gap_remove_bonded_device_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->peer_identity_address_type = peer_identity_address_type;
 	index_input += 1;
@@ -1282,27 +1181,25 @@ enum ble_status aci_gap_remove_bonded_device(uint8_t peer_identity_address_type,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_add_devices_to_list(uint8_t num_of_list_entries,
-											const list_entry_t *list_entry, uint8_t mode)
+ble_status_t aci_gap_add_devices_to_list(uint8_t num_of_list_entries,
+										 const list_entry_t *list_entry, uint8_t mode)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_add_devices_to_list_cp0 *cp0 = (aci_gap_add_devices_to_list_cp0 *)(cmd_buffer);
 	aci_gap_add_devices_to_list_cp1 *cp1 =
 		(aci_gap_add_devices_to_list_cp1 *)(cmd_buffer + 1 +
 											num_of_list_entries * (sizeof(list_entry_t)));
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->num_of_list_entries = num_of_list_entries;
 	index_input += 1;
+	/* var_len_data input */
 	{
 		memcpy((void *)&cp0->list_entry, (const void *)list_entry,
 			   num_of_list_entries * (sizeof(list_entry_t)));
@@ -1319,20 +1216,17 @@ enum ble_status aci_gap_add_devices_to_list(uint8_t num_of_list_entries,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_pairing_request_reply(uint16_t connection_handle, uint8_t accept)
+ble_status_t aci_gap_pairing_request_reply(uint16_t connection_handle, uint8_t accept)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_pairing_request_reply_cp0 *cp0 = (aci_gap_pairing_request_reply_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
@@ -1345,23 +1239,19 @@ enum ble_status aci_gap_pairing_request_reply(uint16_t connection_handle, uint8_
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_additional_beacon_start(uint16_t adv_interval_min,
-												uint16_t adv_interval_max, uint8_t adv_channel_map,
-												uint8_t own_address_type,
-												const uint8_t *own_address, uint8_t pa_level)
+ble_status_t aci_gap_additional_beacon_start(uint16_t adv_interval_min, uint16_t adv_interval_max,
+											 uint8_t adv_channel_map, uint8_t own_address_type,
+											 const uint8_t *own_address, uint8_t pa_level)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_additional_beacon_start_cp0 *cp0 = (aci_gap_additional_beacon_start_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->adv_interval_min = adv_interval_min;
 	index_input += 2;
@@ -1382,38 +1272,32 @@ enum ble_status aci_gap_additional_beacon_start(uint16_t adv_interval_min,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_additional_beacon_stop(void)
+ble_status_t aci_gap_additional_beacon_stop(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x0b1;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_additional_beacon_set_data(uint8_t adv_data_length, const uint8_t *adv_data)
+ble_status_t aci_gap_additional_beacon_set_data(uint8_t adv_data_length, const uint8_t *adv_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_additional_beacon_set_data_cp0 *cp0 =
 		(aci_gap_additional_beacon_set_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->adv_data_length = adv_data_length;
 	index_input += 1;
@@ -1426,15 +1310,12 @@ enum ble_status aci_gap_additional_beacon_set_data(uint8_t adv_data_length, cons
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_adv_set_configuration(
+ble_status_t aci_gap_adv_set_configuration(
 	uint8_t adv_mode, uint8_t advertising_handle, uint16_t adv_event_properties,
 	uint32_t primary_adv_interval_min, uint32_t primary_adv_interval_max,
 	uint8_t primary_adv_channel_map, uint8_t own_address_type, uint8_t peer_address_type,
@@ -1443,9 +1324,9 @@ enum ble_status aci_gap_adv_set_configuration(
 	uint8_t scan_req_notification_enable)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_adv_set_configuration_cp0 *cp0 = (aci_gap_adv_set_configuration_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->adv_mode = adv_mode;
 	index_input += 1;
@@ -1484,20 +1365,17 @@ enum ble_status aci_gap_adv_set_configuration(
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_adv_set_enable(uint8_t enable, uint8_t num_sets, const adv_set_t *adv_set)
+ble_status_t aci_gap_adv_set_enable(uint8_t enable, uint8_t num_sets, const adv_set_t *adv_set)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_adv_set_enable_cp0 *cp0 = (aci_gap_adv_set_enable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->enable = enable;
 	index_input += 1;
@@ -1512,23 +1390,19 @@ enum ble_status aci_gap_adv_set_enable(uint8_t enable, uint8_t num_sets, const a
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_adv_set_adv_data(uint8_t advertising_handle, uint8_t operation,
-										 uint8_t fragment_preference,
-										 uint8_t advertising_data_length,
-										 const uint8_t *advertising_data)
+ble_status_t aci_gap_adv_set_adv_data(uint8_t advertising_handle, uint8_t operation,
+									  uint8_t fragment_preference, uint8_t advertising_data_length,
+									  const uint8_t *advertising_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_adv_set_adv_data_cp0 *cp0 = (aci_gap_adv_set_adv_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_handle = advertising_handle;
 	index_input += 1;
@@ -1547,23 +1421,20 @@ enum ble_status aci_gap_adv_set_adv_data(uint8_t advertising_handle, uint8_t ope
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_adv_set_scan_resp_data(uint8_t advertising_handle, uint8_t operation,
-											   uint8_t fragment_preference,
-											   uint8_t scan_response_data_length,
-											   const uint8_t *scan_response_data)
+ble_status_t aci_gap_adv_set_scan_resp_data(uint8_t advertising_handle, uint8_t operation,
+											uint8_t fragment_preference,
+											uint8_t scan_response_data_length,
+											const uint8_t *scan_response_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_adv_set_scan_resp_data_cp0 *cp0 = (aci_gap_adv_set_scan_resp_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_handle = advertising_handle;
 	index_input += 1;
@@ -1583,20 +1454,17 @@ enum ble_status aci_gap_adv_set_scan_resp_data(uint8_t advertising_handle, uint8
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_adv_remove_set(uint8_t advertising_handle)
+ble_status_t aci_gap_adv_remove_set(uint8_t advertising_handle)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_adv_remove_set_cp0 *cp0 = (aci_gap_adv_remove_set_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_handle = advertising_handle;
 	index_input += 1;
@@ -1607,38 +1475,32 @@ enum ble_status aci_gap_adv_remove_set(uint8_t advertising_handle)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_adv_clear_sets(void)
+ble_status_t aci_gap_adv_clear_sets(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x0c5;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_adv_set_random_address(uint8_t advertising_handle,
-											   const uint8_t *random_address)
+ble_status_t aci_gap_adv_set_random_address(uint8_t advertising_handle,
+											const uint8_t *random_address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_adv_set_random_address_cp0 *cp0 = (aci_gap_adv_set_random_address_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->advertising_handle = advertising_handle;
 	index_input += 1;
@@ -1651,24 +1513,20 @@ enum ble_status aci_gap_adv_set_random_address(uint8_t advertising_handle,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_ext_start_scan(uint8_t scan_mode, uint8_t procedure,
-									   uint8_t own_address_type, uint8_t filter_duplicates,
-									   uint16_t duration, uint16_t period,
-									   uint8_t scanning_filter_policy, uint8_t scanning_phys,
-									   const scan_param_phy_t *scan_param_phy)
+ble_status_t aci_gap_ext_start_scan(uint8_t scan_mode, uint8_t procedure, uint8_t own_address_type,
+									uint8_t filter_duplicates, uint16_t duration, uint16_t period,
+									uint8_t scanning_filter_policy, uint8_t scanning_phys,
+									const scan_param_phy_t *scan_param_phy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_ext_start_scan_cp0 *cp0 = (aci_gap_ext_start_scan_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->scan_mode = scan_mode;
 	index_input += 1;
@@ -1691,31 +1549,27 @@ enum ble_status aci_gap_ext_start_scan(uint8_t scan_mode, uint8_t procedure,
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x0d0;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status aci_gap_ext_create_connection(uint8_t initiating_mode, uint8_t procedure,
-											  uint8_t own_address_type, uint8_t peer_address_type,
-											  const uint8_t *peer_address,
-											  uint8_t advertising_handle, uint8_t subevent,
-											  uint8_t initiator_filter_policy,
-											  uint8_t initiating_phys,
-											  const init_param_phy_t *init_param_phy)
+ble_status_t aci_gap_ext_create_connection(uint8_t initiating_mode, uint8_t procedure,
+										   uint8_t own_address_type, uint8_t peer_address_type,
+										   const uint8_t *peer_address, uint8_t advertising_handle,
+										   uint8_t subevent, uint8_t initiator_filter_policy,
+										   uint8_t initiating_phys,
+										   const init_param_phy_t *init_param_phy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	aci_gap_ext_create_connection_cp0 *cp0 = (aci_gap_ext_create_connection_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
 	cp0->initiating_mode = initiating_mode;
 	index_input += 1;
@@ -1740,15 +1594,12 @@ enum ble_status aci_gap_ext_create_connection(uint8_t initiating_mode, uint8_t p
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x3f;
 	rq.ocf = 0x0d1;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }

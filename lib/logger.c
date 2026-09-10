@@ -39,14 +39,13 @@ static char g_msg[128];
 void bw_logger_init()
 {
 #if defined(UART_LOGGER)
-	// PA9 or PB6
 	struct uart_conf uart_conf = {
 		.tx = PL_UART_TX, .af = GPIO_AF7, .uart = PL_UART, .baud_rate = UART_BAUD_9600
 	};
 	uart_init(&uart_conf);
 #elif defined(RTT_LOGGER)
 	SEGGER_RTT_Init();
-	SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL);
+	SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
 #endif
 }
 
@@ -58,20 +57,25 @@ static inline void put_str(char **msg, int *msg_len, const char *s)
 	}
 }
 
-static inline void put_digits(char **msg, int *msg_len, uint64_t d, int base)
+static inline void put_digits(char **msg, int *msg_len, uint64_t d, int base, int min_width,
+							  bool pad_zero)
 {
-	if (d == 0) {
-		PUTC(*msg, *msg_len, '0');
-		return;
-	}
-
 	int i = 0;
-	char buf[20];
+	char buf[24];
 	const char *digits = "0123456789ABCDEF";
 
-	while (d > 0) {
-		buf[i++] = digits[d % base];
-		d /= base;
+	if (d == 0) {
+		buf[i++] = '0';
+	} else {
+		while (d > 0) {
+			buf[i++] = digits[d % base];
+			d /= base;
+		}
+	}
+
+	// Pad with '0' or ' ' up to min_width
+	while (i < min_width && i < (int)sizeof(buf)) {
+		buf[i++] = pad_zero ? '0' : ' ';
 	}
 
 	while (i--)
@@ -104,7 +108,7 @@ static inline void put_float(char **msg, int *msg_len, union ieee754_double *df)
 	uint32_t int_part = (uint32_t)f;
 	double frac = f - (double)int_part;
 
-	put_digits(msg, msg_len, int_part, 10);
+	put_digits(msg, msg_len, int_part, 10, 0, false);
 
 	/* how many digits did the integer part use? */
 	uint32_t tmp = int_part;
@@ -151,6 +155,21 @@ static int str_formatv(char *msg, int msg_len, const char *fmt, va_list args)
 
 		fmt++;
 
+		// Parse flags: zero-padding check
+		bool pad_zero = false;
+		if (*fmt == '0') {
+			pad_zero = true;
+			fmt++;
+		}
+
+		// Parse width digits (e.g., the '2' in %02d or '4' in %04x)
+		int width = 0;
+		while (*fmt >= '0' && *fmt <= '9') {
+			width = (width * 10) + (*fmt - '0');
+			fmt++;
+		}
+
+		// Parse length specifier (l / ll)
 		bool is_long = false;
 		if (*fmt == 'l') {
 			fmt++;
@@ -172,10 +191,17 @@ static int str_formatv(char *msg, int msg_len, const char *fmt, va_list args)
 			else
 				d = va_arg(args, int32_t);
 
-			if (d < 0)
+			uint64_t u_mag;
+			if (d < 0) {
 				PUTC(msg, msg_len, '-');
+				u_mag = (uint64_t)(-d);
+				if (width > 0)
+					width--; // Reserve space for the minus sign
+			} else {
+				u_mag = (uint64_t)d;
+			}
 
-			put_digits(&msg, &msg_len, (d < 0) ? -d : d, 10);
+			put_digits(&msg, &msg_len, u_mag, 10, width, pad_zero);
 			break;
 		}
 		case 'u': {
@@ -185,7 +211,7 @@ static int str_formatv(char *msg, int msg_len, const char *fmt, va_list args)
 			else
 				u = va_arg(args, uint32_t);
 
-			put_digits(&msg, &msg_len, u, 10);
+			put_digits(&msg, &msg_len, u, 10, width, pad_zero);
 			break;
 		}
 		case 'f': {
@@ -195,16 +221,14 @@ static int str_formatv(char *msg, int msg_len, const char *fmt, va_list args)
 		}
 		case 'x': {
 			uint32_t u = va_arg(args, uint32_t);
-			PUTC(msg, msg_len, '0');
-			PUTC(msg, msg_len, 'x');
-			put_digits(&msg, &msg_len, u, 16);
+			put_digits(&msg, &msg_len, u, 16, width, pad_zero);
 			break;
 		}
 		case 'p': {
 			uint32_t p = (uint32_t)va_arg(args, void *);
 			PUTC(msg, msg_len, '0');
 			PUTC(msg, msg_len, 'x');
-			put_digits(&msg, &msg_len, p, 16);
+			put_digits(&msg, &msg_len, p, 16, width, pad_zero);
 			break;
 		}
 		case 'c': {
@@ -224,7 +248,7 @@ static int str_formatv(char *msg, int msg_len, const char *fmt, va_list args)
 	return len - msg_len;
 }
 
-static int str_format(char *msg, int msg_len, const char *fmt, ...)
+int bw_str_format(char *msg, int msg_len, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -243,11 +267,11 @@ void bw_print_s(const char *msg, int msg_len)
 	char out[256];
 	uint16_t out_len = 0;
 
-	for (int i = 0; i < out_len; i++) {
-		if (out[i] == '\n')
+	for (int i = 0; i < msg_len && out_len < (int)sizeof(out) - 2; i++) {
+		if (msg[i] == '\n')
 			out[out_len++] = '\r';
 
-		out[out_len++] = out[i];
+		out[out_len++] = msg[i];
 	}
 	out[out_len] = '\0';
 
@@ -263,7 +287,7 @@ void bw_log(const char *file, int line, const char *fmt, ...)
 
 	const char *filename = strrchr(file, '/');
 	filename = (filename) ? filename + 1 : file;
-	int msg_len = str_format(g_msg, sizeof(g_msg), "[%s:%d]", filename, line);
+	int msg_len = bw_str_format(g_msg, sizeof(g_msg), "[%s:%d]", filename, line);
 
 	va_list args;
 	va_start(args, fmt);

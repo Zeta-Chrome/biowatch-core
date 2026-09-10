@@ -7,12 +7,14 @@
 #include "kernel/sync/semaphore.h" // IWYU pragma: export
 #include "kernel/task/mem.h"
 #include "kernel/task/task.h" // IWYU pragma: export
+#include "kernel/timer.h" // IWYU pragma: export
 
 typedef void (*kernel_idle_hook_t)(void *);
 
 struct kernel_conf {
 	struct kernel_pool_conf pool_confs[MEM_BLOCK_COUNT];
 	kernel_idle_hook_t idle_hook;
+	uint32_t idle_task_size;
 	void *idle_data;
 };
 

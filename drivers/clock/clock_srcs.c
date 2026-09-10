@@ -1,4 +1,5 @@
 #include "clock_srcs.h"
+#include "drivers/pwr/pwr.h"
 #include "lib/utils.h"
 #include "stm32wb55xx.h"
 
@@ -76,9 +77,11 @@ void clock_enable_lse()
 	if ((RCC->BDCR & RCC_BDCR_LSEON_Msk) && (RCC->BDCR & RCC_BDCR_LSERDY_Msk))
 		return;
 
+	pwr_unlock_backup_domain();
 	SET_FIELD(RCC->BDCR, RCC_BDCR_LSEON_Msk);
 	while (!(RCC->BDCR & RCC_BDCR_LSERDY_Pos))
 		;
+	pwr_lock_backup_domain();
 }
 
 void clock_disable_lse()

@@ -11,7 +11,7 @@ struct semaphore {
 	struct list wait_queue; // take wait queue
 };
 
-void kernel_semaphore_binary_init(struct semaphore *semaphore); // binary semaphore
+void kernel_semaphore_binary_init(struct semaphore *semaphore, bool take); // binary semaphore
 void kernel_semaphore_counting_init(struct semaphore *semaphore,
 									uint32_t max_count); // counting semaphore
 enum bw_status kernel_semaphore_take(struct semaphore *semaphore, uint32_t timeout_ms);

@@ -1,14 +1,8 @@
 #include "drivers/clock/clock.h"
-#include "drivers/clock/clock_srcs.h"
-#include "drivers/exti/exti.h"
 #include "lib/utils.h"
 #include "pwr.h"
 #include "stm32wb55xx.h"
 #include <stddef.h>
-
-#define CPU2_SEV_IM 41
-
-static struct exti_handle g_exti_h;
 
 void pwr_enable_wkup(enum pwr_wkup wkup, enum pwr_wkup_edge edge)
 {
@@ -16,28 +10,19 @@ void pwr_enable_wkup(enum pwr_wkup wkup, enum pwr_wkup_edge edge)
 	MODIFY_FIELD_W(PWR->CR4, 1, PWR_CR4_WP1_Pos + wkup, edge);
 }
 
-void pwr_boot_cpu2()
+void pwr_unlock_backup_domain()
 {
-	// Enable hse for ble
-	clock_enable_hse();
+	SET_FIELD(PWR->CR1, PWR_CR1_DBP_Msk);
 
-	SET_FIELD(RCC->C2AHB3ENR, RCC_C2AHB3ENR_IPCCEN_Msk);
-	__IO uint32_t tempreg = RCC->C2AHB3ENR & RCC_C2AHB3ENR_IPCCEN_Msk;
-	(void)tempreg;
+	// Unlock the write protections by writing keys
+	RTC->WPR = 0xCA;
+	RTC->WPR = 0x53;
+}
 
-	// Enable SEV EXTI for cpu2 wakeup
-	struct exti_conf conf = { .im = CPU2_SEV_IM,
-							  .edge = EXTI_EDGE_RISING,
-							  .irq_priority = 0,
-							  .callback = NULL,
-							  .user_data = NULL };
-	exti_init(&conf, &g_exti_h);
-
-	__SEV(); // Send Event
-	__WFE(); // Clear event flag
-
-	// Boot CPU2
-	SET_FIELD(PWR->CR4, PWR_CR4_C2BOOT_Msk);
+void pwr_lock_backup_domain()
+{
+	MODIFY_FIELD(RTC->WPR, RTC_WPR_KEY_Msk, RTC_WPR_KEY_Pos, 0x00);
+	CLEAR_FIELD(PWR->CR1, PWR_CR1_DBP_Msk);
 }
 
 void pwr_enter_sleep()

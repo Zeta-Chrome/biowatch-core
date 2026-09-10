@@ -12,6 +12,7 @@ struct ipcc_handle {
 };
 
 void ipcc_init(uint8_t tx_prio, uint8_t rx_prio);
+void ipcc_enable();
 bool ipcc_is_tx_channel_occupied(uint8_t channel);
 void ipcc_tx(uint8_t channel, struct ipcc_handle *tx_handle);
 void ipcc_tx_masked(uint8_t channel, struct ipcc_handle *tx_handle);

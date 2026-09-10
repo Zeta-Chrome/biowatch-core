@@ -1,11 +1,17 @@
 #include "ipcc.h"
+#include "drivers/clock/clock_srcs.h"
+#include "drivers/exti/exti.h"
 #include "kernel/critical.h"
 #include "lib/assert.h"
 #include "lib/utils.h"
 #include "stm32wb55xx.h"
+#include <stddef.h>
+
+#define CPU2_SEV_IM 41
 
 static struct ipcc_handle *g_tx_handles[6];
 static struct ipcc_handle *g_rx_handles[6];
+static struct exti_handle g_exti_h;
 
 void ipcc_init(uint8_t tx_prio, uint8_t rx_prio)
 {
@@ -21,6 +27,27 @@ void ipcc_init(uint8_t tx_prio, uint8_t rx_prio)
 	NVIC_EnableIRQ(IPCC_C1_TX_IRQn);
 	NVIC_SetPriority(IPCC_C1_RX_IRQn, rx_prio);
 	NVIC_EnableIRQ(IPCC_C1_RX_IRQn);
+}
+
+void ipcc_enable()
+{
+	SET_FIELD(RCC->C2AHB3ENR, RCC_C2AHB3ENR_IPCCEN_Msk);
+	__IO uint32_t tempreg = RCC->C2AHB3ENR & RCC_C2AHB3ENR_IPCCEN_Msk;
+	(void)tempreg;
+
+	// Enable SEV EXTI for cpu2 wakeup
+	struct exti_conf conf = { .im = CPU2_SEV_IM,
+							  .edge = EXTI_EDGE_RISING,
+							  .irq_priority = 0,
+							  .callback = NULL,
+							  .user_data = NULL };
+	exti_init(&conf, &g_exti_h);
+
+	__SEV(); // Send Event
+	__WFE(); // Clear event flag
+
+	// Boot CPU2
+	SET_FIELD(PWR->CR4, PWR_CR4_C2BOOT_Msk);
 }
 
 bool ipcc_is_tx_channel_occupied(uint8_t channel)

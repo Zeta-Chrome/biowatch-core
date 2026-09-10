@@ -58,8 +58,5 @@ bool ring_pop(struct ring *ring, void *out)
 
 bool is_ring_empty(struct ring *ring)
 {
-	if (ring->head == ring->tail)
-		return true;
-
-	return false;
+	return ring->count == 0;
 }

@@ -4,16 +4,18 @@
 
 #define STACK_GUARD 0xA5A5A5A5
 
-static uint64_t g_stack_pool[(TASK_POOL_SIZE >> 1) + 1] __attribute__((aligned(8)));
+static uint64_t g_stack_pool[(TASK_POOL_SIZE / sizeof(uint64_t)) + 1] __attribute__((aligned(8)));
 static stack_ptr_t g_free_block_heads[MEM_BLOCK_COUNT] = {};
 
 enum bw_status kernel_mem_init(const struct kernel_pool_conf *confs)
 {
 	uint32_t pool_idx = 0;
-	for (int i = 0; confs[i].count > 0; i++) {
-		uint16_t sz = 16 << confs[i].sz; // each element is 8 bytes, hence 128/8
+	for (int i = 0; confs[i].sz < MEM_BLOCK_COUNT; i++) {
 		uint8_t count = confs[i].count;
+		if (count == 0)
+			continue;
 
+		uint16_t sz = 32 << confs[i].sz; // each element is 8 bytes, hence 256/8
 		g_free_block_heads[confs[i].sz] = (stack_ptr_t)&g_stack_pool[pool_idx + sz];
 		for (int b = 0; b < count; b++) {
 			if (b >= count - 1)
@@ -32,7 +34,7 @@ enum bw_status kernel_mem_init(const struct kernel_pool_conf *confs)
 
 static inline uint8_t mem_block_sz(uint32_t word_sz)
 {
-	return __CLZ(__RBIT(word_sz * 4 / 128)) % 32;
+	return __CLZ(__RBIT(word_sz * 4 / 256)) % 32;
 }
 
 enum bw_status kernel_mem_alloc(struct task_stack *stack)

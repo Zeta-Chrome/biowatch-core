@@ -5,11 +5,14 @@
 #include "semaphore.h"
 #include <stddef.h>
 
-void kernel_semaphore_binary_init(struct semaphore *semaphore)
+void kernel_semaphore_binary_init(struct semaphore *semaphore, bool take)
 {
 	semaphore->max_count = 1;
 	semaphore->count = 1;
 	list_init(&semaphore->wait_queue);
+
+	if (take)
+		kernel_semaphore_take(semaphore, 0);
 }
 
 void kernel_semaphore_counting_init(struct semaphore *semaphore, uint32_t max_count)

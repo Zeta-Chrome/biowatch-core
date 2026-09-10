@@ -9,8 +9,8 @@
 #define KERNEL_ENTER_CRITICAL() kernel_enter_critical()
 #define KERNEL_EXIT_CRITICAL() kernel_exit_critical()
 
-static uint32_t g_critical_nesting = 0;
-static uint32_t g_isr_mask_state = 0;
+extern volatile uint32_t g_critical_nesting;
+extern volatile uint32_t g_isr_mask_state;
 
 static inline void kernel_enter_critical()
 {

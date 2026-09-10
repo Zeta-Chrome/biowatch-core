@@ -109,14 +109,17 @@ void kernel_event_set_from_isr(struct event *event, uint32_t event_flags)
 	kernel_event_set(event, event_flags);
 }
 
+uint32_t kernel_event_get(struct event *event)
+{
+	KERNEL_ENTER_CRITICAL();
+	uint32_t flags = event->event_flags;
+	KERNEL_EXIT_CRITICAL();
+	return flags;
+}
+
 void kernel_event_clear(struct event *event, uint32_t event_flags)
 {
 	KERNEL_ENTER_CRITICAL();
 	event->event_flags &= ~event_flags;
 	KERNEL_EXIT_CRITICAL();
-}
-
-void kernel_event_clear_from_isr(struct event *event, uint32_t event_flags)
-{
-	kernel_event_clear(event, event_flags);
 }

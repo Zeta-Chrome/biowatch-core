@@ -1,5 +1,6 @@
 #include "drivers/clock/clock_srcs.h"
 #include "drivers/exti/exti.h"
+#include "drivers/pwr/pwr.h"
 #include "lib/assert.h"
 #include "lib/utils.h"
 #include "rtc.h"
@@ -13,27 +14,12 @@ static struct exti_handle g_alrm_exti_h;
 static wkup_callback_t g_wkup_callback = NULL;
 static alrm_callback_t g_alrm_callback = NULL;
 
-static void rtc_unlock()
-{
-	SET_FIELD(PWR->CR1, PWR_CR1_DBP_Msk);
-
-	// Unlock the write protections by writing keys
-	RTC->WPR = 0xCA;
-	RTC->WPR = 0x53;
-}
-
-static void rtc_lock()
-{
-	MODIFY_FIELD(RTC->WPR, RTC_WPR_KEY_Msk, RTC_WPR_KEY_Pos, 0x00);
-	CLEAR_FIELD(PWR->CR1, PWR_CR1_DBP_Msk);
-}
-
 static void rtc_clock_init()
 {
-	rtc_unlock();
-
 	// Enable LSE clock
 	clock_enable_lse();
+
+	pwr_unlock_backup_domain();
 
 	MODIFY_FIELD(RCC->BDCR, RCC_BDCR_RTCSEL_Msk, RCC_BDCR_RTCSEL_Pos, 0x01); // Use LSE clock
 	SET_FIELD(RCC->BDCR, RCC_BDCR_RTCEN_Msk);
@@ -42,7 +28,7 @@ static void rtc_clock_init()
 
 static void rtc_enable_init()
 {
-	rtc_unlock();
+	pwr_unlock_backup_domain();
 
 	// Calendar intialization
 	SET_FIELD(RTC->ISR, RTC_ISR_INIT_Msk);
@@ -53,7 +39,7 @@ static void rtc_enable_init()
 static void rtc_disable_init()
 {
 	CLEAR_FIELD(RTC->ISR, RTC_ISR_INIT_Msk);
-	rtc_lock();
+	pwr_lock_backup_domain();
 }
 
 void rtc_init()
@@ -129,7 +115,7 @@ void rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
 	rtc_enable_init();
 
 	if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12) {
-		BW_ASSERT(hr < 12, "Invalid hour %d (Expected 0-11)", hr);
+		BW_ASSERT(hr <= 12, "Invalid hour %d (Expected 0-12)", hr);
 		MODIFY_BIT(RTC->TR, RTC_TR_PM_Pos, pm);
 	} else {
 		BW_ASSERT(hr < 24, "Invalid hour %d (Expected 0-23)", hr);
@@ -201,17 +187,31 @@ void rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd)
 static void rtc_wkup_isr(void *user_data)
 {
 	(void)user_data;
-	rtc_unlock();
+	pwr_unlock_backup_domain();
 	CLEAR_FIELD(RTC->ISR, RTC_ISR_WUTF_Msk);
-	rtc_lock();
+	pwr_lock_backup_domain();
 
 	if (g_wkup_callback != NULL)
 		g_wkup_callback();
 }
 
+uint32_t rtc_get_timestamp()
+{
+	uint8_t hr, min, sec, yr, mth, dte, wd;
+	bool pm;
+
+	rtc_get_time(&hr, &min, &sec, &pm);
+	rtc_get_date(&yr, &mth, &dte, &wd);
+
+	return ((uint32_t)(yr & 0x7F) << 25) | ((uint32_t)(mth & 0x0F) << 21) |
+		   ((uint32_t)(dte & 0x1F) << 16) | ((uint32_t)(hr & 0x0F) << 12) |
+		   ((uint32_t)(pm & 0x01) << 11) | ((uint32_t)(min & 0x3F) << 5) |
+		   ((uint32_t)(sec & 0x3F) << 0);
+}
+
 void rtc_enable_wut(uint8_t delay_s, wkup_callback_t callback, uint8_t irq_priority)
 {
-	rtc_unlock();
+	pwr_unlock_backup_domain();
 
 	// Disable wake-up timer
 	CLEAR_FIELD(RTC->CR, RTC_CR_WUTE_Msk);
@@ -237,12 +237,12 @@ void rtc_enable_wut(uint8_t delay_s, wkup_callback_t callback, uint8_t irq_prior
 	SET_FIELD(RTC->CR, RTC_CR_WUTE_Msk);
 	g_wkup_callback = callback;
 
-	rtc_lock();
+	pwr_lock_backup_domain();
 }
 
 void rtc_disable_wut()
 {
-	rtc_unlock();
+	pwr_unlock_backup_domain();
 	exti_deinit(&g_wkup_exti_h);
 	CLEAR_FIELD(RTC->ISR, RTC_ISR_WUTF_Msk);
 	CLEAR_FIELD(RTC->CR, RTC_CR_WUTIE_Msk);
@@ -252,15 +252,15 @@ void rtc_disable_wut()
 	while (!(RTC->ISR & RTC_ISR_WUTWF_Msk))
 		;
 
-	rtc_lock();
+	pwr_lock_backup_domain();
 }
 
 static void rtc_alrm_isr(void *user_data)
 {
 	(void)user_data;
-	rtc_unlock();
+	pwr_unlock_backup_domain();
 	CLEAR_FIELD(RTC->ISR, RTC_ISR_ALRAF_Msk);
-	rtc_lock();
+	pwr_lock_backup_domain();
 
 	if (g_alrm_callback != NULL)
 		g_alrm_callback();
@@ -269,7 +269,7 @@ static void rtc_alrm_isr(void *user_data)
 void rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_callback_t callback,
 					  uint8_t irq_priority)
 {
-	rtc_unlock();
+	pwr_unlock_backup_domain();
 
 	BW_ASSERT(min < 60, "Invalid minute %d (Expected 0-59)", min);
 	BW_ASSERT(sec < 60, "Invalid second %d (Expected 0-59)", sec);
@@ -281,7 +281,7 @@ void rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_callba
 	uint32_t alrmar = 0x0UL;
 	SET_FIELD(alrmar, RTC_ALRMAR_MSK4_Msk); // Don't care date/day
 	if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12) {
-		BW_ASSERT(hr < 12, "Invalid hour %d (Expected 0-11)", hr);
+		BW_ASSERT(hr >= 1 && hr <= 12, "Invalid hour %d (Expected 1-12)", hr);
 		MODIFY_BIT(alrmar, RTC_ALRMAR_PM_Pos, pm);
 	} else {
 		BW_ASSERT(hr < 24, "Invalid hour %d (Expected 0-23)", hr);
@@ -309,15 +309,15 @@ void rtc_enable_alarm(uint8_t hr, uint8_t min, uint8_t sec, bool pm, alrm_callba
 	SET_FIELD(RTC->CR, RTC_CR_ALRAE_Msk);
 	g_alrm_callback = callback;
 
-	rtc_lock();
+	pwr_lock_backup_domain();
 }
 
 void rtc_disable_alarm()
 {
-	rtc_unlock();
+	pwr_unlock_backup_domain();
 	exti_deinit(&g_alrm_exti_h);
 	CLEAR_FIELD(RTC->ISR, RTC_ISR_ALRAF_Msk);
 	CLEAR_FIELD(RTC->CR, RTC_CR_ALRAIE_Msk);
 	CLEAR_FIELD(RTC->CR, RTC_CR_ALRAE_Msk);
-	rtc_lock();
+	pwr_lock_backup_domain();
 }

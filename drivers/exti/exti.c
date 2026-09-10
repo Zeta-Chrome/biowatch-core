@@ -3,6 +3,7 @@
 #include "lib/assert.h"
 #include "lib/utils.h"
 #include "stm32wb55xx.h"
+#include <stddef.h>
 
 #define NULL ((void *)0)
 #define MAX_EXTI_LINES 50

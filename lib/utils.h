@@ -9,6 +9,7 @@
 #define BIT(n) (1UL << (n))
 #define MASK(w, p) (((1UL << (w)) - 1UL) << (p))
 
+#define SSUB(x, y) (((x) < (y)) ? 0 : ((x) - (y))) // Saturated Subtraction
 #define DIVC(x, y) (((x) + (y) - 1) / (y))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))

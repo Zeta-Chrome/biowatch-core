@@ -16,7 +16,7 @@ enum bw_status kernel_event_wait(struct event *event, uint32_t event_flags,
 								 uint32_t timeout_ms);
 void kernel_event_set(struct event *event, uint32_t event_flags);
 void kernel_event_set_from_isr(struct event *event, uint32_t event_flags);
+uint32_t kernel_event_get(struct event *event);
 void kernel_event_clear(struct event *event, uint32_t event_flags);
-void kernel_event_clear_from_isr(struct event *event, uint32_t event_flags);
 
 #endif

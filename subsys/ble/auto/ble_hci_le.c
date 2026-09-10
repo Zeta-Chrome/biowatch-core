@@ -1,19 +1,325 @@
-#include "hci_le.h"
-#include "subsys/ble/ble_types.h"
-#include "subsys/ble/hci/hci.h"
+/*****************************************************************************
+ * @file    ble_hci_le.c
+ * @brief   STM32WB BLE API (hci_le)
+ *          Auto-generated file: do not edit!
+ *****************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2018-2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ *****************************************************************************
+ */
+
+#include "ble_hci_le.h"
+#include "subsys/ble/tl/hci_tl.h"
+#include "subsys/ble/ble_defs.h"
 #include <string.h>
 
-enum ble_status hci_le_set_event_mask(const uint8_t *le_event_mask)
+ble_status_t hci_disconnect(uint16_t connection_handle, uint8_t reason)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
-	hci_le_set_event_mask_cp0 *cp0 = (hci_le_set_event_mask_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_disconnect_cp0 *cp0 = (hci_disconnect_cp0 *)(cmd_buffer);
+	ble_status_t status = 0;
 	int index_input = 0;
+	cp0->connection_handle = connection_handle;
+	index_input += 2;
+	cp0->reason = reason;
+	index_input += 1;
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x01;
+	rq.ocf = 0x006;
+	rq.event = 0x0f;
+	rq.cmd_param = cmd_buffer;
+	rq.cmd_len = index_input;
+	rq.ret_param = &status;
+	rq.ret_len = 1;
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	return status;
+}
 
+ble_status_t hci_read_remote_version_information(uint16_t connection_handle)
+{
+	struct hci_request rq;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_read_remote_version_information_cp0 *cp0 =
+		(hci_read_remote_version_information_cp0 *)(cmd_buffer);
+	ble_status_t status = 0;
+	int index_input = 0;
+	cp0->connection_handle = connection_handle;
+	index_input += 2;
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x01;
+	rq.ocf = 0x01d;
+	rq.event = 0x0f;
+	rq.cmd_param = cmd_buffer;
+	rq.cmd_len = index_input;
+	rq.ret_param = &status;
+	rq.ret_len = 1;
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	return status;
+}
+
+ble_status_t hci_set_event_mask(const uint8_t *event_mask)
+{
+	struct hci_request rq;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_set_event_mask_cp0 *cp0 = (hci_set_event_mask_cp0 *)(cmd_buffer);
+	ble_status_t status = 0;
+	int index_input = 0;
+	memcpy((void *)&cp0->event_mask, (const void *)event_mask, 8);
+	index_input += 8;
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x03;
+	rq.ocf = 0x001;
+	rq.cmd_param = cmd_buffer;
+	rq.cmd_len = index_input;
+	rq.ret_param = &status;
+	rq.ret_len = 1;
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	return status;
+}
+
+ble_status_t hci_reset(void)
+{
+	struct hci_request rq;
+	ble_status_t status = 0;
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x03;
+	rq.ocf = 0x003;
+	rq.ret_param = &status;
+	rq.ret_len = 1;
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	return status;
+}
+
+ble_status_t hci_read_transmit_power_level(uint16_t connection_handle, uint8_t type,
+										   uint8_t *transmit_power_level)
+{
+	struct hci_request rq;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_read_transmit_power_level_cp0 *cp0 = (hci_read_transmit_power_level_cp0 *)(cmd_buffer);
+	hci_read_transmit_power_level_rp0 resp;
+	memset(&resp, 0, sizeof(resp));
+	int index_input = 0;
+	cp0->connection_handle = connection_handle;
+	index_input += 2;
+	cp0->type = type;
+	index_input += 1;
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x03;
+	rq.ocf = 0x02d;
+	rq.cmd_param = cmd_buffer;
+	rq.cmd_len = index_input;
+	rq.ret_param = &resp;
+	rq.ret_len = sizeof(resp);
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	if (resp.status)
+		return resp.status;
+	*transmit_power_level = resp.transmit_power_level;
+	return BLE_STATUS_SUCCESS;
+}
+
+ble_status_t hci_set_controller_to_host_flow_control(uint8_t flow_control_enable)
+{
+	struct hci_request rq;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_set_controller_to_host_flow_control_cp0 *cp0 =
+		(hci_set_controller_to_host_flow_control_cp0 *)(cmd_buffer);
+	ble_status_t status = 0;
+	int index_input = 0;
+	cp0->flow_control_enable = flow_control_enable;
+	index_input += 1;
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x03;
+	rq.ocf = 0x031;
+	rq.cmd_param = cmd_buffer;
+	rq.cmd_len = index_input;
+	rq.ret_param = &status;
+	rq.ret_len = 1;
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	return status;
+}
+
+ble_status_t hci_host_buffer_size(uint16_t host_acl_data_packet_length,
+								  uint8_t host_synchronous_data_packet_length,
+								  uint16_t host_total_num_acl_data_packets,
+								  uint16_t host_total_num_synchronous_data_packets)
+{
+	struct hci_request rq;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_host_buffer_size_cp0 *cp0 = (hci_host_buffer_size_cp0 *)(cmd_buffer);
+	ble_status_t status = 0;
+	int index_input = 0;
+	cp0->host_acl_data_packet_length = host_acl_data_packet_length;
+	index_input += 2;
+	cp0->host_synchronous_data_packet_length = host_synchronous_data_packet_length;
+	index_input += 1;
+	cp0->host_total_num_acl_data_packets = host_total_num_acl_data_packets;
+	index_input += 2;
+	cp0->host_total_num_synchronous_data_packets = host_total_num_synchronous_data_packets;
+	index_input += 2;
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x03;
+	rq.ocf = 0x033;
+	rq.cmd_param = cmd_buffer;
+	rq.cmd_len = index_input;
+	rq.ret_param = &status;
+	rq.ret_len = 1;
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	return status;
+}
+
+ble_status_t hci_host_number_of_completed_packets(
+	uint8_t number_of_handles, const host_nb_of_completed_pkt_pair_t *host_nb_of_completed_pkt_pair)
+{
+	struct hci_request rq;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_host_number_of_completed_packets_cp0 *cp0 =
+		(hci_host_number_of_completed_packets_cp0 *)(cmd_buffer);
+	ble_status_t status = 0;
+	int index_input = 0;
+	cp0->number_of_handles = number_of_handles;
+	index_input += 1;
+	memcpy((void *)&cp0->host_nb_of_completed_pkt_pair, (const void *)host_nb_of_completed_pkt_pair,
+		   number_of_handles * (sizeof(host_nb_of_completed_pkt_pair_t)));
+	index_input += number_of_handles * (sizeof(host_nb_of_completed_pkt_pair_t));
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x03;
+	rq.ocf = 0x035;
+	rq.cmd_param = cmd_buffer;
+	rq.cmd_len = index_input;
+	rq.ret_param = &status;
+	rq.ret_len = 1;
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	return status;
+}
+
+ble_status_t hci_read_local_version_information(uint8_t *hci_version, uint16_t *hci_subversion,
+												uint8_t *lmp_version, uint16_t *company_identifier,
+												uint16_t *lmp_subversion)
+{
+	struct hci_request rq;
+	hci_read_local_version_information_rp0 resp;
+	memset(&resp, 0, sizeof(resp));
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x04;
+	rq.ocf = 0x001;
+	rq.ret_param = &resp;
+	rq.ret_len = sizeof(resp);
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	if (resp.status)
+		return resp.status;
+	*hci_version = resp.hci_version;
+	*hci_subversion = resp.hci_subversion;
+	*lmp_version = resp.lmp_version;
+	*company_identifier = resp.company_identifier;
+	*lmp_subversion = resp.lmp_subversion;
+	return BLE_STATUS_SUCCESS;
+}
+
+ble_status_t hci_read_local_supported_commands(uint8_t *supported_commands)
+{
+	struct hci_request rq;
+	hci_read_local_supported_commands_rp0 resp;
+	memset(&resp, 0, sizeof(resp));
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x04;
+	rq.ocf = 0x002;
+	rq.ret_param = &resp;
+	rq.ret_len = sizeof(resp);
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	if (resp.status)
+		return resp.status;
+	memcpy((void *)supported_commands, (const void *)resp.supported_commands, 64);
+	return BLE_STATUS_SUCCESS;
+}
+
+ble_status_t hci_read_local_supported_features(uint8_t *lmp_features)
+{
+	struct hci_request rq;
+	hci_read_local_supported_features_rp0 resp;
+	memset(&resp, 0, sizeof(resp));
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x04;
+	rq.ocf = 0x003;
+	rq.ret_param = &resp;
+	rq.ret_len = sizeof(resp);
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	if (resp.status)
+		return resp.status;
+	memcpy((void *)lmp_features, (const void *)resp.lmp_features, 8);
+	return BLE_STATUS_SUCCESS;
+}
+
+ble_status_t hci_read_bd_addr(uint8_t *bd_addr)
+{
+	struct hci_request rq;
+	hci_read_bd_addr_rp0 resp;
+	memset(&resp, 0, sizeof(resp));
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x04;
+	rq.ocf = 0x009;
+	rq.ret_param = &resp;
+	rq.ret_len = sizeof(resp);
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	if (resp.status)
+		return resp.status;
+	memcpy((void *)bd_addr, (const void *)resp.bd_addr, 6);
+	return BLE_STATUS_SUCCESS;
+}
+
+ble_status_t hci_read_rssi(uint16_t connection_handle, uint8_t *rssi)
+{
+	struct hci_request rq;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_read_rssi_cp0 *cp0 = (hci_read_rssi_cp0 *)(cmd_buffer);
+	hci_read_rssi_rp0 resp;
+	memset(&resp, 0, sizeof(resp));
+	int index_input = 0;
+	cp0->connection_handle = connection_handle;
+	index_input += 2;
+	memset(&rq, 0, sizeof(rq));
+	rq.ogf = 0x05;
+	rq.ocf = 0x005;
+	rq.cmd_param = cmd_buffer;
+	rq.cmd_len = index_input;
+	rq.ret_param = &resp;
+	rq.ret_len = sizeof(resp);
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
+		return BLE_STATUS_TIMEOUT;
+	if (resp.status)
+		return resp.status;
+	*rssi = resp.rssi;
+	return BLE_STATUS_SUCCESS;
+}
+
+ble_status_t hci_le_set_event_mask(const uint8_t *le_event_mask)
+{
+	struct hci_request rq;
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
+	hci_le_set_event_mask_cp0 *cp0 = (hci_le_set_event_mask_cp0 *)(cmd_buffer);
+	ble_status_t status = 0;
+	int index_input = 0;
 	memcpy((void *)&cp0->le_event_mask, (const void *)le_event_mask, 8);
 	index_input += 8;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x001;
@@ -21,75 +327,58 @@ enum ble_status hci_le_set_event_mask(const uint8_t *le_event_mask)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_buffer_size(uint16_t *hc_le_acl_data_packet_length,
-										uint8_t *hc_total_num_le_acl_data_packets)
+ble_status_t hci_le_read_buffer_size(uint16_t *hc_le_acl_data_packet_length,
+									 uint8_t *hc_total_num_le_acl_data_packets)
 {
 	struct hci_request rq;
 	hci_le_read_buffer_size_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x002;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*hc_le_acl_data_packet_length = resp.hc_le_acl_data_packet_length;
 	*hc_total_num_le_acl_data_packets = resp.hc_total_num_le_acl_data_packets;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_read_local_supported_features_page_0(uint8_t *le_features)
+ble_status_t hci_le_read_local_supported_features_page_0(uint8_t *le_features)
 {
 	struct hci_request rq;
 	hci_le_read_local_supported_features_page_0_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x003;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	memcpy((void *)le_features, (const void *)resp.le_features, 8);
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_set_random_address(const uint8_t *random_address)
+ble_status_t hci_le_set_random_address(const uint8_t *random_address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_random_address_cp0 *cp0 = (hci_le_set_random_address_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	memcpy((void *)&cp0->random_address, (const void *)random_address, 6);
 	index_input += 6;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x005;
@@ -97,26 +386,22 @@ enum ble_status hci_le_set_random_address(const uint8_t *random_address)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_advertising_parameters(
+ble_status_t hci_le_set_advertising_parameters(
 	uint16_t advertising_interval_min, uint16_t advertising_interval_max, uint8_t advertising_type,
 	uint8_t own_address_type, uint8_t peer_address_type, const uint8_t *peer_address,
 	uint8_t advertising_channel_map, uint8_t advertising_filter_policy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_advertising_parameters_cp0 *cp0 =
 		(hci_le_set_advertising_parameters_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->advertising_interval_min = advertising_interval_min;
 	index_input += 2;
 	cp0->advertising_interval_max = advertising_interval_max;
@@ -133,7 +418,6 @@ enum ble_status hci_le_set_advertising_parameters(
 	index_input += 1;
 	cp0->advertising_filter_policy = advertising_filter_policy;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x006;
@@ -141,52 +425,41 @@ enum ble_status hci_le_set_advertising_parameters(
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_advertising_physical_channel_tx_power(uint8_t *transmit_power_level)
+ble_status_t hci_le_read_advertising_physical_channel_tx_power(uint8_t *transmit_power_level)
 {
 	struct hci_request rq;
 	hci_le_read_advertising_physical_channel_tx_power_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x007;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*transmit_power_level = resp.transmit_power_level;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_set_advertising_data(uint8_t advertising_data_length,
-											const uint8_t *advertising_data)
+ble_status_t hci_le_set_advertising_data(uint8_t advertising_data_length,
+										 const uint8_t *advertising_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_advertising_data_cp0 *cp0 = (hci_le_set_advertising_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->advertising_data_length = advertising_data_length;
 	index_input += 1;
 	memcpy((void *)&cp0->advertising_data, (const void *)advertising_data, 31);
 	index_input += 31;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x008;
@@ -194,28 +467,23 @@ enum ble_status hci_le_set_advertising_data(uint8_t advertising_data_length,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_scan_response_data(uint8_t scan_response_data_length,
-											  const uint8_t *scan_response_data)
+ble_status_t hci_le_set_scan_response_data(uint8_t scan_response_data_length,
+										   const uint8_t *scan_response_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_scan_response_data_cp0 *cp0 = (hci_le_set_scan_response_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->scan_response_data_length = scan_response_data_length;
 	index_input += 1;
 	memcpy((void *)&cp0->scan_response_data, (const void *)scan_response_data, 31);
 	index_input += 31;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x009;
@@ -223,25 +491,20 @@ enum ble_status hci_le_set_scan_response_data(uint8_t scan_response_data_length,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_advertising_enable(uint8_t advertising_enable)
+ble_status_t hci_le_set_advertising_enable(uint8_t advertising_enable)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_advertising_enable_cp0 *cp0 = (hci_le_set_advertising_enable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->advertising_enable = advertising_enable;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x00a;
@@ -249,24 +512,20 @@ enum ble_status hci_le_set_advertising_enable(uint8_t advertising_enable)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_scan_parameters(uint8_t le_scan_type, uint16_t le_scan_interval,
-										   uint16_t le_scan_window, uint8_t own_address_type,
-										   uint8_t scanning_filter_policy)
+ble_status_t hci_le_set_scan_parameters(uint8_t le_scan_type, uint16_t le_scan_interval,
+										uint16_t le_scan_window, uint8_t own_address_type,
+										uint8_t scanning_filter_policy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_scan_parameters_cp0 *cp0 = (hci_le_set_scan_parameters_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->le_scan_type = le_scan_type;
 	index_input += 1;
 	cp0->le_scan_interval = le_scan_interval;
@@ -277,7 +536,6 @@ enum ble_status hci_le_set_scan_parameters(uint8_t le_scan_type, uint16_t le_sca
 	index_input += 1;
 	cp0->scanning_filter_policy = scanning_filter_policy;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x00b;
@@ -285,27 +543,22 @@ enum ble_status hci_le_set_scan_parameters(uint8_t le_scan_type, uint16_t le_sca
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_scan_enable(uint8_t le_scan_enable, uint8_t filter_duplicates)
+ble_status_t hci_le_set_scan_enable(uint8_t le_scan_enable, uint8_t filter_duplicates)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_scan_enable_cp0 *cp0 = (hci_le_set_scan_enable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->le_scan_enable = le_scan_enable;
 	index_input += 1;
 	cp0->filter_duplicates = filter_duplicates;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x00c;
@@ -313,27 +566,23 @@ enum ble_status hci_le_set_scan_enable(uint8_t le_scan_enable, uint8_t filter_du
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_create_connection(uint16_t le_scan_interval, uint16_t le_scan_window,
-										 uint8_t initiator_filter_policy, uint8_t peer_address_type,
-										 const uint8_t *peer_address, uint8_t own_address_type,
-										 uint16_t conn_interval_min, uint16_t conn_interval_max,
-										 uint16_t conn_latency, uint16_t supervision_timeout,
-										 uint16_t minimum_ce_length, uint16_t maximum_ce_length)
+ble_status_t hci_le_create_connection(uint16_t le_scan_interval, uint16_t le_scan_window,
+									  uint8_t initiator_filter_policy, uint8_t peer_address_type,
+									  const uint8_t *peer_address, uint8_t own_address_type,
+									  uint16_t conn_interval_min, uint16_t conn_interval_max,
+									  uint16_t conn_latency, uint16_t supervision_timeout,
+									  uint16_t minimum_ce_length, uint16_t maximum_ce_length)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_create_connection_cp0 *cp0 = (hci_le_create_connection_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->le_scan_interval = le_scan_interval;
 	index_input += 2;
 	cp0->le_scan_window = le_scan_window;
@@ -358,98 +607,77 @@ enum ble_status hci_le_create_connection(uint16_t le_scan_interval, uint16_t le_
 	index_input += 2;
 	cp0->maximum_ce_length = maximum_ce_length;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x00d;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_create_connection_cancel(void)
+ble_status_t hci_le_create_connection_cancel(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
-
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x00e;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_filter_accept_list_size(uint8_t *filter_accept_list_size)
+ble_status_t hci_le_read_filter_accept_list_size(uint8_t *filter_accept_list_size)
 {
 	struct hci_request rq;
 	hci_le_read_filter_accept_list_size_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x00f;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*filter_accept_list_size = resp.filter_accept_list_size;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_clear_filter_accept_list(void)
+ble_status_t hci_le_clear_filter_accept_list(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
-
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x010;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_add_device_to_filter_accept_list(uint8_t address_type,
-														const uint8_t *address)
+ble_status_t hci_le_add_device_to_filter_accept_list(uint8_t address_type, const uint8_t *address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_add_device_to_filter_accept_list_cp0 *cp0 =
 		(hci_le_add_device_to_filter_accept_list_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->address_type = address_type;
 	index_input += 1;
 	memcpy((void *)&cp0->address, (const void *)address, 6);
 	index_input += 6;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x011;
@@ -457,29 +685,24 @@ enum ble_status hci_le_add_device_to_filter_accept_list(uint8_t address_type,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_remove_device_from_filter_accept_list(uint8_t address_type,
-															 const uint8_t *address)
+ble_status_t hci_le_remove_device_from_filter_accept_list(uint8_t address_type,
+														  const uint8_t *address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_remove_device_from_filter_accept_list_cp0 *cp0 =
 		(hci_le_remove_device_from_filter_accept_list_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->address_type = address_type;
 	index_input += 1;
 	memcpy((void *)&cp0->address, (const void *)address, 6);
 	index_input += 6;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x012;
@@ -487,25 +710,21 @@ enum ble_status hci_le_remove_device_from_filter_accept_list(uint8_t address_typ
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_connection_update(uint16_t connection_handle, uint16_t conn_interval_min,
-										 uint16_t conn_interval_max, uint16_t conn_latency,
-										 uint16_t supervision_timeout, uint16_t minimum_ce_length,
-										 uint16_t maximum_ce_length)
+ble_status_t hci_le_connection_update(uint16_t connection_handle, uint16_t conn_interval_min,
+									  uint16_t conn_interval_max, uint16_t conn_latency,
+									  uint16_t supervision_timeout, uint16_t minimum_ce_length,
+									  uint16_t maximum_ce_length)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_connection_update_cp0 *cp0 = (hci_le_connection_update_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
 	cp0->conn_interval_min = conn_interval_min;
@@ -520,35 +739,29 @@ enum ble_status hci_le_connection_update(uint16_t connection_handle, uint16_t co
 	index_input += 2;
 	cp0->maximum_ce_length = maximum_ce_length;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x013;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_host_channel_classification(const uint8_t *le_channel_map)
+ble_status_t hci_le_set_host_channel_classification(const uint8_t *le_channel_map)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_host_channel_classification_cp0 *cp0 =
 		(hci_le_set_host_channel_classification_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	memcpy((void *)&cp0->le_channel_map, (const void *)le_channel_map, 5);
 	index_input += 5;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x014;
@@ -556,26 +769,21 @@ enum ble_status hci_le_set_host_channel_classification(const uint8_t *le_channel
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_channel_map(uint16_t connection_handle, uint8_t *le_channel_map)
+ble_status_t hci_le_read_channel_map(uint16_t connection_handle, uint8_t *le_channel_map)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_read_channel_map_cp0 *cp0 = (hci_le_read_channel_map_cp0 *)(cmd_buffer);
 	hci_le_read_channel_map_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x015;
@@ -583,62 +791,50 @@ enum ble_status hci_le_read_channel_map(uint16_t connection_handle, uint8_t *le_
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	memcpy((void *)le_channel_map, (const void *)resp.le_channel_map, 5);
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_read_remote_features_page_0(uint16_t connection_handle)
+ble_status_t hci_le_read_remote_features_page_0(uint16_t connection_handle)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_read_remote_features_page_0_cp0 *cp0 =
 		(hci_le_read_remote_features_page_0_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x016;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_encrypt(const uint8_t *key, const uint8_t *plaintext_data,
-							   uint8_t *encrypted_data)
+ble_status_t hci_le_encrypt(const uint8_t *key, const uint8_t *plaintext_data,
+							uint8_t *encrypted_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_encrypt_cp0 *cp0 = (hci_le_encrypt_cp0 *)(cmd_buffer);
 	hci_le_encrypt_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	memcpy((void *)&cp0->key, (const void *)key, 16);
 	index_input += 16;
 	memcpy((void *)&cp0->plaintext_data, (const void *)plaintext_data, 16);
 	index_input += 16;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x017;
@@ -646,53 +842,40 @@ enum ble_status hci_le_encrypt(const uint8_t *key, const uint8_t *plaintext_data
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	memcpy((void *)encrypted_data, (const void *)resp.encrypted_data, 16);
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_rand(uint8_t *random_number)
+ble_status_t hci_le_rand(uint8_t *random_number)
 {
 	struct hci_request rq;
 	hci_le_rand_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x018;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	memcpy((void *)random_number, (const void *)resp.random_number, 8);
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_enable_encryption(uint16_t connection_handle, const uint8_t *random_number,
-										 uint16_t encrypted_diversifier,
-										 const uint8_t *long_term_key)
+ble_status_t hci_le_enable_encryption(uint16_t connection_handle, const uint8_t *random_number,
+									  uint16_t encrypted_diversifier, const uint8_t *long_term_key)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_enable_encryption_cp0 *cp0 = (hci_le_enable_encryption_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
 	memcpy((void *)&cp0->random_number, (const void *)random_number, 8);
@@ -701,39 +884,33 @@ enum ble_status hci_le_enable_encryption(uint16_t connection_handle, const uint8
 	index_input += 2;
 	memcpy((void *)&cp0->long_term_key, (const void *)long_term_key, 16);
 	index_input += 16;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x019;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_long_term_key_request_reply(uint16_t connection_handle,
-												   const uint8_t *long_term_key)
+ble_status_t hci_le_long_term_key_request_reply(uint16_t connection_handle,
+												const uint8_t *long_term_key)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_long_term_key_request_reply_cp0 *cp0 =
 		(hci_le_long_term_key_request_reply_cp0 *)(cmd_buffer);
 	hci_le_long_term_key_request_reply_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
 	memcpy((void *)&cp0->long_term_key, (const void *)long_term_key, 16);
 	index_input += 16;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x01a;
@@ -741,30 +918,24 @@ enum ble_status hci_le_long_term_key_request_reply(uint16_t connection_handle,
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_long_term_key_request_negative_reply(uint16_t connection_handle)
+ble_status_t hci_le_long_term_key_request_negative_reply(uint16_t connection_handle)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_long_term_key_request_negative_reply_cp0 *cp0 =
 		(hci_le_long_term_key_request_negative_reply_cp0 *)(cmd_buffer);
 	hci_le_long_term_key_request_negative_reply_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x01b;
@@ -772,52 +943,40 @@ enum ble_status hci_le_long_term_key_request_negative_reply(uint16_t connection_
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_read_supported_states(uint8_t *le_states)
+ble_status_t hci_le_read_supported_states(uint8_t *le_states)
 {
 	struct hci_request rq;
 	hci_le_read_supported_states_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x01c;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	memcpy((void *)le_states, (const void *)resp.le_states, 8);
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_receiver_test(uint8_t rx_frequency)
+ble_status_t hci_le_receiver_test(uint8_t rx_frequency)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_receiver_test_cp0 *cp0 = (hci_le_receiver_test_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->rx_frequency = rx_frequency;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x01d;
@@ -825,30 +984,25 @@ enum ble_status hci_le_receiver_test(uint8_t rx_frequency)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_transmitter_test(uint8_t tx_frequency, uint8_t length_of_test_data,
-										uint8_t packet_payload)
+ble_status_t hci_le_transmitter_test(uint8_t tx_frequency, uint8_t length_of_test_data,
+									 uint8_t packet_payload)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_transmitter_test_cp0 *cp0 = (hci_le_transmitter_test_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->tx_frequency = tx_frequency;
 	index_input += 1;
 	cp0->length_of_test_data = length_of_test_data;
 	index_input += 1;
 	cp0->packet_payload = packet_payload;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x01e;
@@ -856,55 +1010,43 @@ enum ble_status hci_le_transmitter_test(uint8_t tx_frequency, uint8_t length_of_
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_test_end(uint16_t *number_of_packets)
+ble_status_t hci_le_test_end(uint16_t *number_of_packets)
 {
 	struct hci_request rq;
 	hci_le_test_end_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x01f;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*number_of_packets = resp.number_of_packets;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_set_data_length(uint16_t connection_handle, uint16_t tx_octets,
-									   uint16_t tx_time)
+ble_status_t hci_le_set_data_length(uint16_t connection_handle, uint16_t txoctets, uint16_t txtime)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_data_length_cp0 *cp0 = (hci_le_set_data_length_cp0 *)(cmd_buffer);
 	hci_le_set_data_length_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
-	cp0->tx_octets = tx_octets;
+	cp0->txoctets = txoctets;
 	index_input += 2;
-	cp0->tx_time = tx_time;
+	cp0->txtime = txtime;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x022;
@@ -912,58 +1054,46 @@ enum ble_status hci_le_set_data_length(uint16_t connection_handle, uint16_t tx_o
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_read_suggested_default_data_length(uint16_t *suggested_max_tx_octets,
-														  uint16_t *suggested_max_tx_time)
+ble_status_t hci_le_read_suggested_default_data_length(uint16_t *suggestedmaxtxoctets,
+													   uint16_t *suggestedmaxtxtime)
 {
 	struct hci_request rq;
 	hci_le_read_suggested_default_data_length_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x023;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
-	*suggested_max_tx_octets = resp.suggested_max_tx_octets;
-	*suggested_max_tx_time = resp.suggested_max_tx_time;
-
+	*suggestedmaxtxoctets = resp.suggestedmaxtxoctets;
+	*suggestedmaxtxtime = resp.suggestedmaxtxtime;
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_write_suggested_default_data_length(uint16_t suggested_max_tx_octets,
-														   uint16_t suggested_max_tx_time)
+ble_status_t hci_le_write_suggested_default_data_length(uint16_t suggestedmaxtxoctets,
+														uint16_t suggestedmaxtxtime)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_write_suggested_default_data_length_cp0 *cp0 =
 		(hci_le_write_suggested_default_data_length_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
-	cp0->suggested_max_tx_octets = suggested_max_tx_octets;
+	cp0->suggestedmaxtxoctets = suggestedmaxtxoctets;
 	index_input += 2;
-	cp0->suggested_max_tx_time = suggested_max_tx_time;
+	cp0->suggestedmaxtxtime = suggestedmaxtxtime;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x024;
@@ -971,72 +1101,58 @@ enum ble_status hci_le_write_suggested_default_data_length(uint16_t suggested_ma
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_local_p256_public_key(void)
+ble_status_t hci_le_read_local_p256_public_key(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
-
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x025;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_generate_dhkey(const uint8_t *remote_p256_public_key)
+ble_status_t hci_le_generate_dhkey(const uint8_t *remote_p256_public_key)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_generate_dhkey_cp0 *cp0 = (hci_le_generate_dhkey_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	memcpy((void *)&cp0->remote_p256_public_key, (const void *)remote_p256_public_key, 64);
 	index_input += 64;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x026;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_add_device_to_resolving_list(uint8_t peer_identity_address_type,
-													const uint8_t *peer_identity_address,
-													const uint8_t *peer_irk,
-													const uint8_t *local_irk)
+ble_status_t hci_le_add_device_to_resolving_list(uint8_t peer_identity_address_type,
+												 const uint8_t *peer_identity_address,
+												 const uint8_t *peer_irk, const uint8_t *local_irk)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_add_device_to_resolving_list_cp0 *cp0 =
 		(hci_le_add_device_to_resolving_list_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->peer_identity_address_type = peer_identity_address_type;
 	index_input += 1;
 	memcpy((void *)&cp0->peer_identity_address, (const void *)peer_identity_address, 6);
@@ -1045,7 +1161,6 @@ enum ble_status hci_le_add_device_to_resolving_list(uint8_t peer_identity_addres
 	index_input += 16;
 	memcpy((void *)&cp0->local_irk, (const void *)local_irk, 16);
 	index_input += 16;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x027;
@@ -1053,29 +1168,24 @@ enum ble_status hci_le_add_device_to_resolving_list(uint8_t peer_identity_addres
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_remove_device_from_resolving_list(uint8_t peer_identity_address_type,
-														 const uint8_t *peer_identity_address)
+ble_status_t hci_le_remove_device_from_resolving_list(uint8_t peer_identity_address_type,
+													  const uint8_t *peer_identity_address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_remove_device_from_resolving_list_cp0 *cp0 =
 		(hci_le_remove_device_from_resolving_list_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->peer_identity_address_type = peer_identity_address_type;
 	index_input += 1;
 	memcpy((void *)&cp0->peer_identity_address, (const void *)peer_identity_address, 6);
 	index_input += 6;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x028;
@@ -1083,73 +1193,58 @@ enum ble_status hci_le_remove_device_from_resolving_list(uint8_t peer_identity_a
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_clear_resolving_list(void)
+ble_status_t hci_le_clear_resolving_list(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
-
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x029;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_resolving_list_size(uint8_t *resolving_list_size)
+ble_status_t hci_le_read_resolving_list_size(uint8_t *resolving_list_size)
 {
 	struct hci_request rq;
 	hci_le_read_resolving_list_size_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x02a;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*resolving_list_size = resp.resolving_list_size;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_read_peer_resolvable_address(uint8_t peer_identity_address_type,
-													const uint8_t *peer_identity_address,
-													uint8_t *peer_resolvable_address)
+ble_status_t hci_le_read_peer_resolvable_address(uint8_t peer_identity_address_type,
+												 const uint8_t *peer_identity_address,
+												 uint8_t *peer_resolvable_address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_read_peer_resolvable_address_cp0 *cp0 =
 		(hci_le_read_peer_resolvable_address_cp0 *)(cmd_buffer);
 	hci_le_read_peer_resolvable_address_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	cp0->peer_identity_address_type = peer_identity_address_type;
 	index_input += 1;
 	memcpy((void *)&cp0->peer_identity_address, (const void *)peer_identity_address, 6);
 	index_input += 6;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x02b;
@@ -1157,36 +1252,29 @@ enum ble_status hci_le_read_peer_resolvable_address(uint8_t peer_identity_addres
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	memcpy((void *)peer_resolvable_address, (const void *)resp.peer_resolvable_address, 6);
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_read_local_resolvable_address(uint8_t peer_identity_address_type,
-													 const uint8_t *peer_identity_address,
-													 uint8_t *local_resolvable_address)
+ble_status_t hci_le_read_local_resolvable_address(uint8_t peer_identity_address_type,
+												  const uint8_t *peer_identity_address,
+												  uint8_t *local_resolvable_address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_read_local_resolvable_address_cp0 *cp0 =
 		(hci_le_read_local_resolvable_address_cp0 *)(cmd_buffer);
 	hci_le_read_local_resolvable_address_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	cp0->peer_identity_address_type = peer_identity_address_type;
 	index_input += 1;
 	memcpy((void *)&cp0->peer_identity_address, (const void *)peer_identity_address, 6);
 	index_input += 6;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x02c;
@@ -1194,31 +1282,24 @@ enum ble_status hci_le_read_local_resolvable_address(uint8_t peer_identity_addre
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	memcpy((void *)local_resolvable_address, (const void *)resp.local_resolvable_address, 6);
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_set_address_resolution_enable(uint8_t address_resolution_enable)
+ble_status_t hci_le_set_address_resolution_enable(uint8_t address_resolution_enable)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_address_resolution_enable_cp0 *cp0 =
 		(hci_le_set_address_resolution_enable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->address_resolution_enable = address_resolution_enable;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x02d;
@@ -1226,26 +1307,21 @@ enum ble_status hci_le_set_address_resolution_enable(uint8_t address_resolution_
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_resolvable_private_address_timeout(uint16_t rpa_timeout)
+ble_status_t hci_le_set_resolvable_private_address_timeout(uint16_t rpa_timeout)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_resolvable_private_address_timeout_cp0 *cp0 =
 		(hci_le_set_resolvable_private_address_timeout_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->rpa_timeout = rpa_timeout;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x02e;
@@ -1253,56 +1329,45 @@ enum ble_status hci_le_set_resolvable_private_address_timeout(uint16_t rpa_timeo
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_maximum_data_length(uint16_t *supported_max_tx_octets,
-												uint16_t *supported_max_tx_time,
-												uint16_t *supported_max_rx_octets,
-												uint16_t *supported_max_rx_time)
+ble_status_t hci_le_read_maximum_data_length(uint16_t *supportedmaxtxoctets,
+											 uint16_t *supportedmaxtxtime,
+											 uint16_t *supportedmaxrxoctets,
+											 uint16_t *supportedmaxrxtime)
 {
 	struct hci_request rq;
 	hci_le_read_maximum_data_length_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x02f;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
-	*supported_max_tx_octets = resp.supported_max_tx_octets;
-	*supported_max_tx_time = resp.supported_max_tx_time;
-	*supported_max_rx_octets = resp.supported_max_rx_octets;
-	*supported_max_rx_time = resp.supported_max_rx_time;
-
+	*supportedmaxtxoctets = resp.supportedmaxtxoctets;
+	*supportedmaxtxtime = resp.supportedmaxtxtime;
+	*supportedmaxrxoctets = resp.supportedmaxrxoctets;
+	*supportedmaxrxtime = resp.supportedmaxrxtime;
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_read_phy(uint16_t connection_handle, uint8_t *tx_phy, uint8_t *rx_phy)
+ble_status_t hci_le_read_phy(uint16_t connection_handle, uint8_t *tx_phy, uint8_t *rx_phy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_read_phy_cp0 *cp0 = (hci_le_read_phy_cp0 *)(cmd_buffer);
 	hci_le_read_phy_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x030;
@@ -1310,35 +1375,28 @@ enum ble_status hci_le_read_phy(uint16_t connection_handle, uint8_t *tx_phy, uin
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*tx_phy = resp.tx_phy;
 	*rx_phy = resp.rx_phy;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_set_default_phy(uint8_t all_phys, uint8_t tx_phys, uint8_t rx_phys)
+ble_status_t hci_le_set_default_phy(uint8_t all_phys, uint8_t tx_phys, uint8_t rx_phys)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_default_phy_cp0 *cp0 = (hci_le_set_default_phy_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->all_phys = all_phys;
 	index_input += 1;
 	cp0->tx_phys = tx_phys;
 	index_input += 1;
 	cp0->rx_phys = rx_phys;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x031;
@@ -1346,23 +1404,19 @@ enum ble_status hci_le_set_default_phy(uint8_t all_phys, uint8_t tx_phys, uint8_
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_phy(uint16_t connection_handle, uint8_t all_phys, uint8_t tx_phys,
-							   uint8_t rx_phys, uint16_t phy_options)
+ble_status_t hci_le_set_phy(uint16_t connection_handle, uint8_t all_phys, uint8_t tx_phys,
+							uint8_t rx_phys, uint16_t phy_options)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_phy_cp0 *cp0 = (hci_le_set_phy_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->connection_handle = connection_handle;
 	index_input += 2;
 	cp0->all_phys = all_phys;
@@ -1373,38 +1427,32 @@ enum ble_status hci_le_set_phy(uint16_t connection_handle, uint8_t all_phys, uin
 	index_input += 1;
 	cp0->phy_options = phy_options;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x032;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_receiver_test_v2(uint8_t rx_frequency, uint8_t phy, uint8_t modulation_index)
+ble_status_t hci_le_receiver_test_v2(uint8_t rx_frequency, uint8_t phy, uint8_t modulation_index)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_receiver_test_v2_cp0 *cp0 = (hci_le_receiver_test_v2_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->rx_frequency = rx_frequency;
 	index_input += 1;
 	cp0->phy = phy;
 	index_input += 1;
 	cp0->modulation_index = modulation_index;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x033;
@@ -1412,23 +1460,19 @@ enum ble_status hci_le_receiver_test_v2(uint8_t rx_frequency, uint8_t phy, uint8
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_transmitter_test_v2(uint8_t tx_frequency, uint8_t length_of_test_data,
-										   uint8_t packet_payload, uint8_t phy)
+ble_status_t hci_le_transmitter_test_v2(uint8_t tx_frequency, uint8_t length_of_test_data,
+										uint8_t packet_payload, uint8_t phy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_transmitter_test_v2_cp0 *cp0 = (hci_le_transmitter_test_v2_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->tx_frequency = tx_frequency;
 	index_input += 1;
 	cp0->length_of_test_data = length_of_test_data;
@@ -1437,7 +1481,6 @@ enum ble_status hci_le_transmitter_test_v2(uint8_t tx_frequency, uint8_t length_
 	index_input += 1;
 	cp0->phy = phy;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x034;
@@ -1445,29 +1488,24 @@ enum ble_status hci_le_transmitter_test_v2(uint8_t tx_frequency, uint8_t length_
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_advertising_set_random_address(uint8_t advertising_handle,
-														  const uint8_t *random_address)
+ble_status_t hci_le_set_advertising_set_random_address(uint8_t advertising_handle,
+													   const uint8_t *random_address)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_advertising_set_random_address_cp0 *cp0 =
 		(hci_le_set_advertising_set_random_address_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->advertising_handle = advertising_handle;
 	index_input += 1;
 	memcpy((void *)&cp0->random_address, (const void *)random_address, 6);
 	index_input += 6;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x035;
@@ -1475,15 +1513,12 @@ enum ble_status hci_le_set_advertising_set_random_address(uint8_t advertising_ha
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_extended_advertising_parameters(
+ble_status_t hci_le_set_extended_advertising_parameters(
 	uint8_t advertising_handle, uint16_t adv_event_properties,
 	const uint8_t *primary_adv_interval_min, const uint8_t *primary_adv_interval_max,
 	uint8_t primary_adv_channel_map, uint8_t own_address_type, uint8_t peer_address_type,
@@ -1492,11 +1527,10 @@ enum ble_status hci_le_set_extended_advertising_parameters(
 	uint8_t adv_sid, uint8_t scan_req_notification_enable, uint8_t *selected_tx_power)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_extended_advertising_parameters_cp0 *cp0 =
 		(hci_le_set_extended_advertising_parameters_cp0 *)(cmd_buffer);
 	hci_le_set_extended_advertising_parameters_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	int index_input = 0;
 	cp0->advertising_handle = advertising_handle;
@@ -1529,7 +1563,6 @@ enum ble_status hci_le_set_extended_advertising_parameters(
 	index_input += 1;
 	cp0->scan_req_notification_enable = scan_req_notification_enable;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x036;
@@ -1537,31 +1570,25 @@ enum ble_status hci_le_set_extended_advertising_parameters(
 	rq.cmd_len = index_input;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*selected_tx_power = resp.selected_tx_power;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_set_extended_advertising_data(uint8_t advertising_handle, uint8_t operation,
-													 uint8_t fragment_preference,
-													 uint8_t advertising_data_length,
-													 const uint8_t *advertising_data)
+ble_status_t hci_le_set_extended_advertising_data(uint8_t advertising_handle, uint8_t operation,
+												  uint8_t fragment_preference,
+												  uint8_t advertising_data_length,
+												  const uint8_t *advertising_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_extended_advertising_data_cp0 *cp0 =
 		(hci_le_set_extended_advertising_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->advertising_handle = advertising_handle;
 	index_input += 1;
 	cp0->operation = operation;
@@ -1572,7 +1599,6 @@ enum ble_status hci_le_set_extended_advertising_data(uint8_t advertising_handle,
 	index_input += 1;
 	memcpy((void *)&cp0->advertising_data, (const void *)advertising_data, advertising_data_length);
 	index_input += advertising_data_length;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x037;
@@ -1580,27 +1606,22 @@ enum ble_status hci_le_set_extended_advertising_data(uint8_t advertising_handle,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_extended_scan_response_data(uint8_t advertising_handle,
-													   uint8_t operation,
-													   uint8_t fragment_preference,
-													   uint8_t scan_response_data_length,
-													   const uint8_t *scan_response_data)
+ble_status_t hci_le_set_extended_scan_response_data(uint8_t advertising_handle, uint8_t operation,
+													uint8_t fragment_preference,
+													uint8_t scan_response_data_length,
+													const uint8_t *scan_response_data)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_extended_scan_response_data_cp0 *cp0 =
 		(hci_le_set_extended_scan_response_data_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->advertising_handle = advertising_handle;
 	index_input += 1;
 	cp0->operation = operation;
@@ -1612,7 +1633,6 @@ enum ble_status hci_le_set_extended_scan_response_data(uint8_t advertising_handl
 	memcpy((void *)&cp0->scan_response_data, (const void *)scan_response_data,
 		   scan_response_data_length);
 	index_input += scan_response_data_length;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x038;
@@ -1620,31 +1640,26 @@ enum ble_status hci_le_set_extended_scan_response_data(uint8_t advertising_handl
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_extended_advertising_enable(uint8_t enable, uint8_t num_sets,
-													   const adv_set_t *adv_set)
+ble_status_t hci_le_set_extended_advertising_enable(uint8_t enable, uint8_t num_sets,
+													const adv_set_t *adv_set)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_extended_advertising_enable_cp0 *cp0 =
 		(hci_le_set_extended_advertising_enable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->enable = enable;
 	index_input += 1;
 	cp0->num_sets = num_sets;
 	index_input += 1;
 	memcpy((void *)&cp0->adv_set, (const void *)adv_set, num_sets * (sizeof(adv_set_t)));
 	index_input += num_sets * (sizeof(adv_set_t));
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x039;
@@ -1652,74 +1667,57 @@ enum ble_status hci_le_set_extended_advertising_enable(uint8_t enable, uint8_t n
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_maximum_advertising_data_length(uint16_t *max_advertising_data_length)
+ble_status_t hci_le_read_maximum_advertising_data_length(uint16_t *max_advertising_data_length)
 {
 	struct hci_request rq;
 	hci_le_read_maximum_advertising_data_length_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x03a;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*max_advertising_data_length = resp.max_advertising_data_length;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status
+ble_status_t
 hci_le_read_number_of_supported_advertising_sets(uint8_t *num_supported_advertising_sets)
 {
 	struct hci_request rq;
 	hci_le_read_number_of_supported_advertising_sets_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x03b;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*num_supported_advertising_sets = resp.num_supported_advertising_sets;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_remove_advertising_set(uint8_t advertising_handle)
+ble_status_t hci_le_remove_advertising_set(uint8_t advertising_handle)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_remove_advertising_set_cp0 *cp0 = (hci_le_remove_advertising_set_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->advertising_handle = advertising_handle;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x03c;
@@ -1727,44 +1725,36 @@ enum ble_status hci_le_remove_advertising_set(uint8_t advertising_handle)
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_clear_advertising_sets(void)
+ble_status_t hci_le_clear_advertising_sets(void)
 {
 	struct hci_request rq;
-	enum ble_status status = 0;
-
+	ble_status_t status = 0;
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x03d;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_extended_scan_parameters(uint8_t own_address_type,
-													uint8_t scanning_filter_policy,
-													uint8_t scanning_phys,
-													const scan_param_phy_t *scan_param_phy)
+ble_status_t hci_le_set_extended_scan_parameters(uint8_t own_address_type,
+												 uint8_t scanning_filter_policy,
+												 uint8_t scanning_phys,
+												 const scan_param_phy_t *scan_param_phy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_extended_scan_parameters_cp0 *cp0 =
 		(hci_le_set_extended_scan_parameters_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->own_address_type = own_address_type;
 	index_input += 1;
 	cp0->scanning_filter_policy = scanning_filter_policy;
@@ -1773,7 +1763,6 @@ enum ble_status hci_le_set_extended_scan_parameters(uint8_t own_address_type,
 	index_input += 1;
 	memcpy((void *)&cp0->scan_param_phy, (const void *)scan_param_phy, 10);
 	index_input += 10;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x041;
@@ -1781,23 +1770,19 @@ enum ble_status hci_le_set_extended_scan_parameters(uint8_t own_address_type,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_extended_scan_enable(uint8_t enable, uint8_t filter_duplicates,
-												uint16_t duration, uint16_t period)
+ble_status_t hci_le_set_extended_scan_enable(uint8_t enable, uint8_t filter_duplicates,
+											 uint16_t duration, uint16_t period)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_extended_scan_enable_cp0 *cp0 = (hci_le_set_extended_scan_enable_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->enable = enable;
 	index_input += 1;
 	cp0->filter_duplicates = filter_duplicates;
@@ -1806,7 +1791,6 @@ enum ble_status hci_le_set_extended_scan_enable(uint8_t enable, uint8_t filter_d
 	index_input += 2;
 	cp0->period = period;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x042;
@@ -1814,26 +1798,22 @@ enum ble_status hci_le_set_extended_scan_enable(uint8_t enable, uint8_t filter_d
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status
-hci_le_extended_create_connection(uint8_t initiator_filter_policy, uint8_t own_address_type,
-								  uint8_t peer_address_type, const uint8_t *peer_address,
-								  uint8_t initiating_phys, const init_param_phy_t *init_param_phy)
+ble_status_t hci_le_extended_create_connection(uint8_t initiator_filter_policy,
+											   uint8_t own_address_type, uint8_t peer_address_type,
+											   const uint8_t *peer_address, uint8_t initiating_phys,
+											   const init_param_phy_t *init_param_phy)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_extended_create_connection_cp0 *cp0 =
 		(hci_le_extended_create_connection_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->initiator_filter_policy = initiator_filter_policy;
 	index_input += 1;
 	cp0->own_address_type = own_address_type;
@@ -1846,89 +1826,71 @@ hci_le_extended_create_connection(uint8_t initiator_filter_policy, uint8_t own_a
 	index_input += 1;
 	memcpy((void *)&cp0->init_param_phy, (const void *)init_param_phy, 48);
 	index_input += 48;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x043;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_read_transmit_power(uint8_t *min_tx_power, uint8_t *max_tx_power)
+ble_status_t hci_le_read_transmit_power(uint8_t *min_tx_power, uint8_t *max_tx_power)
 {
 	struct hci_request rq;
 	hci_le_read_transmit_power_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x04b;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*min_tx_power = resp.min_tx_power;
 	*max_tx_power = resp.max_tx_power;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_read_rf_path_compensation(uint16_t *rf_tx_path_compensation,
-												 uint16_t *rf_rx_path_compensation)
+ble_status_t hci_le_read_rf_path_compensation(uint16_t *rf_tx_path_compensation,
+											  uint16_t *rf_rx_path_compensation)
 {
 	struct hci_request rq;
 	hci_le_read_rf_path_compensation_rp0 resp;
-
 	memset(&resp, 0, sizeof(resp));
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x04c;
 	rq.ret_param = &resp;
 	rq.ret_len = sizeof(resp);
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	if (resp.status)
 		return resp.status;
-
 	*rf_tx_path_compensation = resp.rf_tx_path_compensation;
 	*rf_rx_path_compensation = resp.rf_rx_path_compensation;
-
 	return BLE_STATUS_SUCCESS;
 }
 
-enum ble_status hci_le_write_rf_path_compensation(uint16_t rf_tx_path_compensation,
-												  uint16_t rf_rx_path_compensation)
+ble_status_t hci_le_write_rf_path_compensation(uint16_t rf_tx_path_compensation,
+											   uint16_t rf_rx_path_compensation)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_write_rf_path_compensation_cp0 *cp0 =
 		(hci_le_write_rf_path_compensation_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->rf_tx_path_compensation = rf_tx_path_compensation;
 	index_input += 2;
 	cp0->rf_rx_path_compensation = rf_rx_path_compensation;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x04d;
@@ -1936,30 +1898,25 @@ enum ble_status hci_le_write_rf_path_compensation(uint16_t rf_tx_path_compensati
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_privacy_mode(uint8_t peer_identity_address_type,
-										const uint8_t *peer_identity_address, uint8_t privacy_mode)
+ble_status_t hci_le_set_privacy_mode(uint8_t peer_identity_address_type,
+									 const uint8_t *peer_identity_address, uint8_t privacy_mode)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_privacy_mode_cp0 *cp0 = (hci_le_set_privacy_mode_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->peer_identity_address_type = peer_identity_address_type;
 	index_input += 1;
 	memcpy((void *)&cp0->peer_identity_address, (const void *)peer_identity_address, 6);
 	index_input += 6;
 	cp0->privacy_mode = privacy_mode;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x04e;
@@ -1967,58 +1924,48 @@ enum ble_status hci_le_set_privacy_mode(uint8_t peer_identity_address_type,
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_generate_dhkey_v2(const uint8_t *remote_p256_public_key, uint8_t key_type)
+ble_status_t hci_le_generate_dhkey_v2(const uint8_t *remote_p256_public_key, uint8_t key_type)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_generate_dhkey_v2_cp0 *cp0 = (hci_le_generate_dhkey_v2_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	memcpy((void *)&cp0->remote_p256_public_key, (const void *)remote_p256_public_key, 64);
 	index_input += 64;
 	cp0->key_type = key_type;
 	index_input += 1;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x05e;
-	rq.event = 0x0F;
+	rq.event = 0x0f;
 	rq.cmd_param = cmd_buffer;
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
 
-enum ble_status hci_le_set_resolvable_private_address_timeout_v2(uint16_t rpa_timeout_min,
-																 uint16_t rpa_timeout_max)
+ble_status_t hci_le_set_resolvable_private_address_timeout_v2(uint16_t rpa_timeout_min,
+															  uint16_t rpa_timeout_max)
 {
 	struct hci_request rq;
-	uint8_t cmd_buffer[HCI_COMMAND_MAX_PARAM_LEN];
+	uint8_t cmd_buffer[BLE_CMD_MAX_PARAM_LEN];
 	hci_le_set_resolvable_private_address_timeout_v2_cp0 *cp0 =
 		(hci_le_set_resolvable_private_address_timeout_v2_cp0 *)(cmd_buffer);
-	enum ble_status status = 0;
+	ble_status_t status = 0;
 	int index_input = 0;
-
 	cp0->rpa_timeout_min = rpa_timeout_min;
 	index_input += 2;
 	cp0->rpa_timeout_max = rpa_timeout_max;
 	index_input += 2;
-
 	memset(&rq, 0, sizeof(rq));
 	rq.ogf = 0x08;
 	rq.ocf = 0x09e;
@@ -2026,10 +1973,7 @@ enum ble_status hci_le_set_resolvable_private_address_timeout_v2(uint16_t rpa_ti
 	rq.cmd_len = index_input;
 	rq.ret_param = &status;
 	rq.ret_len = 1;
-
-	if (hci_send_req(&rq) == STATUS_TIMEOUT) {
+	if (hci_send_req(&rq) == STATUS_TIMEOUT)
 		return BLE_STATUS_TIMEOUT;
-	}
-
 	return status;
 }
