@@ -12,6 +12,7 @@
 #include "auto/ble_gap_aci.h"
 #include "auto/ble_types.h"
 #include "subsys/ble/auto/ble_vs_codes.h"
+#include "subsys/lpm/lpm.h"
 #include "svc/svcctl_p.h"
 #include "tl/tl.h"
 #include "tl/shci_tl.h"
@@ -203,7 +204,7 @@ static bool sys_ready_evt_handler(tl_asynch_evt_t *p_sys_evt)
 		kernel_semaphore_give(&g_sys_ready_sem); // Continue with ble init
 		return true;
 	} else if (p_sys_ready_event->sys_evt_ready_rsp == FUS_FW_RUNNING) {
-		BW_LOG("SHCI code ready: FUS running\n\r");
+		BW_LOG("SHCI code ready: FUS running\n");
 		return false;
 	} else {
 		BW_LOG("SHCI code ready: Unexpected case \n");
@@ -243,10 +244,11 @@ static void ble_stack_init()
 														 CFG_BLE_RX_PATH_COMPENS,
 														 CFG_BLE_CORE_VERSION,
 														 CFG_BLE_OPTIONS_EXT,
-														 CFG_BLE_MAX_ADD_EATT_BEARERS } };
+														 CFG_BLE_MAX_ADD_EATT_BEARERS,
+														 NULL,
+														 0 } };
 	hci_init(&g_ble_cmd_buf, ble_evt_rx);
-
-	// LPM disable standby
+	lpm_disable_mode(LPM_MODE_STANDBY, "BLE");
 
 	enum shci_cmd_status status = shci_c2_ble_init(&ble_init_cmd_pkt);
 	if (status != SHCI_SUCCESS) {
@@ -280,11 +282,9 @@ static void ble_stack_init()
 
 	ble_status_t ret = aci_hal_set_radio_activity_mask(0x0006);
 	if (ret != BLE_STATUS_SUCCESS)
-		BW_LOG("Fail   : aci_hal_set_radio_activity_mask command, result: 0x%p \n\r", ret);
+		BW_LOG("Fail   : aci_hal_set_radio_activity_mask command, result: 0x%p \n", ret);
 	else
-		BW_LOG("Success: aci_hal_set_radio_activity_mask command\n\r");
-
-	// LPM enable standby
+		BW_LOG("Success: aci_hal_set_radio_activity_mask command\n");
 }
 
 static void ble_get_bd_address(uint8_t *bd_addr)

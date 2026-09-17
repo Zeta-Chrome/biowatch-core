@@ -27,7 +27,6 @@ void pwr_enter_sleep();
 void pwr_enter_lp_sleep();
 void pwr_exit_lp_sleep();
 void pwr_enter_stop(enum pwr_stop_mode stop_mode);
-void pwr_exit_stop();
 void pwr_enter_standby();
 void pwr_enter_shutdown();
 

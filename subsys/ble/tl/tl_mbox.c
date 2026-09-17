@@ -89,7 +89,8 @@ void tl_sys_send_cmd()
 static void tl_sys_cmd_callback(void *user_data)
 {
 	(void)user_data;
-	g_p_sys_conf->cmd_callback();
+	if (g_p_sys_conf->cmd_callback)
+		g_p_sys_conf->cmd_callback();
 }
 
 static void tl_sys_evt_callback(void *user_data)
@@ -98,7 +99,8 @@ static void tl_sys_evt_callback(void *user_data)
 	tl_evt_packet_t *p_sys_evt_packet;
 	while (!stm_list_is_empty(&g_sys_evt_queue)) {
 		stm_list_remove_head(&g_sys_evt_queue, (stm_list_node_t **)&p_sys_evt_packet);
-		g_p_sys_conf->evt_callback(p_sys_evt_packet);
+		if (g_p_sys_conf->evt_callback)
+			g_p_sys_conf->evt_callback(p_sys_evt_packet);
 	}
 }
 
@@ -174,7 +176,8 @@ static void tl_traces_evt_callback(void *user_data)
 	tl_evt_packet_t *p_traces_evt_packet;
 	while (!stm_list_is_empty(&g_traces_evt_queue)) {
 		stm_list_remove_head(&g_traces_evt_queue, (stm_list_node_t **)&p_traces_evt_packet);
-		g_p_traces_conf->evt_callback(p_traces_evt_packet);
+		if (g_p_traces_conf->evt_callback)
+			g_p_traces_conf->evt_callback(p_traces_evt_packet);
 	}
 }
 
@@ -212,7 +215,8 @@ static void tl_ble_evt_callback(void *user_data)
 	tl_evt_packet_t *p_ble_evt_packet;
 	while (!stm_list_is_empty(&g_ble_evt_queue)) {
 		stm_list_remove_head(&g_ble_evt_queue, (stm_list_node_t **)&p_ble_evt_packet);
-		g_p_ble_conf->evt_callback(p_ble_evt_packet);
+		if (g_p_ble_conf->evt_callback)
+			g_p_ble_conf->evt_callback(p_ble_evt_packet);
 	}
 }
 
