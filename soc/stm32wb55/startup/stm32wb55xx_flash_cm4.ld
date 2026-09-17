@@ -121,6 +121,13 @@ SECTIONS
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
 
+  .rtt (NOLOAD) :
+  {
+    . = ALIGN(4);
+    KEEP(*SEGGER_RTT*.*(.data._SEGGER_RTT .bss._SEGGER_RTT COMMON))
+    . = ALIGN(4);
+  } >RAM1
+
   /* Initialized data sections goes into RAM, load LMA copy after code */
   .data :
   {

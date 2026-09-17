@@ -22,32 +22,32 @@ void kernel_semaphore_counting_init(struct semaphore *semaphore, uint32_t max_co
 	list_init(&semaphore->wait_queue);
 }
 
-enum bw_status kernel_semaphore_take(struct semaphore *semaphore, uint32_t timeout_ms)
+enum bw_status kernel_semaphore_take(struct semaphore *semaphore, uint64_t timeout_ms)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	if (semaphore->count > 0) {
 		semaphore->count--;
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return STATUS_OK;
 	}
 
 	kernel_task_wait_on_queue(&semaphore->wait_queue);
 	kernel_task_set_delay(timeout_ms);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	kernel_task_yield();
 
-	KERNEL_ENTER_CRITICAL();
+	key = KERNEL_ENTER_CRITICAL();
 	enum bw_status exit_status = get_task_tcb()->exit_status;
 	get_task_tcb()->exit_status = STATUS_OK;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 	return exit_status;
 }
 
 void kernel_semaphore_give(struct semaphore *semaphore)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 
 	struct list_node *node = semaphore->wait_queue.head;
 	if (node != NULL) {
@@ -56,7 +56,7 @@ void kernel_semaphore_give(struct semaphore *semaphore)
 		kernel_task_remove_delay(&tcb->delay_node);
 		tcb->exit_status = STATUS_OK;
 
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		kernel_task_yield_if_higher();
 		return;
 	}
@@ -64,7 +64,7 @@ void kernel_semaphore_give(struct semaphore *semaphore)
 	if (semaphore->count < semaphore->max_count)
 		semaphore->count++;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void kernel_semaphore_give_from_isr(struct semaphore *semaphore)

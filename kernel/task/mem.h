@@ -4,7 +4,7 @@
 #include "lib/status.h"
 #include <stdint.h>
 
-#define TASK_POOL_SIZE 0x2000 // 8kB
+#define TASK_POOL_SIZE 0x3000 // 12kB
 
 typedef uint32_t *stack_ptr_t;
 

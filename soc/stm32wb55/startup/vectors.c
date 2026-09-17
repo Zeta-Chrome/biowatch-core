@@ -1,4 +1,3 @@
-#include "drivers/exti/exti.h"
 #include "drivers/i2c/i2c.h"
 #include "drivers/rtc/rtc.h"
 #include "drivers/spi/spi.h"
@@ -22,9 +21,6 @@ void hsem_isr();
 void SysTick_Handler(void)
 {
 	systick_tick();
-#ifdef DEBUG
-	kernel_scheduler_tick();
-#endif
 }
 
 void I2C1_EV_IRQHandler(void)

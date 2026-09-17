@@ -6,11 +6,12 @@
 
 void kernel_task_add_to_ready(struct list_node *node);
 void kernel_task_remove_from_ready(struct list_node *node);
-void kernel_task_set_delay(uint32_t ms);
+void kernel_task_set_delay(uint64_t ms);
 void kernel_task_remove_delay(struct list_node *node);
 void kernel_task_wait_on_queue(struct list *wait_queue);
 void kernel_task_wake_from_queue(struct list *wait_queue, struct list_node *node);
 void kernel_task_yield_if_higher();
+uint64_t kernel_task_deadline_ms();
 struct tcb *get_task_tcb();
 
 #endif

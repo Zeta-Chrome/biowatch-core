@@ -15,14 +15,14 @@ void kernel_mqueue_init(struct mqueue *mqueue, void *buf, uint16_t length, uint1
 
 void kernel_mqueue_peek(struct mqueue *mqueue, void **data)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	queue_peek(&mqueue->container, data);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
-enum bw_status kernel_mqueue_send(struct mqueue *mqueue, void *data, uint32_t timeout_ms)
+enum bw_status kernel_mqueue_send(struct mqueue *mqueue, void *data, uint64_t timeout_ms)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	struct list_node *node = mqueue->rwait_queue.head;
 	if (node != NULL) {
 		struct tcb *tcb = node->data;
@@ -33,7 +33,7 @@ enum bw_status kernel_mqueue_send(struct mqueue *mqueue, void *data, uint32_t ti
 		tcb->p_msg_data = NULL;
 		tcb->exit_status = STATUS_OK;
 
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		kernel_task_yield_if_higher();
 		return STATUS_OK;
 	}
@@ -49,7 +49,7 @@ enum bw_status kernel_mqueue_send(struct mqueue *mqueue, void *data, uint32_t ti
 		}
 	} else if (queue_push(&mqueue->container, data)) // if not full return
 	{
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return STATUS_OK;
 	}
 
@@ -59,21 +59,21 @@ enum bw_status kernel_mqueue_send(struct mqueue *mqueue, void *data, uint32_t ti
 	// block until queue has empty space
 	kernel_task_wait_on_queue(&mqueue->swait_queue);
 	kernel_task_set_delay(timeout_ms);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	kernel_task_yield();
 
-	KERNEL_ENTER_CRITICAL();
+	key = KERNEL_ENTER_CRITICAL();
 	enum bw_status exit_status = get_task_tcb()->exit_status;
 	get_task_tcb()->exit_status = STATUS_OK;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 	return exit_status;
 }
 
-enum bw_status kernel_mqueue_receive(struct mqueue *mqueue, void *data, uint32_t timeout_ms)
+enum bw_status kernel_mqueue_receive(struct mqueue *mqueue, void *data, uint64_t timeout_ms)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	struct list_node *node = mqueue->swait_queue.head;
 	if (node != NULL) {
 		struct tcb *tcb = node->data;
@@ -84,7 +84,7 @@ enum bw_status kernel_mqueue_receive(struct mqueue *mqueue, void *data, uint32_t
 		tcb->p_msg_data = NULL;
 		tcb->exit_status = STATUS_OK;
 
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		kernel_task_yield_if_higher();
 		return STATUS_OK;
 	}
@@ -99,7 +99,7 @@ enum bw_status kernel_mqueue_receive(struct mqueue *mqueue, void *data, uint32_t
 			tcb->exit_status = STATUS_OK;
 		}
 	} else if (queue_pop(&mqueue->container, data)) {
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return STATUS_OK;
 	}
 
@@ -109,21 +109,21 @@ enum bw_status kernel_mqueue_receive(struct mqueue *mqueue, void *data, uint32_t
 	// block until queue has an element
 	kernel_task_wait_on_queue(&mqueue->rwait_queue);
 	kernel_task_set_delay(timeout_ms);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	kernel_task_yield();
 
-	KERNEL_ENTER_CRITICAL();
+	key = KERNEL_ENTER_CRITICAL();
 	enum bw_status exit_status = get_task_tcb()->exit_status;
 	get_task_tcb()->exit_status = STATUS_OK;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 	return exit_status;
 }
 
 void kernel_mqueue_overwrite(struct mqueue *mqueue, void *data)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	ring_push(&mqueue->container, data);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }

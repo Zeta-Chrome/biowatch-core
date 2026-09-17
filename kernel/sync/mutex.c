@@ -11,21 +11,21 @@ void kernel_mutex_init(struct mutex *mutex)
 	list_init(&mutex->wait_queue);
 }
 
-enum bw_status kernel_mutex_lock(struct mutex *mutex, uint32_t timeout_ms)
+enum bw_status kernel_mutex_lock(struct mutex *mutex, uint64_t timeout_ms)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	struct tcb *tcb = get_task_tcb();
 	if (mutex->lock_count == 0) {
 		mutex->owner_task = tcb;
 		mutex->original_prio = tcb->priority;
 		mutex->lock_count++;
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return STATUS_OK;
 	}
 
 	if (mutex->owner_task == tcb) {
 		mutex->lock_count++;
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return STATUS_OK;
 	}
 
@@ -34,15 +34,15 @@ enum bw_status kernel_mutex_lock(struct mutex *mutex, uint32_t timeout_ms)
 
 	kernel_task_wait_on_queue(&mutex->wait_queue);
 	kernel_task_set_delay(timeout_ms);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	kernel_task_yield();
 
-	KERNEL_ENTER_CRITICAL();
+	key = KERNEL_ENTER_CRITICAL();
 	enum bw_status exit_status = get_task_tcb()->exit_status;
 	get_task_tcb()->exit_status = STATUS_OK;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 	return exit_status;
 }
 
@@ -51,11 +51,11 @@ enum bw_status kernel_mutex_unlock(struct mutex *mutex)
 	if (get_task_tcb() != mutex->owner_task)
 		return STATUS_MUTEX_NOT_OWNER;
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	if (mutex->lock_count > 0) {
 		mutex->lock_count--;
 		if (mutex->lock_count > 0) {
-			KERNEL_EXIT_CRITICAL();
+			KERNEL_EXIT_CRITICAL(key);
 			return STATUS_OK;
 		}
 	}
@@ -77,11 +77,11 @@ enum bw_status kernel_mutex_unlock(struct mutex *mutex)
 		mutex->original_prio = tcb->priority;
 		tcb->exit_status = STATUS_OK;
 
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		kernel_task_yield_if_higher();
 		return STATUS_OK;
 	}
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 	return STATUS_OK;
 }

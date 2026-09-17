@@ -13,17 +13,19 @@ typedef void (*kernel_timer_callback)(void *user_data);
 
 struct kernel_timer {
 	enum kernel_timer_type type;
-	uint32_t ticks;
+	uint64_t ticks;
 	kernel_timer_callback callback;
 	void *user_data;
 	struct list_node node;
-	uint32_t rem_ticks;
+	uint64_t rem_ticks;
 	bool active;
 };
 
 void kernel_timer_init();
-void kernel_timer_register(struct kernel_timer *timer);
+uint64_t kernel_timer_ms();
 void kernel_timer_start(struct kernel_timer *timer);
 void kernel_timer_stop(struct kernel_timer *timer);
+uint64_t kernel_timer_deadline_ms();
+void kernel_timer_resume();
 
 #endif

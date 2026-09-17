@@ -48,9 +48,11 @@ void kernel_task_init()
 void kernel_task_create(task_func_t task_ptr, const char *name, uint8_t priority,
 						uint32_t stack_depth, void *p_usr_data, task_handle_t *handle)
 {
-	BW_ASSERT(priority < 16, "Invalid priority : %d, (Expected range (0-15))");
+	BW_ASSERT(priority < MAX_TASK_PRIORITY + 1, "Invalid priority : %d, (Expected range (0-15))");
+	if (priority == MAX_TASK_PRIORITY && strcmp(name, "_IDLE_TASK") != 0)
+		BW_ASSERT(false, "Priority %d is reserved for IDLE task!", priority);
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 
 	struct list_node *node;
 	list_pop_front(&g_task_manager.free_queue, &node);
@@ -78,34 +80,34 @@ void kernel_task_create(task_func_t task_ptr, const char *name, uint8_t priority
 	if (handle)
 		*handle = &tcb->idx;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void kernel_task_add_to_ready(struct list_node *node)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	struct tcb *tcb = node->data;
 	clist_push_back(&g_task_manager.ready_queues[tcb->priority], node);
 
 	tcb->state = TASK_STATE_READY;
 	tcb->p_state_queue = &g_task_manager.ready_queues[tcb->priority];
 	g_priority_mask |= 1 << tcb->priority;
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void kernel_task_remove_from_ready(struct list_node *node)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	struct tcb *tcb = node->data;
 	clist_delete_node(&g_task_manager.ready_queues[tcb->priority], node);
 	if (g_task_manager.ready_queues[tcb->priority].count == 0) {
 		g_priority_mask &= ~(1 << tcb->priority);
 	}
 	tcb->state = TASK_STATE_BLOCKED;
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
-void kernel_task_set_delay(uint32_t ms)
+void kernel_task_set_delay(uint64_t ms)
 {
 	if (ms == MAX_TIMEOUT) {
 		g_current_task->delay_ticks = MAX_TIMEOUT;
@@ -119,7 +121,7 @@ void kernel_task_set_delay(uint32_t ms)
 	struct tcb *tcb;
 	struct list_node *node = g_task_manager.delay_queue.head;
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	while (node != NULL) {
 		tcb = node->data;
 		if (tcb->delay_ticks > ms) {
@@ -138,7 +140,7 @@ void kernel_task_set_delay(uint32_t ms)
 	g_current_task->delay_ticks = ms;
 	g_current_task->p_delay_queue = &g_task_manager.delay_queue;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void kernel_task_remove_delay(struct list_node *node)
@@ -151,19 +153,19 @@ void kernel_task_remove_delay(struct list_node *node)
 		return;
 	}
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	if (next_node != NULL)
 		((struct tcb *)next_node->data)->delay_ticks += tcb->delay_ticks;
 
 	tcb->delay_ticks = 0;
 	tcb->p_delay_queue = NULL;
 	list_delete_node(&g_task_manager.delay_queue, &tcb->delay_node);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void kernel_task_wait_on_queue(struct list *wait_queue)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	g_current_task->p_state_queue = wait_queue;
 	kernel_task_remove_from_ready(&g_current_task->state_node);
 
@@ -182,7 +184,7 @@ void kernel_task_wait_on_queue(struct list *wait_queue)
 	else
 		list_insert_before(wait_queue, node, &g_current_task->state_node);
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void kernel_task_yield()
@@ -198,22 +200,22 @@ void kernel_task_yield()
 
 void kernel_task_yield_if_higher()
 {
-	if (__CLZ(__RBIT(g_priority_mask)) > g_current_task->priority)
+	if (__CLZ(__RBIT(g_priority_mask)) < g_current_task->priority)
 		kernel_task_yield();
 }
 
 void kernel_task_wake_from_queue(struct list *wait_queue, struct list_node *node)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	list_delete_node(wait_queue, node);
 	kernel_task_add_to_ready(node);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 enum bw_status kernel_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear_exit_mask,
-									   uint32_t *p_notification, uint32_t timeout_ms)
+									   uint32_t *p_notification, uint64_t timeout_ms)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	g_current_task->notification_value &= ~clear_entry_mask;
 
 	if (g_current_task->is_notified) {
@@ -224,18 +226,18 @@ enum bw_status kernel_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear
 		g_current_task->notification_value &= ~clear_exit_mask;
 		g_current_task->exit_status = STATUS_OK;
 
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return STATUS_OK;
 	}
 
 	g_current_task->wait_on_notify = true;
 	kernel_task_remove_from_ready(&g_current_task->state_node);
 	kernel_task_set_delay(timeout_ms);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	kernel_task_yield();
 
-	KERNEL_ENTER_CRITICAL();
+	key = KERNEL_ENTER_CRITICAL();
 	enum bw_status exit_status = g_current_task->exit_status;
 	g_current_task->exit_status = STATUS_OK;
 
@@ -245,7 +247,7 @@ enum bw_status kernel_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear
 
 		g_current_task->notification_value &= ~clear_exit_mask;
 	}
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	return exit_status;
 }
@@ -254,7 +256,7 @@ void kernel_task_notify(task_handle_t handle, uint32_t value, enum notify_action
 {
 	struct tcb *tcb = handle != NULL ? &g_task_table[*handle] : g_current_task;
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	switch (action) {
 	case NOTIFY_ACTION_NONE:
 		break;
@@ -275,7 +277,7 @@ void kernel_task_notify(task_handle_t handle, uint32_t value, enum notify_action
 	if (!tcb->wait_on_notify) {
 		tcb->is_notified = true;
 		tcb->exit_status = STATUS_OK;
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return;
 	}
 
@@ -283,7 +285,7 @@ void kernel_task_notify(task_handle_t handle, uint32_t value, enum notify_action
 	tcb->exit_status = STATUS_OK;
 	kernel_task_add_to_ready(&tcb->state_node);
 	kernel_task_remove_delay(&tcb->delay_node);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	kernel_task_yield_if_higher();
 }
@@ -297,38 +299,41 @@ bool kernel_task_notify_clear(task_handle_t handle)
 {
 	struct tcb *tcb = handle != NULL ? &g_task_table[*handle] : g_current_task;
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	bool was_notified = tcb->is_notified;
 	tcb->is_notified = false;
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	return was_notified;
 }
 
-bool kernel_task_notify_clear_from_isr(task_handle_t handle)
+void kernel_task_notification_clear(task_handle_t handle)
 {
-	return kernel_task_notify_clear(handle);
+	struct tcb *tcb = handle != NULL ? &g_task_table[*handle] : g_current_task;
+
+	uint32_t key = KERNEL_ENTER_CRITICAL();
+	tcb->notification_value = 0;
+	KERNEL_EXIT_CRITICAL(key);
 }
 
-void kernel_task_delay(uint32_t ms)
+void kernel_task_delay(uint64_t ms)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	kernel_task_remove_from_ready(&g_current_task->state_node);
 	kernel_task_set_delay(ms);
 	g_current_task->p_state_queue = NULL;
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 	kernel_task_yield();
 }
 
-void kernel_task_tick(void *data)
+void kernel_task_tick(uint32_t ms)
 {
-	(void)data;
 	struct list_node *node = g_task_manager.delay_queue.head;
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	if (node != NULL) {
 		struct tcb *tcb = node->data;
-		tcb->delay_ticks--;
+		tcb->delay_ticks = MAX((int)tcb->delay_ticks - (int)ms, 0);
 		while (tcb->delay_ticks == 0) {
 			// Remove from from any wait queue either from semaphore, mutex, event or mqueue
 			if (tcb->p_state_queue != NULL)
@@ -347,7 +352,7 @@ void kernel_task_tick(void *data)
 			tcb = node->data;
 		}
 	}
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	kernel_task_yield();
 }
@@ -364,9 +369,9 @@ void task_scheduler()
 
 	clist_node_t *head;
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	clist_cycle(&g_task_manager.ready_queues[highest_prio], &head);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	if (head == NULL) {
 		g_next_task = NULL;
@@ -377,7 +382,7 @@ void task_scheduler()
 
 void kernel_task_delete(task_handle_t handle)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	struct tcb *tcb = tcb = handle != NULL ? &g_task_table[*handle] : g_current_task;
 	if (tcb->p_state_queue != NULL) {
 		if (tcb->state == TASK_STATE_READY) {
@@ -407,7 +412,7 @@ void kernel_task_delete(task_handle_t handle)
 	tcb->p_msg_data = NULL;
 	tcb->exit_status = STATUS_OK;
 	kernel_mem_dealloc(&tcb->stack);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	if (handle == NULL)
 		kernel_task_yield();
@@ -417,6 +422,27 @@ void task_exit()
 {
 	BW_LOG("Task: %s has exited", g_current_task->name);
 	bw_error_handler();
+}
+
+uint64_t kernel_task_deadline_ms()
+{
+	uint32_t key = KERNEL_ENTER_CRITICAL();
+	uint64_t deadline;
+	if (g_priority_mask == (1 << MAX_TASK_PRIORITY)) {
+		// kernel has no work to do
+		struct list_node *node = g_task_manager.delay_queue.head;
+		if (node) {
+			struct tcb *tcb = node->data;
+			deadline = tcb->delay_ticks;
+		} else {
+			// Waiting on some primitive or no work to do
+			deadline = MAX_TIMEOUT;
+		}
+	} else {
+		deadline = 0;
+	}
+	KERNEL_EXIT_CRITICAL(key);
+	return deadline;
 }
 
 struct tcb *get_task_tcb()

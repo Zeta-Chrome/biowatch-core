@@ -25,9 +25,9 @@ static bool event_check_flags(struct event *event, struct tcb *tcb)
 
 enum bw_status kernel_event_wait(struct event *event, uint32_t event_flags,
 								 uint32_t *events_received, bool clear_on_exit, bool wait_for_all,
-								 uint32_t timeout_ms)
+								 uint64_t timeout_ms)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	struct tcb *tcb = get_task_tcb();
 	tcb->event_flags = event_flags;
 	tcb->event_clear_exit = clear_on_exit;
@@ -42,36 +42,36 @@ enum bw_status kernel_event_wait(struct event *event, uint32_t event_flags,
 		if (events_received != NULL)
 			*events_received = get_task_tcb()->events_received;
 
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return STATUS_OK;
 	}
 
 	if (timeout_ms == 0) {
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 		return STATUS_TIMEOUT;
 	}
 
 	kernel_task_wait_on_queue(&event->wait_queue);
 	kernel_task_set_delay(timeout_ms);
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	kernel_task_yield();
 
-	KERNEL_ENTER_CRITICAL();
+	key = KERNEL_ENTER_CRITICAL();
 	enum bw_status exit_status = get_task_tcb()->exit_status;
 	get_task_tcb()->exit_status = STATUS_OK;
 
 	if (exit_status == STATUS_OK && events_received != NULL)
 		*events_received = get_task_tcb()->events_received;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 
 	return exit_status;
 }
 
 void kernel_event_set(struct event *event, uint32_t event_flags)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	event->event_flags |= event_flags;
 
 	bool clear_on_exit = false;
@@ -100,7 +100,7 @@ void kernel_event_set(struct event *event, uint32_t event_flags)
 	if (clear_on_exit)
 		event->event_flags &= ~clear_mask;
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 	kernel_task_yield_if_higher();
 }
 
@@ -111,15 +111,15 @@ void kernel_event_set_from_isr(struct event *event, uint32_t event_flags)
 
 uint32_t kernel_event_get(struct event *event)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	uint32_t flags = event->event_flags;
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 	return flags;
 }
 
 void kernel_event_clear(struct event *event, uint32_t event_flags)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	event->event_flags &= ~event_flags;
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }

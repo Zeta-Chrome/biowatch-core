@@ -13,7 +13,7 @@ struct event {
 void kernel_event_init(struct event *event);
 enum bw_status kernel_event_wait(struct event *event, uint32_t event_flags,
 								 uint32_t *events_received, bool clear_on_exit, bool wait_for_all,
-								 uint32_t timeout_ms);
+								 uint64_t timeout_ms);
 void kernel_event_set(struct event *event, uint32_t event_flags);
 void kernel_event_set_from_isr(struct event *event, uint32_t event_flags);
 uint32_t kernel_event_get(struct event *event);

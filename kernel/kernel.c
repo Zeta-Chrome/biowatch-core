@@ -1,37 +1,26 @@
-#include "critical.h"
 #include "kernel.h"
+#include "subsys/lpm/lpm.h"
 #include "timer.h"
 #include "lib/logger.h"
 #include "lib/utils.h"
 #include "stm32wb55xx.h"
 #include "task/task.h"
 
-#ifndef DEBUG
-#include "drivers/lptim/lptim.h"
-#else
-#include "drivers/systick/systick.h"
-#endif
-
 static kernel_idle_hook_t g_idle_hook;
 
-void kernel_task_tick();
-void kernel_timer_tick();
+void kernel_task_tick(uint32_t ms);
 
 static void idle_task(void *user_data)
 {
 	(void)user_data;
 	while (1) {
-		KERNEL_ENTER_CRITICAL();
 		g_idle_hook(user_data);
-		KERNEL_EXIT_CRITICAL();
 	}
 }
 
 void kernel_init(struct kernel_conf *conf)
 {
-	NVIC_SetPriority(PendSV_IRQn, 15);
-	NVIC_DisableIRQ(PendSV_IRQn);
-
+	lpm_disable_mode(LPM_MODE_SLEEP, "KERNEL");
 	enum bw_status status = kernel_mem_init(conf->pool_confs);
 	if (status != STATUS_OK) {
 		BW_LOG("Exhausted task stack space of %zu", TASK_POOL_SIZE);
@@ -41,29 +30,14 @@ void kernel_init(struct kernel_conf *conf)
 	g_idle_hook = conf->idle_hook;
 
 	kernel_task_init();
-	kernel_task_create(idle_task, "_SLEEP_TASK", MAX_TASK_PRIORITY, conf->idle_task_size,
+	kernel_task_create(idle_task, "_IDLE_TASK", MAX_TASK_PRIORITY, conf->idle_task_size,
 					   conf->idle_data, NULL);
-	kernel_timer_init();
-
-#ifdef DEBUG
-	systick_init(HIGHEST_IRQ_PRIO); // Systick timer is halted when breakpoint is hit
-#else
-	struct lptim_conf lptim_conf = { .priority = HIGHEST_IRQ_PRIO,
-									 .callback = kernel_scheduler_tick,
-									 NULL };
-	lptim_init(&lptim_conf);
-	lptim_trigger_period(1);
-#endif
-}
-
-void kernel_scheduler_tick()
-{
-	kernel_task_tick();
-	kernel_timer_tick();
+	NVIC_SetPriority(PendSV_IRQn, 15);
 }
 
 void kernel_start()
 {
-	NVIC_EnableIRQ(PendSV_IRQn);
-	kernel_scheduler_tick();
+	lpm_enable_mode(LPM_MODE_SLEEP, "KERNEL");
+	kernel_timer_init();
+	kernel_task_tick(0);
 }

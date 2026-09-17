@@ -13,7 +13,7 @@ struct mutex {
 };
 
 void kernel_mutex_init(struct mutex *mutex);
-enum bw_status kernel_mutex_lock(struct mutex *mutex, uint32_t timeout_ms);
+enum bw_status kernel_mutex_lock(struct mutex *mutex, uint64_t timeout_ms);
 enum bw_status kernel_mutex_unlock(struct mutex *mutex);
 
 #endif

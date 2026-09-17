@@ -24,7 +24,7 @@ enum bw_status kernel_mem_init(const struct kernel_pool_conf *confs)
 				*(uint32_t *)(g_stack_pool + pool_idx + sz) =
 					(uint32_t)&g_stack_pool[pool_idx + 2 * sz];
 
-			pool_idx = pool_idx + sz;
+			pool_idx += sz;
 			if (pool_idx >= TASK_POOL_SIZE)
 				return STATUS_MEM_EXHAUSTED;
 		}

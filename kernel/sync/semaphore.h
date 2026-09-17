@@ -14,7 +14,7 @@ struct semaphore {
 void kernel_semaphore_binary_init(struct semaphore *semaphore, bool take); // binary semaphore
 void kernel_semaphore_counting_init(struct semaphore *semaphore,
 									uint32_t max_count); // counting semaphore
-enum bw_status kernel_semaphore_take(struct semaphore *semaphore, uint32_t timeout_ms);
+enum bw_status kernel_semaphore_take(struct semaphore *semaphore, uint64_t timeout_ms);
 void kernel_semaphore_give(struct semaphore *semaphore);
 void kernel_semaphore_give_from_isr(struct semaphore *semaphore);
 

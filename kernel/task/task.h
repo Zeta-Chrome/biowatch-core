@@ -8,7 +8,7 @@
 #define MAX_TASKS 32
 #define MAX_TASK_PRIORITY 15
 #define TASK_NAME_LEN 16
-#define MAX_TIMEOUT UINT32_MAX
+#define MAX_TIMEOUT UINT64_MAX
 
 typedef uint8_t *task_handle_t;
 typedef void (*task_func_t)(void *user_data);
@@ -32,7 +32,7 @@ struct tcb {
 	struct list *p_delay_queue;
 	struct list_node state_node; // in ready queue, free queue or some wait queue
 	struct list_node delay_node; // in delay queue
-	uint32_t delay_ticks;
+	uint64_t delay_ticks;
 	uint32_t event_flags;
 	bool event_clear_exit;
 	bool event_wait_all;
@@ -49,12 +49,12 @@ void kernel_task_init();
 void kernel_task_create(task_func_t task_ptr, const char *name, uint8_t priority,
 						uint32_t stack_depth, void *p_user_data, task_handle_t *handle);
 enum bw_status kernel_task_notify_wait(uint32_t clear_entry_mask, uint32_t clear_exit_mask,
-									   uint32_t *p_notification, uint32_t timeout_ms);
+									   uint32_t *p_notification, uint64_t timeout_ms);
 void kernel_task_notify(task_handle_t handle, uint32_t value, enum notify_action action);
 void kernel_task_notify_from_isr(task_handle_t handle, uint32_t value, enum notify_action action);
 bool kernel_task_notify_clear(task_handle_t handle);
-bool kernel_task_notify_clear_from_isr(task_handle_t handle);
-void kernel_task_delay(uint32_t ms);
+void kernel_task_notification_clear(task_handle_t handle);
+void kernel_task_delay(uint64_t ms);
 void kernel_task_yield();
 void kernel_task_delete(task_handle_t handle);
 
