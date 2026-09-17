@@ -10,12 +10,17 @@ static struct dma_handle *g_dma2_handles[6];
 
 static void dma_clock_init(DMA_TypeDef *dma)
 {
-	if (dma == DMA1)
+	if (dma == DMA1) {
 		SET_FIELD(RCC->AHB1ENR, RCC_AHB1ENR_DMA1EN_Msk);
-	else if (dma == DMA2)
+		SET_FIELD(RCC->AHB1SMENR, RCC_AHB1SMENR_DMA1SMEN_Msk);
+	} else if (dma == DMA2) {
 		SET_FIELD(RCC->AHB1ENR, RCC_AHB1ENR_DMA2EN_Msk);
+		SET_FIELD(RCC->AHB1SMENR, RCC_AHB1SMENR_DMA2SMEN_Msk);
+	}
 
 	SET_FIELD(RCC->AHB1ENR, RCC_AHB1ENR_DMAMUX1EN_Msk);
+	SET_FIELD(RCC->AHB1SMENR, RCC_AHB1SMENR_DMAMUX1SMEN_Msk);
+	SET_FIELD(RCC->AHB3ENR, RCC_AHB3ENR_FLASHEN_Msk);
 }
 
 void dma_init(struct dma_conf *conf, struct dma_handle *handle)
@@ -136,6 +141,7 @@ void dma_isr(DMA_TypeDef *dma, uint8_t ch_no)
 		SET_FIELD(dma->IFCR, 0xF << ((ch_no - 1) * 4));
 		CLEAR_FIELD(dma_ch->CCR,
 					DMA_CCR_HTIE_Msk | DMA_CCR_TCIE_Msk | DMA_CCR_TEIE_Msk | DMA_CCR_EN_Msk);
+
 		if (handle->callback)
 			handle->callback(STATUS_DMA_TC, handle->user_data);
 

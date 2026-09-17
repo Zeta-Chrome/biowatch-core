@@ -51,7 +51,8 @@ void hsem_isr()
 		idx = __CLZ(__RBIT(mask));
 		mask = mask & (mask - 1);
 		SET_BIT(HSEM->C1ICR, HSEM_C1ICR_ISC0_Pos + idx);
-		g_handles[idx]->callback(g_handles[idx]->user_data);
+		if (g_handles[idx]->callback)
+			g_handles[idx]->callback(g_handles[idx]->user_data);
 	}
 }
 

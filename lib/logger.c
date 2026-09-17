@@ -1,6 +1,7 @@
-#include "stdbool.h"
 #ifdef DEBUG
 
+#include "kernel/timer.h"
+#include "stdbool.h"
 #include "kernel/critical.h"
 #include "logger.h"
 #include <stdarg.h>
@@ -13,6 +14,7 @@
 #define PL_UART USART1
 static const struct gpio PL_UART_TX = { .port = GPIOA, .pin = 9 }; // PA9
 #elif defined(RTT_LOGGER)
+#define BUFFER_SIZE_UP (2048)
 #include "lib/rtt/SEGGER_RTT.h"
 #endif
 
@@ -34,7 +36,7 @@ union ieee754_double {
 	} bits;
 };
 
-static char g_msg[128];
+static char g_msg[256];
 
 void bw_logger_init()
 {
@@ -283,11 +285,12 @@ void bw_print_s(const char *msg, int msg_len)
 
 void bw_log(const char *file, int line, const char *fmt, ...)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 
 	const char *filename = strrchr(file, '/');
 	filename = (filename) ? filename + 1 : file;
-	int msg_len = bw_str_format(g_msg, sizeof(g_msg), "[%s:%d]", filename, line);
+	int msg_len =
+		bw_str_format(g_msg, sizeof(g_msg), "[%llu][%s:%d]", kernel_timer_ms(), filename, line);
 
 	va_list args;
 	va_start(args, fmt);
@@ -296,12 +299,12 @@ void bw_log(const char *file, int line, const char *fmt, ...)
 
 	bw_print_s(g_msg, msg_len);
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void bw_print(const char *fmt, ...)
 {
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 
 	va_list args;
 	va_start(args, fmt);
@@ -310,7 +313,19 @@ void bw_print(const char *fmt, ...)
 
 	bw_print_s(g_msg, msg_len);
 
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
+}
+
+void bw_logs_flush()
+{
+#if defined(RTT_LOGGER)
+	uint32_t key = KERNEL_ENTER_CRITICAL();
+	uint32_t timeout = 200000;
+	while ((_SEGGER_RTT.aUp[0].WrOff != _SEGGER_RTT.aUp[0].RdOff) && (timeout-- > 0)) {
+		__NOP();
+	}
+	KERNEL_EXIT_CRITICAL(key);
+#endif
 }
 
 #endif

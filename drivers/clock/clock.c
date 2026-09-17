@@ -1,5 +1,6 @@
 #include "clock.h"
 #include "clock_srcs.h"
+#include "drivers/flash/flash.h"
 #include "lib/assert.h"
 #include "lib/logger.h"
 #include "lib/status.h"
@@ -64,26 +65,10 @@ static enum bw_status clock_configure_pll(struct clock_conf *conf)
 	return STATUS_OK;
 }
 
-static void configure_flash_latency(uint32_t freq)
-{
-	uint8_t latency = 0;
-	if (freq <= 18000000)
-		latency = 0;
-	else if (freq <= 36000000)
-		latency = 1;
-	else if (freq <= 54000000)
-		latency = 2;
-	else if (freq <= 64000000)
-		latency = 3;
-
-	MODIFY_FIELD(FLASH->ACR, FLASH_ACR_LATENCY_Msk, FLASH_ACR_LATENCY_Pos, latency);
-	while (READ_FIELD(FLASH->ACR, FLASH_ACR_LATENCY_Msk, FLASH_ACR_LATENCY_Pos) != latency)
-		;
-}
-
 enum bw_status clock_configure(struct clock_conf *conf)
 {
 	uint8_t clk_src;
+	uint32_t old_hclk4 = HCLK4_FREQ;
 
 	switch (conf->src) {
 	case CLOCK_SRC_MSI:
@@ -115,13 +100,18 @@ enum bw_status clock_configure(struct clock_conf *conf)
 	HCLK2_FREQ = SYSCLK_FREQ;
 	HCLK4_FREQ = SYSCLK_FREQ;
 
-	// Set wait states in flash memory
-	configure_flash_latency(HCLK4_FREQ);
+	// If frequency is going UP, raise wait states before switching
+	if (HCLK4_FREQ > old_hclk4)
+		flash_configure_latency(HCLK4_FREQ);
 
 	// Set clock source
 	MODIFY_FIELD(RCC->CFGR, RCC_CFGR_SW_Msk, RCC_CFGR_SW_Pos, clk_src);
 	while (READ_FIELD(RCC->CFGR, RCC_CFGR_SWS_Msk, RCC_CFGR_SWS_Pos) != clk_src)
 		;
+
+	// If frequency went DOWN, lower wait states only after the switch
+	if (HCLK4_FREQ <= old_hclk4)
+		flash_configure_latency(HCLK4_FREQ);
 
 	// Configure hclk1 prescalar
 	HCLK1_FREQ = SYSCLK_FREQ / g_hpre_map[conf->hpre];

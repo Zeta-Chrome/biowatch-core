@@ -74,33 +74,6 @@ extern uint32_t HCLK4_FREQ;
 extern uint32_t PCLK1_FREQ;
 extern uint32_t PCLK2_FREQ;
 
-static inline struct clock_conf clock_conf_performance()
-{
-	return (struct clock_conf){ .src = CLOCK_SRC_PLL,
-								.pllr = { .src = CLOCK_SRC_HSE, .mul = 6, .div = 1, .rdiv = 3 },
-								.hpre = CLOCK_HPRE_1,
-								.ppre1 = CLOCK_PPRE_4,
-								.ppre2 = CLOCK_PPRE_1 };
-}
-
-static inline struct clock_conf clock_conf_lp_sleep()
-{
-	return (struct clock_conf){ .src = CLOCK_SRC_MSI,
-								.msi_range = CLOCK_MSI_RANGE_1M,
-								.hpre = CLOCK_HPRE_1,
-								.ppre1 = CLOCK_PPRE_1,
-								.ppre2 = CLOCK_PPRE_1 };
-}
-
-static inline struct clock_conf clock_conf_stop()
-{
-	return (struct clock_conf){ .src = CLOCK_SRC_MSI,
-								.msi_range = CLOCK_MSI_RANGE_48M,
-								.hpre = CLOCK_HPRE_1,
-								.ppre1 = CLOCK_PPRE_2,
-								.ppre2 = CLOCK_PPRE_1 };
-}
-
 enum bw_status clock_configure(struct clock_conf *conf);
 enum bw_status clock_reconfigure(struct clock_conf *conf);
 

@@ -72,12 +72,25 @@ void exti_isr(uint8_t im)
 
 void exti_deinit(struct exti_handle *handle)
 {
-	CLEAR_BIT(EXTI->IMR1, handle->im);
-	CLEAR_BIT(EXTI->FTSR1, handle->im);
-	CLEAR_BIT(EXTI->RTSR1, handle->im);
-	SET_BIT(EXTI->PR1, handle->im);
-	g_exti_handles[handle->im]->callback = NULL;
-	NVIC_DisableIRQ(g_exti_handles[handle->im]->irq);
+	uint8_t im = handle->im;
+	IRQn_Type irq = handle->irq;
+
+	if (im < 32) {
+		CLEAR_BIT(EXTI->IMR1, im);
+		CLEAR_BIT(EXTI->FTSR1, im);
+		CLEAR_BIT(EXTI->RTSR1, im);
+		EXTI->PR1 = (1U << im);
+	} else {
+		CLEAR_BIT(EXTI->IMR2, im - 32);
+		CLEAR_BIT(EXTI->FTSR2, im - 32);
+		CLEAR_BIT(EXTI->RTSR2, im - 32);
+		EXTI->PR2 = (1U << (im - 32));
+	}
+
+	NVIC_DisableIRQ(irq);
+	NVIC_ClearPendingIRQ(irq);
+
+	g_exti_handles[im]->callback = NULL;
 }
 
 void exti_gpio_deinit(struct exti_handle *handle)

@@ -1,7 +1,7 @@
 #include "drivers/dma/dma.h"
 #include "drivers/gpio/gpio.h"
 #include "i2c.h"
-#include "lib/assert.h"
+#include "lib/delay.h"
 #include "lib/utils.h"
 #include "stm32wb55xx.h"
 #include <stdint.h>
@@ -33,11 +33,13 @@ static struct dma_transfer g_trnf_conf[MAX_I2C_PERIPHERALS] = { [0 ... MAX_I2C_P
 static void i2c_clock_init(I2C_TypeDef *i2c)
 {
 	if (i2c == I2C1) {
-		MODIFY_FIELD(RCC->CCIPR, RCC_CCIPR_I2C1SEL_Msk, RCC_CCIPR_I2C1SEL_Pos, 0x00); // PCLK1
+		MODIFY_FIELD(RCC->CCIPR, RCC_CCIPR_I2C1SEL_Msk, RCC_CCIPR_I2C1SEL_Pos, 0x00);
 		SET_FIELD(RCC->APB1ENR1, RCC_APB1ENR1_I2C1EN_Msk);
+		SET_FIELD(RCC->APB1SMENR1, RCC_APB1SMENR1_I2C1SMEN_Msk);
 	} else if (i2c == I2C3) {
-		MODIFY_FIELD(RCC->CCIPR, RCC_CCIPR_I2C3SEL_Msk, RCC_CCIPR_I2C3SEL_Pos, 0x00); // PCLK1
+		MODIFY_FIELD(RCC->CCIPR, RCC_CCIPR_I2C3SEL_Msk, RCC_CCIPR_I2C3SEL_Pos, 0x00);
 		SET_FIELD(RCC->APB1ENR1, RCC_APB1ENR1_I2C3EN_Msk);
+		SET_FIELD(RCC->APB1SMENR1, RCC_APB1SMENR1_I2C3SMEN_Msk);
 	}
 }
 
@@ -148,7 +150,8 @@ void i2c_init_dma(struct i2c_conf *conf, struct i2c_handle *handle)
 		.ch_no = conf->i2c == I2C1 ? I2C1_TX_DMA_CH_NO : I2C3_TX_DMA_CH_NO,
 		.priority = DMA_PL_VERY_HIGH,
 		.dmamux = { .dmareq_id = conf->i2c == I2C1 ? I2C1_TX_DMAREQ_ID : I2C3_TX_DMAREQ_ID,
-					.sync_pol = false }
+					.sync_pol = false },
+		.irq_priority = conf->irq_priority
 	};
 	dma_init(&tx_dma_conf, &g_tx_dma_handles[handle->perip]);
 
@@ -158,7 +161,8 @@ void i2c_init_dma(struct i2c_conf *conf, struct i2c_handle *handle)
 		.ch_no = conf->i2c == I2C1 ? I2C1_RX_DMA_CH_NO : I2C3_RX_DMA_CH_NO,
 		.priority = DMA_PL_VERY_HIGH,
 		.dmamux = { .dmareq_id = conf->i2c == I2C1 ? I2C1_RX_DMAREQ_ID : I2C3_RX_DMAREQ_ID,
-					.sync_pol = false }
+					.sync_pol = false },
+		.irq_priority = conf->irq_priority
 	};
 	dma_init(&rx_dma_conf, &g_rx_dma_handles[handle->perip]);
 }
@@ -169,6 +173,8 @@ void i2c_reset(struct i2c_handle *handle)
 	CLEAR_FIELD(handle->i2c->CR1, I2C_CR1_PE_Msk);
 	if (!(handle->i2c->CR1 & I2C_CR1_PE_Msk))
 		SET_FIELD(handle->i2c->CR1, I2C_CR1_PE_Msk);
+
+	delay_us(100);
 }
 
 void i2c_reset_dma(struct i2c_handle *handle)
@@ -224,13 +230,11 @@ static void i2c_prepare_transaction(struct i2c_handle *handle)
 
 static void i2c_start_dma(struct i2c_handle *handle)
 {
-	handle->remaining -= g_trnf_conf[handle->perip].data_count;
-	if (handle->remaining == 0)
+	if (handle->len == 0)
 		return;
 
-	uint32_t offset = handle->len - handle->remaining;
-	g_trnf_conf[handle->perip].data_count = handle->remaining > 255 ? 255 : handle->remaining;
-	g_trnf_conf[handle->perip].mem_addr = (uint32_t)(handle->buf + offset);
+	g_trnf_conf[handle->perip].data_count = handle->len;
+	g_trnf_conf[handle->perip].mem_addr = (uint32_t)(handle->buf);
 
 	if (handle->type == I2C_TYPE_RX) {
 		g_trnf_conf[handle->perip].mode = DMA_MODE_PERI_TO_MEM;
@@ -263,9 +267,9 @@ void i2c_ev_isr(enum i2c_perip type)
 	}
 
 	if (i2c->ISR & I2C_ISR_TCR_Msk) {
-		if (handle->dma_mode) {
-			i2c_start_dma(handle);
-		}
+		if (handle->dma_mode)
+			handle->remaining -= MIN(255, handle->remaining);
+
 		i2c_configure_reload(&i2c->CR2, handle);
 		return;
 	}
@@ -276,7 +280,8 @@ void i2c_ev_isr(enum i2c_perip type)
 										  I2C_CR1_RXDMAEN_Msk | I2C_CR1_TCIE_Msk);
 
 		// callback to continue the repeated start
-		handle->callback(STATUS_I2C_REPEATED_START, handle->user_data);
+		if (handle->callback)
+			handle->callback(STATUS_I2C_REPEATED_START, handle->user_data);
 
 		uint32_t cr2 = i2c->CR2;
 
@@ -306,7 +311,7 @@ void i2c_ev_isr(enum i2c_perip type)
 		return;
 	}
 
-	if ((i2c->ISR & I2C_ISR_STOPF_Msk) || (i2c->ISR & I2C_ISR_NACKF_Msk)) {
+	if (i2c->ISR & (I2C_ISR_STOPF_Msk | I2C_ISR_NACKF_Msk)) {
 		// Clear all interrupt bits
 		CLEAR_FIELD(handle->i2c->CR1, I2C_CR1_RXIE_Msk | I2C_CR1_TXIE_Msk | I2C_CR1_TCIE_Msk |
 										  I2C_CR1_NACKIE_Msk | I2C_CR1_STOPIE_Msk |
@@ -315,13 +320,15 @@ void i2c_ev_isr(enum i2c_perip type)
 
 	if (i2c->ISR & I2C_ISR_NACKF_Msk) {
 		SET_FIELD(i2c->ICR, I2C_ICR_NACKCF_Msk | I2C_ICR_STOPCF_Msk);
-		handle->callback(STATUS_I2C_NACKF, handle->user_data);
+		if (handle->callback)
+			handle->callback(STATUS_I2C_NACKF, handle->user_data);
 		return;
 	}
 
 	if (i2c->ISR & I2C_ISR_STOPF_Msk) {
 		SET_FIELD(i2c->ICR, I2C_ICR_STOPCF_Msk);
-		handle->callback(STATUS_OK, handle->user_data);
+		if (handle->callback)
+			handle->callback(STATUS_OK, handle->user_data);
 		return;
 	}
 }
@@ -332,7 +339,8 @@ void i2c_er_isr(enum i2c_perip type)
 
 	CLEAR_FIELD(handle->i2c->CR1, I2C_CR1_RXIE_Msk | I2C_CR1_TXIE_Msk | I2C_CR1_TCIE_Msk |
 									  I2C_CR1_NACKIE_Msk | I2C_CR1_STOPIE_Msk | I2C_CR1_ERRIE_Msk);
-	handle->callback(STATUS_I2C_ERR, handle->user_data);
+	if (handle->callback)
+		handle->callback(STATUS_I2C_ERR, handle->user_data);
 }
 
 void i2c_isr_dma(enum bw_status status, void *user_data)
@@ -340,13 +348,17 @@ void i2c_isr_dma(enum bw_status status, void *user_data)
 	struct i2c_handle *handle = (struct i2c_handle *)user_data;
 
 	if (status == STATUS_DMA_TERR) {
-		handle->callback(status, handle->user_data);
+		if (handle->callback)
+			handle->callback(status, handle->user_data);
 		return;
 	}
 }
 
 void i2c_receive(struct i2c_handle *handle)
 {
+	while (CHECK_BIT(handle->i2c->ISR, I2C_ISR_BUSY_Msk))
+		;
+
 	handle->type = I2C_TYPE_RX;
 	handle->dma_mode = false;
 	if (handle->len == 0)
@@ -359,6 +371,9 @@ void i2c_receive(struct i2c_handle *handle)
 
 void i2c_receive_dma(struct i2c_handle *handle)
 {
+	while (CHECK_BIT(handle->i2c->ISR, I2C_ISR_BUSY_Msk))
+		;
+
 	handle->type = I2C_TYPE_RX;
 	handle->dma_mode = true;
 	if (handle->len == 0) {
@@ -377,6 +392,9 @@ void i2c_receive_dma(struct i2c_handle *handle)
 
 void i2c_transmit(struct i2c_handle *handle)
 {
+	while (CHECK_BIT(handle->i2c->ISR, I2C_ISR_BUSY_Msk))
+		;
+
 	handle->type = I2C_TYPE_TX;
 	handle->dma_mode = false;
 	if (handle->len == 0)
@@ -389,6 +407,9 @@ void i2c_transmit(struct i2c_handle *handle)
 
 void i2c_transmit_dma(struct i2c_handle *handle)
 {
+	while (CHECK_BIT(handle->i2c->ISR, I2C_ISR_BUSY_Msk))
+		;
+
 	handle->type = I2C_TYPE_TX;
 	handle->dma_mode = true;
 	if (handle->len == 0)

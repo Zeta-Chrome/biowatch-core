@@ -62,9 +62,9 @@ void ipcc_tx(uint8_t channel, struct ipcc_handle *tx_handle)
 	g_tx_handles[channel - 1] = tx_handle;
 	IPCC->C1SCR = 1UL << (IPCC_C1SCR_CH1S_Pos + channel - 1); // Set tx channel as occupied
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	CLEAR_BIT(IPCC->C1MR, IPCC_C1MR_CH1FM_Pos + channel - 1); // Unmask the tx free interrupt
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void ipcc_tx_masked(uint8_t channel, struct ipcc_handle *tx_handle)
@@ -85,9 +85,9 @@ void ipcc_rx(uint8_t channel, struct ipcc_handle *rx_handle)
 	BW_ASSERT(channel <= 6 && channel >= 1, "Channel out of range %d (Expected 1-6)", channel);
 	g_rx_handles[channel - 1] = rx_handle;
 
-	KERNEL_ENTER_CRITICAL();
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	CLEAR_BIT(IPCC->C1MR, IPCC_C1MR_CH1OM_Pos + channel - 1); // Unmask rx occupied interrupt
-	KERNEL_EXIT_CRITICAL();
+	KERNEL_EXIT_CRITICAL(key);
 }
 
 void ipcc_tx_isr()
@@ -97,9 +97,9 @@ void ipcc_tx_isr()
 	while (mask != 0) {
 		idx = __CLZ(__RBIT(mask));
 
-		KERNEL_ENTER_CRITICAL();
+		uint32_t key = KERNEL_ENTER_CRITICAL();
 		SET_BIT(IPCC->C1MR, IPCC_C1MR_CH1FM_Pos + idx);
-		KERNEL_EXIT_CRITICAL();
+		KERNEL_EXIT_CRITICAL(key);
 
 		if (g_tx_handles[idx] && g_tx_handles[idx]->callback)
 			g_tx_handles[idx]->callback(g_tx_handles[idx]->user_data);

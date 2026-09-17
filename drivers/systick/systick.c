@@ -34,15 +34,17 @@ uint32_t systick_millis()
 	return g_tick_ms;
 }
 
-uint64_t systick_micros()
+uint64_t systick_micros(void)
 {
 	uint32_t ms, val;
+
 	do {
 		ms = g_tick_ms;
-		val = (SysTick->VAL & 0x00FFFFFFU);
-	} while (ms != g_tick_ms); // race condition
+		val = SysTick->VAL & 0x00FFFFFFU;
+	} while (ms != g_tick_ms);
 
-	return (uint64_t)ms * 1000 + (SYSTICK_LOAD - val) / CYCLES_PER_US;
+	uint32_t elapsed_cycles = SYSTICK_LOAD - val;
+	return ((uint64_t)ms * 1000ULL) + (elapsed_cycles / CYCLES_PER_US);
 }
 
 void systick_delay_ms(uint32_t ms)

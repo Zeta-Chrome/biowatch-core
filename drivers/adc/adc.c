@@ -1,8 +1,8 @@
 #include "adc.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/gpio/gpio_types.h"
-#include "drivers/systick/systick.h"
 #include "lib/assert.h"
+#include "lib/delay.h"
 #include "lib/status.h"
 #include "lib/utils.h"
 #include "stm32wb55xx.h"
@@ -24,7 +24,7 @@ static void adc_hw_conf(struct adc_conf *conf)
 	CLEAR_FIELD(ADC1->CR, ADC_CR_ADEN_Msk);
 	CLEAR_FIELD(ADC1->CR, ADC_CR_DEEPPWD_Msk); // ADEN = 0 for clearing this
 	SET_FIELD(ADC1->CR, ADC_CR_ADVREGEN_Msk);
-	systick_delay_us(20); // wait for minimum 20us for regulator startup time
+	delay_us(20); // wait for minimum 20us for regulator startup time
 
 	// Set single ended adc or differential adc
 	MODIFY_BIT(ADC1->CR, ADC_CR_ADCALDIF_Pos, conf->inp);
@@ -91,8 +91,8 @@ void adc_isr()
 		// Clear the EOC & EOS and disable interrupts (rc_w1)
 		WRITE_FIELD(ADC1->ISR, ADC_ISR_EOC_Msk | ADC_ISR_EOS_Msk);
 		CLEAR_FIELD(ADC1->IER, ADC_IER_EOCIE_Msk | ADC_IER_EOSIE_Msk);
-		g_adc_h->callback(STATUS_OK, g_adc_h->user_data);
-		return;
+		if (g_adc_h->callback)
+			g_adc_h->callback(STATUS_OK, g_adc_h->user_data);
 	}
 }
 

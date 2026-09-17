@@ -20,6 +20,7 @@
 #define PLACE_IN_SECTION(__x__) __attribute__((section(__x__)))
 
 // READ OPERATIONS
+#define CHECK_BIT(REG, MSK) ((REG) & (MSK))
 #define READ_BIT(REG, POS) (((REG) >> (POS)) & 1UL)
 
 #define READ_FIELD(REG, MASK, POS) (((REG) & (MASK)) >> (POS))

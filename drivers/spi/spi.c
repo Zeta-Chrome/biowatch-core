@@ -168,7 +168,9 @@ static inline void spi_read_buf(struct spi_handle *handle)
 			;
 
 		CLEAR_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
-		handle->callback(STATUS_OK, handle->user_data);
+
+		if (handle->callback)
+			handle->callback(STATUS_OK, handle->user_data);
 	}
 }
 
@@ -185,7 +187,8 @@ void spi_isr(enum spi_perip type)
 
 		CLEAR_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
 		CLEAR_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk);
-		handle->callback(STATUS_SPI_OVR, handle->user_data);
+		if (handle->callback)
+			handle->callback(STATUS_SPI_OVR, handle->user_data);
 		return;
 	}
 
@@ -193,7 +196,8 @@ void spi_isr(enum spi_perip type)
 		handle->spi->CR1 = handle->spi->CR1;
 		CLEAR_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
 		CLEAR_FIELD(handle->spi->CR1, SPI_CR1_SPE_Msk); // Write CR1 to clear the MODF
-		handle->callback(STATUS_SPI_MODF, handle->user_data);
+		if (handle->callback)
+			handle->callback(STATUS_SPI_MODF, handle->user_data);
 		return;
 	}
 
@@ -226,6 +230,9 @@ void spi_isr_dma(enum bw_status status, void *user_data)
 		;
 
 	CLEAR_FIELD(handle->spi->CR2, SPI_CR2_TXEIE_Msk | SPI_CR2_RXNEIE_Msk | SPI_CR2_ERRIE_Msk);
+
+	if (handle->callback == NULL)
+		return;
 
 	if (status == STATUS_DMA_TC)
 		handle->callback(STATUS_OK, handle->user_data);
