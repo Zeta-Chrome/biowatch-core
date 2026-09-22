@@ -1,21 +1,13 @@
-#ifdef DEBUG
-
-#include "kernel/timer.h"
-#include "stdbool.h"
-#include "kernel/critical.h"
 #include "logger.h"
 #include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+#include "stdbool.h"
 
-#if defined(UART_LOGGER)
-#include "drivers/uart/uart.h"
-#define PL_UART USART1
-static const struct gpio PL_UART_TX = { .port = GPIOA, .pin = 9 }; // PA9
-#elif defined(RTT_LOGGER)
-#define BUFFER_SIZE_UP (2048)
-#include "lib/rtt/SEGGER_RTT.h"
+#ifdef DEBUG
+#include "kernel/timer.h"
+#include "kernel/critical.h"
+#include <stdio.h>
 #endif
 
 #define PUTC(msg, msg_len, ch) \
@@ -35,21 +27,6 @@ union ieee754_double {
 		uint64_t sign : 1;
 	} bits;
 };
-
-static char g_msg[256];
-
-void bw_logger_init()
-{
-#if defined(UART_LOGGER)
-	struct uart_conf uart_conf = {
-		.tx = PL_UART_TX, .af = GPIO_AF7, .uart = PL_UART, .baud_rate = UART_BAUD_9600
-	};
-	uart_init(&uart_conf);
-#elif defined(RTT_LOGGER)
-	SEGGER_RTT_Init();
-	SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
-#endif
-}
 
 static inline void put_str(char **msg, int *msg_len, const char *s)
 {
@@ -258,6 +235,32 @@ int bw_str_format(char *msg, int msg_len, const char *fmt, ...)
 	va_end(args);
 
 	return str_len;
+}
+
+#ifdef DEBUG
+
+#if defined(UART_LOGGER)
+#include "drivers/uart/uart.h"
+#define PL_UART USART1
+static const struct gpio PL_UART_TX = { .port = GPIOA, .pin = 9 }; // PA9
+#elif defined(RTT_LOGGER)
+#define BUFFER_SIZE_UP (2048)
+#include "lib/rtt/SEGGER_RTT.h"
+#endif
+
+static char g_msg[256];
+
+void bw_logger_init()
+{
+#if defined(UART_LOGGER)
+	struct uart_conf uart_conf = {
+		.tx = PL_UART_TX, .af = GPIO_AF7, .uart = PL_UART, .baud_rate = UART_BAUD_9600
+	};
+	uart_init(&uart_conf);
+#elif defined(RTT_LOGGER)
+	SEGGER_RTT_Init();
+	SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
+#endif
 }
 
 void bw_print_s(const char *msg, int msg_len)
