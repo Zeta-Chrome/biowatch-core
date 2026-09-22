@@ -4,6 +4,7 @@
 #include "clock.h"
 
 void clock_enable_msi(enum clock_msi_range range);
+void clock_configure_msi_range(enum clock_msi_range range);
 void clock_disable_msi();
 
 void clock_enable_hsi();

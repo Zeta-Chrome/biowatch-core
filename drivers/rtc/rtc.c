@@ -1,6 +1,7 @@
 #include "drivers/clock/clock_srcs.h"
 #include "drivers/exti/exti.h"
 #include "drivers/pwr/pwr.h"
+#include "kernel/critical.h"
 #include "lib/assert.h"
 #include "lib/utils.h"
 #include "rtc.h"
@@ -132,6 +133,7 @@ void rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm)
 {
 	BW_ASSERT(min < 60, "Invalid minute %d (Expected 0-59)", min);
 	BW_ASSERT(sec < 60, "Invalid second %d (Expected 0-59)", sec);
+
 	rtc_enable_init();
 
 	if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12) {
@@ -188,6 +190,7 @@ void rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd)
 	BW_ASSERT(mth <= 12 && mth >= 1, "Invalid month %d (Expected 1-12)", mth);
 	BW_ASSERT(dte <= 31 && dte >= 1, "Invalid date %d (Expected 1-31)", dte);
 	BW_ASSERT(wd <= 7 && wd >= 1, "Invalid weekday %d (Expected 1-12)", wd);
+
 	rtc_enable_init();
 
 	uint32_t dr = 0x0UL;
@@ -203,30 +206,120 @@ void rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd)
 	rtc_disable_init();
 }
 
-uint32_t rtc_get_timestamp()
+void rtc_set_timestamp(uint32_t timestamp)
 {
-	uint8_t hr, min, sec, yr, mth, dte, wd;
-	bool pm;
+	uint32_t sec_in_day = timestamp % 86400UL;
+	uint32_t days = timestamp / 86400UL; // Days since 1970-01-01
+	uint8_t sec = sec_in_day % 60UL;
+	uint32_t min_in_day = sec_in_day / 60UL;
+	uint8_t min = min_in_day % 60UL;
+	uint8_t hr24 = min_in_day / 60UL;
+	uint8_t wd = (uint8_t)(((days + 3UL) % 7UL) + 1UL);
+	uint32_t z = days + 719468UL;
+	uint32_t era = z / 146097UL;
+	uint32_t doe = z - (era * 146097UL); // [0, 146096]
+	uint32_t yoe = (doe - doe / 1460UL + doe / 36524UL - doe / 146096UL) / 365UL; // [0, 399]
+	uint32_t y = yoe + era * 400UL;
+	uint32_t doy = doe - (365UL * yoe + yoe / 4UL - yoe / 100UL); // [0, 365]
+	uint32_t mp = (5UL * doy + 2UL) / 153UL; // [0, 11]
+	uint8_t dte = (uint8_t)(doy - (153UL * mp + 2UL) / 5UL + 1UL); // [1, 31]
+	uint8_t mth = (uint8_t)(mp + (mp < 10UL ? 3UL : (uint32_t)0 - 9UL)); // [1, 12]
+	y += (mth <= 2UL ? 1UL : 0UL);
 
-	rtc_get_time(&hr, &min, &sec, &pm);
-	rtc_get_date(&yr, &mth, &dte, &wd);
+	BW_ASSERT(y >= 2000 && y <= 2099, "Year %u out of range for RTC (2000-2099)", y);
+	uint8_t yr = (uint8_t)(y - 2000UL);
 
-	return ((uint32_t)(yr & 0x7F) << 25) | ((uint32_t)(mth & 0x0F) << 21) |
-		   ((uint32_t)(dte & 0x1F) << 16) | ((uint32_t)(hr & 0x0F) << 12) |
-		   ((uint32_t)(pm & 0x01) << 11) | ((uint32_t)(min & 0x3F) << 5) |
-		   ((uint32_t)(sec & 0x3F) << 0);
+	bool pm = false;
+	uint8_t hr = hr24;
+
+	if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12) {
+		if (hr24 >= 12) {
+			pm = true;
+			hr = (hr24 > 12) ? (hr24 - 12) : 12;
+		} else {
+			pm = false;
+			hr = (hr24 == 0) ? 12 : hr24;
+		}
+	}
+
+	rtc_enable_init();
+
+	uint32_t tr = 0x0UL;
+	if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12) {
+		MODIFY_BIT(tr, RTC_TR_PM_Pos, pm);
+	}
+	MODIFY_FIELD(tr, RTC_TR_HT_Msk, RTC_TR_HT_Pos, hr / 10);
+	MODIFY_FIELD(tr, RTC_TR_HU_Msk, RTC_TR_HU_Pos, hr % 10);
+	MODIFY_FIELD(tr, RTC_TR_MNT_Msk, RTC_TR_MNT_Pos, min / 10);
+	MODIFY_FIELD(tr, RTC_TR_MNU_Msk, RTC_TR_MNU_Pos, min % 10);
+	MODIFY_FIELD(tr, RTC_TR_ST_Msk, RTC_TR_ST_Pos, sec / 10);
+	MODIFY_FIELD(tr, RTC_TR_SU_Msk, RTC_TR_SU_Pos, sec % 10);
+	RTC->TR = tr;
+
+	uint32_t dr = 0x0UL;
+	MODIFY_FIELD(dr, RTC_DR_YT_Msk, RTC_DR_YT_Pos, yr / 10);
+	MODIFY_FIELD(dr, RTC_DR_YU_Msk, RTC_DR_YU_Pos, yr % 10);
+	MODIFY_FIELD(dr, RTC_DR_WDU_Msk, RTC_DR_WDU_Pos, wd);
+	MODIFY_FIELD(dr, RTC_DR_MT_Msk, RTC_DR_MT_Pos, mth / 10);
+	MODIFY_FIELD(dr, RTC_DR_MU_Msk, RTC_DR_MU_Pos, mth % 10);
+	MODIFY_FIELD(dr, RTC_DR_DT_Msk, RTC_DR_DT_Pos, dte / 10);
+	MODIFY_FIELD(dr, RTC_DR_DU_Msk, RTC_DR_DU_Pos, dte % 10);
+	RTC->DR = dr;
+
+	rtc_disable_init();
+}
+
+uint32_t rtc_get_timestamp(void)
+{
+	rtc_sync_shadow_regs();
+
+	uint32_t tr, dr;
+	uint32_t key = KERNEL_ENTER_CRITICAL();
+	tr = RTC->TR;
+	dr = RTC->DR; // Reading DR unlocks shadow registers
+	KERNEL_EXIT_CRITICAL(key);
+
+	uint8_t hr = READ_FIELD(tr, RTC_TR_HT_Msk, RTC_TR_HT_Pos) * 10 +
+				 READ_FIELD(tr, RTC_TR_HU_Msk, RTC_TR_HU_Pos);
+	uint8_t min = READ_FIELD(tr, RTC_TR_MNT_Msk, RTC_TR_MNT_Pos) * 10 +
+				  READ_FIELD(tr, RTC_TR_MNU_Msk, RTC_TR_MNU_Pos);
+	uint8_t sec = READ_FIELD(tr, RTC_TR_ST_Msk, RTC_TR_ST_Pos) * 10 +
+				  READ_FIELD(tr, RTC_TR_SU_Msk, RTC_TR_SU_Pos);
+
+	if (READ_BIT(RTC->CR, RTC_CR_FMT_Pos) == RTC_HR_FMT_12) {
+		bool pm = (tr & RTC_TR_PM_Msk) != 0;
+		uint8_t h12 = hr % 12;
+		hr = pm ? (h12 + 12) : h12;
+	}
+
+	uint32_t yr = READ_FIELD(dr, RTC_DR_YT_Msk, RTC_DR_YT_Pos) * 10 +
+				  READ_FIELD(dr, RTC_DR_YU_Msk, RTC_DR_YU_Pos);
+	uint32_t mth = READ_FIELD(dr, RTC_DR_MT_Msk, RTC_DR_MT_Pos) * 10 +
+				   READ_FIELD(dr, RTC_DR_MU_Msk, RTC_DR_MU_Pos);
+	uint32_t dte = READ_FIELD(dr, RTC_DR_DT_Msk, RTC_DR_DT_Pos) * 10 +
+				   READ_FIELD(dr, RTC_DR_DU_Msk, RTC_DR_DU_Pos);
+
+	uint32_t y = 2000UL + yr - (mth <= 2 ? 1 : 0);
+	uint32_t era = y / 400UL;
+	uint32_t yoe = y - era * 400UL;
+	uint32_t doy = (153UL * (mth + (mth > 2 ? 0UL - 3UL : 9UL)) + 2UL) / 5UL + dte - 1UL;
+	uint32_t doe = yoe * 365UL + yoe / 4UL - yoe / 100UL + doy;
+	uint32_t days = era * 146097UL + doe - 719468UL;
+
+	return (days * 86400UL) + (hr * 3600UL) + (min * 60UL) + sec;
 }
 
 uint32_t rtc_get_time_ms()
 {
 	rtc_sync_shadow_regs();
+	uint32_t ssr, tr, dr, predivs;
 
-	uint32_t ssr, tr, dr;
+	uint32_t key = KERNEL_ENTER_CRITICAL();
 	ssr = RTC->SSR;
 	tr = RTC->TR;
 	dr = RTC->DR;
-
-	uint32_t predivs = RTC->PRER & RTC_PRER_PREDIV_S_Msk;
+	predivs = RTC->PRER & RTC_PRER_PREDIV_S_Msk;
+	KERNEL_EXIT_CRITICAL(key);
 
 	uint8_t hr = READ_FIELD(tr, RTC_TR_HT_Msk, RTC_TR_HT_Pos) * 10 +
 				 READ_FIELD(tr, RTC_TR_HU_Msk, RTC_TR_HU_Pos);

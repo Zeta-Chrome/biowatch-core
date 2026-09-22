@@ -1,5 +1,6 @@
 #include "drivers/clock/clock_srcs.h"
 #include "lib/assert.h"
+#include "lib/delay.h"
 #include "lib/utils.h"
 #include "lptim.h"
 #include "stdbool.h"
@@ -33,14 +34,16 @@ void lptim_init(uint8_t priority)
 
 	lptim_clock_init();
 
-	CLEAR_FIELD(LPTIM1->CFGR, LPTIM_CFGR_CKSEL_Msk);
-	CLEAR_FIELD(LPTIM1->CFGR, LPTIM_CFGR_COUNTMODE_Msk);
-	CLEAR_FIELD(LPTIM1->CFGR, LPTIM_CFGR_TRIGEN);
+	CLEAR_FIELD(LPTIM1->CFGR, LPTIM_CFGR_CKSEL_Msk | LPTIM_CFGR_COUNTMODE_Msk | LPTIM_CFGR_TRIGEN);
 
 	NVIC_SetPriority(LPTIM1_IRQn, priority);
 	NVIC_EnableIRQ(LPTIM1_IRQn);
 
 	SET_FIELD(LPTIM1->CR, LPTIM_CR_ENABLE_Msk);
+	WRITE_FIELD(LPTIM1->ICR, LPTIM_ICR_ARROKCF_Msk);
+	WRITE_FIELD(LPTIM1->ARR, 0xFFFF);
+	while (!(LPTIM1->ISR & LPTIM_ISR_ARROK_Msk))
+		;
 	SET_FIELD(LPTIM1->CR, LPTIM_CR_CNTSTRT_Msk);
 }
 
@@ -56,10 +59,10 @@ static inline uint16_t lptim_read_cnt_safe(void)
 
 static inline void lptim_write_cmp(uint16_t target_cmp)
 {
-	WRITE_FIELD(LPTIM1->ICR, LPTIM_ICR_CMPOKCF_Msk);
-	LPTIM1->CMP = target_cmp;
+	WRITE_FIELD(LPTIM1->CMP, target_cmp);
 	while (!(LPTIM1->ISR & LPTIM_ISR_CMPOK_Msk))
 		;
+	delay_us(92); // Add latency
 }
 
 static inline void lptim_set_period(bool is_first)
@@ -74,7 +77,7 @@ static inline void lptim_set_period(bool is_first)
 
 static inline void lptim_set_once(bool is_first)
 {
-	uint16_t ticks = (g_handle.rem_ticks > 0xFFFF) ? 0xFFFF : (uint16_t)g_handle.rem_ticks;
+	uint16_t ticks = (g_handle.rem_ticks > 0xFFFE) ? 0xFFFE : (uint16_t)g_handle.rem_ticks;
 	uint16_t base = is_first ? lptim_read_cnt_safe() : (uint16_t)LPTIM1->CMP;
 
 	lptim_write_cmp((uint16_t)(base + ticks));
@@ -86,14 +89,15 @@ void lptim_isr(void)
 	WRITE_FIELD(LPTIM1->ICR, LPTIM_ICR_CMPMCF_Msk);
 
 	if (g_handle.type == LPTIM_TYPE_PERIOD) {
+		lptim_set_period(false);
 		if (g_handle.callback)
 			g_handle.callback(g_handle.ms);
-		lptim_set_period(false);
 	} else if (g_handle.type == LPTIM_TYPE_ONCE) {
 		if (g_handle.rem_ticks > 0) {
 			lptim_set_once(false);
 			return;
 		}
+		CLEAR_FIELD(LPTIM1->IER, LPTIM_IER_CMPMIE_Msk);
 		if (g_handle.callback)
 			g_handle.callback(g_handle.ms);
 		g_handle.ms = 0;

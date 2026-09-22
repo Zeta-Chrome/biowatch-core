@@ -24,6 +24,7 @@ void rtc_get_time(uint8_t *hr, uint8_t *min, uint8_t *sec, bool *pm);
 void rtc_set_time(uint8_t hr, uint8_t min, uint8_t sec, bool pm);
 void rtc_get_date(uint8_t *yr, uint8_t *mth, uint8_t *dte, uint8_t *wd);
 void rtc_set_date(uint8_t yr, uint8_t mth, uint8_t dte, uint8_t wd);
+void rtc_set_timestamp(uint32_t timestamp);
 uint32_t rtc_get_timestamp();
 uint32_t rtc_get_time_ms();
 void rtc_enable_wut(uint16_t delay_s, wkup_callback_t callback, uint8_t irq_priority);

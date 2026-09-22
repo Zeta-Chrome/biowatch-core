@@ -62,7 +62,9 @@ struct clock_conf {
 	enum clock_src src;
 	struct clock_pllr_conf pllr;
 	enum clock_msi_range msi_range;
-	enum clock_hpre hpre;
+	enum clock_hpre hpre1;
+	enum clock_hpre hpre2;
+	enum clock_hpre hpre4;
 	enum clock_ppre ppre1;
 	enum clock_ppre ppre2;
 };

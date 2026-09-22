@@ -14,6 +14,11 @@ void clock_enable_msi(enum clock_msi_range range)
 		;
 }
 
+void clock_configure_msi_range(enum clock_msi_range range)
+{
+	MODIFY_FIELD(RCC->CR, RCC_CR_MSIRANGE_Msk, RCC_CR_MSIRANGE_Pos, range);
+}
+
 void clock_disable_msi()
 {
 	CLEAR_FIELD(RCC->CR, RCC_CR_MSION_Msk);
