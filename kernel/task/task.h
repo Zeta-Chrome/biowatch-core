@@ -28,6 +28,7 @@ struct tcb {
 	uint8_t idx;
 	enum task_state state;
 	uint8_t priority; // 0 - 15
+	bool isReady;
 	struct list *p_state_queue;
 	struct list *p_delay_queue;
 	struct list_node state_node; // in ready queue, free queue or some wait queue

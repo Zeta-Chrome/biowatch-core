@@ -66,6 +66,7 @@ void kernel_task_create(task_func_t task_ptr, const char *name, uint8_t priority
 	struct tcb *tcb = node->data;
 	strncpy(tcb->name, name, 16);
 	tcb->state = TASK_STATE_READY;
+	tcb->isReady = true;
 	tcb->priority = priority;
 	tcb->p_usr_data = p_usr_data;
 	tcb->stack.size = stack_depth;
@@ -91,6 +92,7 @@ void kernel_task_add_to_ready(struct list_node *node)
 
 	tcb->state = TASK_STATE_READY;
 	tcb->p_state_queue = &g_task_manager.ready_queues[tcb->priority];
+	tcb->isReady = true;
 	g_priority_mask |= 1 << tcb->priority;
 	KERNEL_EXIT_CRITICAL(key);
 }
@@ -104,6 +106,7 @@ void kernel_task_remove_from_ready(struct list_node *node)
 		g_priority_mask &= ~(1 << tcb->priority);
 	}
 	tcb->state = TASK_STATE_BLOCKED;
+	tcb->isReady = false;
 	KERNEL_EXIT_CRITICAL(key);
 }
 
@@ -111,10 +114,6 @@ void kernel_task_set_delay(uint64_t ms)
 {
 	if (ms == MAX_TIMEOUT) {
 		g_current_task->delay_ticks = MAX_TIMEOUT;
-		return;
-	} else if (ms == 0) {
-		g_current_task->exit_status = STATUS_TIMEOUT;
-		kernel_task_add_to_ready(&g_current_task->state_node);
 		return;
 	}
 

@@ -5,6 +5,7 @@
 #include "lib/status.h"
 #include "lib/utils.h"
 #include <stddef.h>
+#include <string.h>
 
 void kernel_event_init(struct event *event)
 {

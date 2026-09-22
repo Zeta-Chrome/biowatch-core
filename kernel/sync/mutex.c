@@ -3,6 +3,7 @@
 #include "lib/utils.h"
 #include "mutex.h"
 #include <stddef.h>
+#include <string.h>
 
 void kernel_mutex_init(struct mutex *mutex)
 {
@@ -29,8 +30,16 @@ enum bw_status kernel_mutex_lock(struct mutex *mutex, uint64_t timeout_ms)
 		return STATUS_OK;
 	}
 
-	if (tcb->priority < mutex->original_prio) // Priority inheritance
-		mutex->owner_task->priority = tcb->priority;
+	// Priority inheritance
+	if (tcb->priority < mutex->original_prio) {
+		if (tcb->isReady) {
+			kernel_task_remove_from_ready(&mutex->owner_task->state_node);
+			mutex->owner_task->priority = tcb->priority;
+			kernel_task_add_to_ready(&mutex->owner_task->state_node);
+		} else {
+			mutex->owner_task->priority = tcb->priority;
+		}
+	}
 
 	kernel_task_wait_on_queue(&mutex->wait_queue);
 	kernel_task_set_delay(timeout_ms);
