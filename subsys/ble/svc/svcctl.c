@@ -101,15 +101,12 @@ void ble_svcctl_add_char(uint16_t svc_handle, const struct ble_uuid uuid, uint16
 	}
 }
 
-void ble_svcctl_update_char(uint16_t svc_handle, uint16_t char_handle, uint8_t offset, uint8_t len,
-							const uint8_t *data)
+ble_status_t ble_svcctl_update_char(uint16_t svc_handle, uint16_t char_handle, uint8_t offset,
+									uint8_t len, const uint8_t *data)
 {
 	ble_status_t res = BLE_STATUS_SUCCESS;
 	res = aci_gatt_update_char_value(svc_handle, char_handle, offset, len, data);
-	if (res == BLE_STATUS_SUCCESS)
-		BW_LOG("Characteristic Updated Successfully  %p \n", char_handle);
-	else
-		BW_LOG("FAILED to update Characteristic, Error: %p !!\n", res);
+	return res;
 }
 
 static struct char_registry_entry *find_char(uint16_t attr_handle, uint16_t *offset)

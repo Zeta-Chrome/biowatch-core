@@ -6,8 +6,8 @@
 
 enum lpm_mode {
 	LPM_MODE_RUN,
-	LPM_MODE_SLEEP,
 	LPM_MODE_LP_SLEEP,
+	LPM_MODE_SLEEP,
 	LPM_MODE_STOP,
 	LPM_MODE_STANDBY,
 	LPM_MODE_SHUTDOWN,
@@ -18,8 +18,10 @@ static inline struct clock_conf clock_conf_performance()
 {
 	return (struct clock_conf){ .src = CLOCK_SRC_PLL,
 								.pllr = { .src = CLOCK_SRC_HSE, .mul = 6, .div = 1, .rdiv = 3 },
-								.hpre = CLOCK_HPRE_1,
-								.ppre1 = CLOCK_PPRE_4,
+								.hpre1 = CLOCK_HPRE_1,
+								.hpre2 = CLOCK_HPRE_2,
+								.hpre4 = CLOCK_HPRE_2,
+								.ppre1 = CLOCK_PPRE_2,
 								.ppre2 = CLOCK_PPRE_1 };
 }
 
@@ -27,17 +29,10 @@ static inline struct clock_conf clock_conf_lp_sleep()
 {
 	return (struct clock_conf){ .src = CLOCK_SRC_MSI,
 								.msi_range = CLOCK_MSI_RANGE_1M,
-								.hpre = CLOCK_HPRE_1,
+								.hpre1 = CLOCK_HPRE_1,
+								.hpre2 = CLOCK_HPRE_1,
+								.hpre4 = CLOCK_HPRE_1,
 								.ppre1 = CLOCK_PPRE_1,
-								.ppre2 = CLOCK_PPRE_1 };
-}
-
-static inline struct clock_conf clock_conf_stop()
-{
-	return (struct clock_conf){ .src = CLOCK_SRC_MSI,
-								.msi_range = CLOCK_MSI_RANGE_48M,
-								.hpre = CLOCK_HPRE_1,
-								.ppre1 = CLOCK_PPRE_2,
 								.ppre2 = CLOCK_PPRE_1 };
 }
 

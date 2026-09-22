@@ -2,6 +2,7 @@
 #define BLE_SVC_CTL_H
 
 #include "stdbool.h"
+#include "subsys/ble/auto/ble_types.h"
 #include <stdint.h>
 
 enum ble_uuid_type { BLE_SVC_UUID_TYPE_16 = 0x01U, BLE_SVC_UUID_TYPE_128 = 0x02U };
@@ -64,8 +65,8 @@ void ble_svcctl_add_svc(const struct ble_uuid uuid, enum ble_svc_type type, uint
 void ble_svcctl_add_char(uint16_t svc_handle, const struct ble_uuid uuid, uint16_t value_len,
 						 uint8_t char_props, uint8_t char_evts, bool is_variable,
 						 ble_char_evt_cb_t evt_cb, void *ctx, uint16_t *char_handle);
-void ble_svcctl_update_char(uint16_t svc_handle, uint16_t char_handle, uint8_t offset, uint8_t len,
-							const uint8_t *data);
+ble_status_t ble_svcctl_update_char(uint16_t svc_handle, uint16_t char_handle, uint8_t offset,
+									uint8_t len, const uint8_t *data);
 void ble_svcctl_write_resp(uint16_t conn_handle, uint16_t attr_handle, bool accept);
 void ble_svcctl_read_resp(uint16_t conn_handle, uint16_t attr_handle, const uint8_t *data,
 						  uint16_t len, bool accept);

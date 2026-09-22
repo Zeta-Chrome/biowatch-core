@@ -1,5 +1,7 @@
 #include "lpm.h"
 #include "cmsis_gcc.h"
+#include "drivers/clock/clock.h"
+#include "drivers/clock/clock_srcs.h"
 #include "drivers/lptim/lptim.h"
 #include "drivers/pwr/pwr.h"
 #include "drivers/rtc/rtc.h"
@@ -7,6 +9,7 @@
 #include "kernel/timer.h"
 #include "lib/logger.h"
 #include "lib/utils.h"
+#include "stm32wb55xx.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -61,8 +64,8 @@ static void wake_on_deadline(uint32_t deadline_ms)
 		g_active_sleep_timer = SLEEP_TIMER_LPTIM;
 		lptim_trigger_once(deadline_ms, NULL); // Wakes from WFI
 	} else {
-		g_active_sleep_timer = SLEEP_TIMER_RTC;
 		g_sleep_t0_ms = rtc_get_time_ms();
+		g_active_sleep_timer = SLEEP_TIMER_RTC;
 		rtc_enable_wut(deadline_ms / 1000, NULL, HIGHEST_IRQ_PRIO); // Wakes from WFI
 		lptim_stop_trigger();
 	}
@@ -91,7 +94,6 @@ static void resume_on_wake()
 		g_total_sleep_ms += elapsed_ms;
 		kernel_timer_tick(elapsed_ms);
 	}
-
 	kernel_timer_resume();
 }
 
@@ -112,8 +114,7 @@ void lpm_enter_mode()
 
 	switch (mode) {
 	case LPM_MODE_STOP:
-		clock_conf = clock_conf_stop();
-		clock_reconfigure(&clock_conf);
+		clock_configure_msi_range(CLOCK_MSI_RANGE_48M);
 		pwr_enter_stop(PWR_STOP_MODE_STOP2);
 		clock_conf = clock_conf_performance();
 		clock_reconfigure(&clock_conf);
@@ -139,8 +140,8 @@ void lpm_enter_mode()
 	uint16_t percentx100 = 0;
 	if (uptime_ms > 0)
 		percentx100 = (uint64_t)(g_total_sleep_ms * 10000) / uptime_ms;
-	BW_LOG("Mode: %d - Idle percentage: %llu / %llu = %u.%u%%\n", mode, g_total_sleep_ms, uptime_ms,
-		   percentx100 / 100, percentx100 % 100);
+	// BW_LOG("Mode: %d - Idle percentage: %llu / %llu = %u.%u%%\n", mode, g_total_sleep_ms, uptime_ms,
+	// 	   percentx100 / 100, percentx100 % 100);
 }
 
 void lpm_enter_standby(enum pwr_wkup wkup_pin, enum pwr_wkup_edge edge)

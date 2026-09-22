@@ -248,7 +248,7 @@ static void ble_stack_init()
 														 NULL,
 														 0 } };
 	hci_init(&g_ble_cmd_buf, ble_evt_rx);
-	lpm_disable_mode(LPM_MODE_STANDBY, "BLE");
+	lpm_disable_mode(LPM_MODE_LP_SLEEP, "BLE");
 
 	enum shci_cmd_status status = shci_c2_ble_init(&ble_init_cmd_pkt);
 	if (status != SHCI_SUCCESS) {
@@ -524,6 +524,11 @@ static bool ble_evt_rx(tl_evt_packet_t *p_evt_pkt)
 			aci_gatt_confirm_indication(indication->connection_handle);
 			break;
 		}
+		case ACI_GATT_TX_POOL_AVAILABLE_VSEVT_CODE: {
+			if (g_conf->tx_free_evt_cb)
+				g_conf->tx_free_evt_cb();
+			break;
+		}
 		case ACI_HAL_END_OF_RADIO_ACTIVITY_VSEVT_CODE:
 			break;
 		default: {
@@ -533,6 +538,14 @@ static bool ble_evt_rx(tl_evt_packet_t *p_evt_pkt)
 		};
 		break;
 	};
+
+	case HCI_HARDWARE_ERROR_EVT_CODE: {
+		hci_hardware_error_event_rp0 *p_hci_hw_err_evt =
+			(hci_hardware_error_event_rp0 *)p_hci_evt->data;
+		BW_LOG("HCI_HARDWARE_ERROR_EVT_CODE occurred with code: %u\n",
+			   p_hci_hw_err_evt->hardware_code);
+		break;
+	}
 
 	default:
 		BW_LOG("Unknown HCI event occurred %p\n", p_hci_evt->evt);

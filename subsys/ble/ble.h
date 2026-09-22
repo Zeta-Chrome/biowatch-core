@@ -33,6 +33,7 @@ enum ble_conn_status {
 };
 
 typedef void (*ble_conn_evt_cb_t)();
+typedef void (*ble_tx_free_evt_cb_t)();
 
 struct ble_conf {
 	const char *name;
@@ -43,6 +44,7 @@ struct ble_conf {
 	bool bonding_mode;
 	ble_conn_evt_cb_t connection_evt_cb;
 	ble_conn_evt_cb_t disconnection_evt_cb;
+	ble_tx_free_evt_cb_t tx_free_evt_cb;
 };
 
 void ble_init(struct ble_conf *conf);
