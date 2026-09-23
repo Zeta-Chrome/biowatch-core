@@ -47,4 +47,4 @@ Every peripheral driver in `drivers/` is interrupt/DMA-driven, never a blocking 
 
 ## Application-level power behaviour
 
-The application layer (`biowatch-firmware`) builds on top of this by also reducing *how often* it asks the hardware to do anything — e.g. the display-brightness LDR is read every 2 s only while the screen is on, and is skipped entirely while the display is off, further shrinking the number of wake events per minute. See [../../biowatch-firmware/docs/tasks.md](../../biowatch-firmware/docs/tasks.md).
+The application layer (`biowatch-firmware`) builds on top of this by also reducing *how often* it asks the hardware to do anything — e.g. the display-brightness LDR is read every 2 s only while the screen is on, and is skipped entirely while the display is off, further shrinking the number of wake events per minute.

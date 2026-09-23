@@ -36,7 +36,7 @@ enum bw_status ble_svcctl_add_char(struct ble_char_handle svc_handle, struct ble
 enum bw_status ble_svcctl_update_char(struct ble_char_handle handle, /* ... */);
 ```
 
-Each characteristic can register its own event callback (`ble_char_evt_cb_t`) for writes/read-requests/notification-state-changes, and svcctl dispatches the underlying GATT attribute-modified events to the right callback — so, for example, a "settings write" characteristic and a "vitals notify" characteristic each handle their own logic without a central switch statement growing per service. The actual service/characteristic *definitions* (Activity, Vitals, Environment, Settings, Device Information, and so on) live in the application layer — see [biowatch-firmware/docs/ble.md](../../biowatch-firmware/docs/ble.md) — `subsys/ble` only provides the mechanism.
+Each characteristic can register its own event callback (`ble_char_evt_cb_t`) for writes/read-requests/notification-state-changes, and svcctl dispatches the underlying GATT attribute-modified events to the right callback — so, for example, a "settings write" characteristic and a "vitals notify" characteristic each handle their own logic without a central switch statement growing per service. The actual service/characteristic *definitions* (Activity, Vitals, Environment, Settings, Device Information, and so on) live in the application layer — `subsys/ble` only provides the mechanism.
 
 ### Connection & security (`ble.c`)
 
