@@ -4,7 +4,7 @@ The platform layer for [BioWatch](https://github.com/Zeta-Chrome/biowatch-firmwa
 
 `biowatch-core` is consumed as a git submodule by application firmware. It contains everything that is hardware-specific but application-agnostic: a custom preemptive RTOS kernel, interrupt-driven peripheral drivers, the BLE transport/mailbox stack, and shared utilities. No STM32 HAL, LL, or CubeMX-generated code is used anywhere — every driver talks directly to the peripheral registers.
 
-It is built as a static library (`libbwcore.a`) and linked into the firmware image via `core.mk`.
+The core is compiled directly into the firmware image. `core.mk` exports source lists, include paths, defines, and the linker script, and the firmware's top-level Makefile builds everything in one pass with its own flags.
 
 ## Why a separate core
 
